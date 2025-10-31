@@ -96,8 +96,9 @@ const Project2DViewer: React.FC<{
     );
 };
 
-// --- EARLY ACCESS FEATURE COMPONENTS ---
-const EarlyAccessFeatureContent: React.FC<{ description: string, children: React.ReactNode }> = ({ description, children }) => (
+
+// --- NEW EARLY ACCESS PREVIEW COMPONENTS ---
+const EarlyAccessPreviewWrapper: React.FC<{ description: string, children: React.ReactNode }> = ({ description, children }) => (
     <div className="text-left space-y-4">
         <p className="text-lg text-[#6a5f5f] dark:text-[#c7bca9]">{description}</p>
         <div className="p-4 bg-[#f0e9dc] dark:bg-[#2d2424]/50 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040]">
@@ -106,30 +107,93 @@ const EarlyAccessFeatureContent: React.FC<{ description: string, children: React
     </div>
 );
 
-const WhatsappEarlyAccess: React.FC<{ project: ProjectHistoryItem | null }> = ({ project }) => (
-    <EarlyAccessFeatureContent description="Conecte sua conta do WhatsApp para enviar propostas e atualizações diretamente aos clientes.">
-        <div className="space-y-2">
-            <p className="font-semibold">Cliente: {project?.clientName || 'Cliente Exemplo'}</p>
-            <textarea readOnly className="w-full h-24 p-2 rounded bg-white dark:bg-[#3e3535] text-sm" value={`Olá ${project?.clientName || 'Cliente'},\n\nSegue a proposta para o projeto "${project?.name || 'seu novo móvel'}". Por favor, revise e me avise se tiver alguma dúvida.`}></textarea>
-            <button className="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2"><WhatsappIcon className="w-5 h-5"/> Enviar via WhatsApp</button>
-        </div>
-    </EarlyAccessFeatureContent>
-);
+const WhatsappEarlyAccessPreview: React.FC<{ project: ProjectHistoryItem | null }> = ({ project }) => {
+    const [step, setStep] = useState<'initial' | 'sending' | 'sent'>('initial');
+    useEffect(() => { setStep('initial') }, [project]);
 
-const AutoPurchaseEarlyAccess: React.FC<{ project: ProjectHistoryItem | null }> = ({ project }) => (
-     <EarlyAccessFeatureContent description="Gere um carrinho de compras com os melhores preços para a BOM do seu projeto e envie o pedido para seus fornecedores preferidos.">
-        <div className="space-y-2">
-            <p className="font-semibold">Projeto: {project?.name || 'Projeto Exemplo'}</p>
-            <div className="p-2 border rounded max-h-48 overflow-y-auto bg-white dark:bg-[#3e3535]">
-                <pre className="text-xs whitespace-pre-wrap">{project?.bom || 'Nenhuma BOM disponível.'}</pre>
+    const handleSend = () => {
+        setStep('sending');
+        setTimeout(() => setStep('sent'), 1500);
+    };
+
+    if (step === 'sent') {
+        return (
+            <EarlyAccessPreviewWrapper description="Conecte sua conta do WhatsApp para enviar propostas e atualizações diretamente aos clientes.">
+                <div className="text-center p-6 flex flex-col items-center justify-center space-y-3">
+                    <CheckIcon className="w-16 h-16 text-green-500" />
+                    <h3 className="text-xl font-bold">Mensagem Enviada!</h3>
+                    <p className="text-[#6a5f5f] dark:text-[#c7bca9]">Uma simulação de notificação foi enviada para o WhatsApp do cliente.</p>
+                    <button onClick={() => setStep('initial')} className="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400 mt-4">Enviar Outra</button>
+                </div>
+            </EarlyAccessPreviewWrapper>
+        );
+    }
+
+    return (
+        <EarlyAccessPreviewWrapper description="Conecte sua conta do WhatsApp para enviar propostas e atualizações diretamente aos clientes.">
+            <div className="space-y-2">
+                <p className="font-semibold">Cliente: {project?.clientName || 'Cliente Exemplo'}</p>
+                <textarea readOnly className="w-full h-24 p-2 rounded bg-white dark:bg-[#3e3535] text-sm" value={`Olá ${project?.clientName || 'Cliente'},\n\nSegue a proposta para o projeto "${project?.name || 'seu novo móvel'}". Por favor, revise e me avise se tiver alguma dúvida.`}></textarea>
+                <button onClick={handleSend} disabled={step === 'sending'} className="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2 disabled:opacity-50">
+                    {step === 'sending' ? <Spinner size="sm" /> : <WhatsappIcon className="w-5 h-5"/>}
+                    {step === 'sending' ? 'Enviando...' : 'Simular Envio via WhatsApp'}
+                </button>
             </div>
-            <button className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600">Buscar Preços e Fazer Pedido</button>
-        </div>
-    </EarlyAccessFeatureContent>
-);
+        </EarlyAccessPreviewWrapper>
+    );
+};
 
-const EmployeeManagementEarlyAccess: React.FC = () => (
-    <EarlyAccessFeatureContent description="Atribua projetos, controle o tempo e gerencie a produtividade da sua equipe.">
+const AutoPurchaseEarlyAccessPreview: React.FC<{ project: ProjectHistoryItem | null }> = ({ project }) => {
+    const [step, setStep] = useState<'initial' | 'searching' | 'results'>('initial');
+    useEffect(() => { setStep('initial') }, [project]);
+
+    const handleSearch = () => {
+        setStep('searching');
+        setTimeout(() => setStep('results'), 2000);
+    };
+
+    if (step === 'searching') {
+        return (
+             <EarlyAccessPreviewWrapper description="Gere um carrinho de compras com os melhores preços para a BOM do seu projeto e envie o pedido para seus fornecedores preferidos.">
+                <div className="text-center p-8 flex flex-col items-center justify-center space-y-3">
+                    <Spinner />
+                    <p className="text-[#6a5f5f] dark:text-[#c7bca9]">Buscando melhores preços em Leo Madeiras, GMAD...</p>
+                </div>
+            </EarlyAccessPreviewWrapper>
+        )
+    }
+
+    if (step === 'results') {
+        return (
+             <EarlyAccessPreviewWrapper description="Gere um carrinho de compras com os melhores preços para a BOM do seu projeto e envie o pedido para seus fornecedores preferidos.">
+                <div className="space-y-2 text-sm">
+                    <h4 className="font-bold text-lg mb-2">Cotação (Simulação)</h4>
+                    <div className="flex justify-between p-2 bg-white dark:bg-[#3e3535] rounded"><span>Chapa MDF Branco 18mm</span><span className="font-semibold">Leo Madeiras: R$ 280,00</span></div>
+                    <div className="flex justify-between p-2 bg-white dark:bg-[#3e3535] rounded"><span>Corrediça Telescópica 45cm</span><span className="font-semibold">GMAD: R$ 15,00</span></div>
+                    <div className="flex justify-between p-2 bg-white dark:bg-[#3e3535] rounded border-t-2 mt-2 pt-2"><strong>Total:</strong><strong className="text-green-600">R$ 295,00</strong></div>
+                    <button className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 mt-4">Confirmar Pedido</button>
+                </div>
+            </EarlyAccessPreviewWrapper>
+        )
+    }
+
+    return (
+        <EarlyAccessPreviewWrapper description="Gere um carrinho de compras com os melhores preços para a BOM do seu projeto e envie o pedido para seus fornecedores preferidos.">
+            <div className="space-y-2">
+                <p className="font-semibold">Projeto: {project?.name || 'Projeto Exemplo'}</p>
+                <div className="p-2 border rounded max-h-48 overflow-y-auto bg-white dark:bg-[#3e3535]">
+                    <pre className="text-xs whitespace-pre-wrap">{project?.bom || 'Gere uma BOM para o projeto primeiro.'}</pre>
+                </div>
+                <button onClick={handleSearch} disabled={!project?.bom} className="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 disabled:opacity-50">
+                    Buscar Preços e Fazer Pedido
+                </button>
+            </div>
+        </EarlyAccessPreviewWrapper>
+    );
+};
+
+const EmployeeManagementEarlyAccessPreview: React.FC<{}> = () => (
+    <EarlyAccessPreviewWrapper description="Atribua projetos, controle o tempo e gerencie a produtividade da sua equipe.">
         <div className="space-y-2">
             <div className="flex justify-between items-center p-2 bg-white dark:bg-[#3e3535] rounded">
                 <span>João Silva (Marceneiro)</span>
@@ -141,26 +205,26 @@ const EmployeeManagementEarlyAccess: React.FC = () => (
             </div>
             <button className="w-full bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-yellow-600 mt-2">Adicionar Novo Funcionário</button>
         </div>
-    </EarlyAccessFeatureContent>
+    </EarlyAccessPreviewWrapper>
 );
 
-const LearningHubEarlyAccess: React.FC = () => (
-     <EarlyAccessFeatureContent description="Acesse tutoriais exclusivos, dicas de especialistas e cursos para aprimorar suas habilidades.">
+const LearningHubEarlyAccessPreview: React.FC<{}> = () => (
+     <EarlyAccessPreviewWrapper description="Acesse tutoriais exclusivos, dicas de especialistas e cursos para aprimorar suas habilidades.">
         <div className="space-y-2">
-            <a href="#" className="block p-3 bg-white dark:bg-[#3e3535] rounded hover:bg-gray-50 dark:hover:bg-[#4a4040]">
+            <div className="block text-left w-full p-3 bg-white dark:bg-[#3e3535] rounded hover:bg-gray-50 dark:hover:bg-[#4a4040]">
                 <p className="font-semibold text-purple-600 dark:text-purple-400">[Vídeo] Técnicas Avançadas de Fita de Borda</p>
                 <p className="text-xs">Aprenda a obter um acabamento perfeito em qualquer material.</p>
-            </a>
-            <a href="#" className="block p-3 bg-white dark:bg-[#3e3535] rounded hover:bg-gray-50 dark:hover:bg-[#4a4040]">
+            </div>
+            <div className="block text-left w-full p-3 bg-white dark:bg-[#3e3535] rounded hover:bg-gray-50 dark:hover:bg-[#4a4040]">
                 <p className="font-semibold text-purple-600 dark:text-purple-400">[Artigo] Como Calcular Orçamentos Lucrativos</p>
                 <p className="text-xs">Domine a precificação dos seus projetos.</p>
-            </a>
+            </div>
         </div>
-    </EarlyAccessFeatureContent>
+    </EarlyAccessPreviewWrapper>
 );
 
-const EncontraProEarlyAccess: React.FC = () => (
-     <EarlyAccessFeatureContent description="Receba notificações de novos clientes buscando por marceneiros qualificados na sua região.">
+const EncontraProEarlyAccessPreview: React.FC<{}> = () => (
+     <EarlyAccessPreviewWrapper description="Receba notificações de novos clientes buscando por marceneiros qualificados na sua região.">
         <div className="space-y-2">
             <div className="p-3 border-l-4 border-indigo-500 bg-white dark:bg-[#3e3535] rounded">
                 <p className="font-semibold">Novo Lead: Cozinha Planejada em Moema, SP</p>
@@ -168,18 +232,19 @@ const EncontraProEarlyAccess: React.FC = () => (
             </div>
             <button className="w-full bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-600 mt-2">Ver Painel de Leads</button>
         </div>
-    </EarlyAccessFeatureContent>
+    </EarlyAccessPreviewWrapper>
 );
 
-const AREarlyAccess: React.FC<{ project: ProjectHistoryItem | null }> = ({ project }) => (
-    <EarlyAccessFeatureContent description="Use a câmera do seu celular para visualizar o projeto em tamanho real no ambiente do seu cliente.">
+const AREarlyAccessPreview: React.FC<{}> = () => (
+    <EarlyAccessPreviewWrapper description="Use a câmera do seu celular para visualizar o projeto em tamanho real no ambiente do seu cliente.">
         <div className="text-center">
             <p>Abra o <strong>MarcenApp</strong> no seu celular e aponte a câmera para o local desejado.</p>
             <div className="p-4 my-2 text-3xl">📱</div>
             <button className="w-full bg-teal-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-600">Iniciar Visualização AR</button>
         </div>
-    </EarlyAccessFeatureContent>
+    </EarlyAccessPreviewWrapper>
 );
+
 
 
 // ... Modals ...
@@ -409,7 +474,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
       setStyleSuggestions({ isOpen: true, isLoading: true, suggestions: [] });
       try {
           const suggestions = await suggestAlternativeStyles(currentProject.description, currentProject.style, currentProject.views3d[0]);
-          setStyleSuggestions({ isOpen: true, isLoading: false, suggestions });
+          // Defensively filter out the current style and ensure only 3 suggestions are shown
+          const filteredSuggestions = suggestions
+              .filter(s => s.toLowerCase() !== currentProject.style.toLowerCase())
+              .slice(0, 3);
+          setStyleSuggestions({ isOpen: true, isLoading: false, suggestions: filteredSuggestions });
       } catch (error) {
           showAlert(error instanceof Error ? error.message : "Erro ao sugerir estilos.");
           setStyleSuggestions({ isOpen: false, isLoading: false, suggestions: [] });
@@ -499,6 +568,23 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
         setIsLoading(false);
     }
   };
+  
+  const handleEstimateCurrentProjectCosts = async () => {
+    if (!currentProject) return;
+    setIsLoading(true);
+    setLoadingMessage('Estimando custos do projeto...');
+    try {
+        const { materialCost, laborCost } = await estimateProjectCosts(currentProject);
+        await handleUpdateProject(currentProject.id, {
+            materialCost,
+            laborCost,
+        });
+    } catch (error) {
+        showAlert(error instanceof Error ? error.message : 'Erro ao estimar custos.');
+    } finally {
+        setIsLoading(false);
+    }
+  };
 
   const openFutureFeature = (title: string, component: React.ReactNode, icon: React.ReactNode) => {
     if (isAdmin) {
@@ -584,7 +670,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
                         views={currentProject.views3d}
                         projectName={currentProject.name}
                         onEditClick={(src) => setImageEditorState({ isOpen: true, src })}
-                        onARClick={() => openFutureFeature('Visualização em Realidade Aumentada', <AREarlyAccess project={currentProject} />, <ARIcon />)}
+                        onARClick={() => openFutureFeature('Visualização em Realidade Aumentada', <AREarlyAccessPreview />, <ARIcon />)}
                         onNewViewClick={() => setNewViewGeneratorState({ isOpen: true, project: currentProject })}
                     />
                 )}
@@ -674,12 +760,21 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
                                     <p><span className="font-semibold">Custo de Material:</span> {currentProject.materialCost ? `R$ ${currentProject.materialCost.toFixed(2)}` : 'Não calculado'}</p>
                                     <p><span className="font-semibold">Custo de Mão de Obra:</span> {currentProject.laborCost ? `R$ ${currentProject.laborCost.toFixed(2)}` : 'Não calculado'}</p>
                                 </div>
-                                <div className="flex gap-4">
-                                     <button onClick={() => setIsSupplierPricingModalOpen(true)} disabled={!currentProject.bom} className="flex-1 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-semibold py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-lg transition text-sm disabled:opacity-50">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                     <button
+                                        onClick={handleEstimateCurrentProjectCosts}
+                                        disabled={isLoading || !currentProject.bom}
+                                        className="bg-[#3e3535] hover:bg-[#2d2424] text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                                        title={!currentProject.bom ? "Gere a BOM primeiro" : "Estimar custos com IA"}
+                                    >
+                                        {isLoading && loadingMessage.includes('custos') ? <Spinner size="sm" /> : <SparklesIcon />}
+                                        {isLoading && loadingMessage.includes('custos') ? 'Estimando...' : 'Estimar Custos com IA'}
+                                    </button>
+                                    <button onClick={() => setIsSupplierPricingModalOpen(true)} disabled={!currentProject.bom} className="bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-semibold py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-lg transition text-sm disabled:opacity-50">
                                         Cotação com Fornecedores
                                     </button>
-                                    <button onClick={() => setIsProposalModalOpen(true)} className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition text-sm">
-                                        Gerar Proposta
+                                    <button onClick={() => setIsProposalModalOpen(true)} className="sm:col-span-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition text-sm">
+                                        Gerar Proposta Completa
                                     </button>
                                 </div>
                             </div>
@@ -710,11 +805,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
         onOpenBomGenerator={() => setIsBomGeneratorOpen(true)}
         onOpenCuttingPlanGenerator={() => setIsCuttingPlanGeneratorOpen(true)}
         onOpenCostEstimator={() => setIsCostEstimatorOpen(true)}
-        onOpenWhatsapp={() => openFutureFeature('Integração com WhatsApp', <WhatsappEarlyAccess project={currentProject} />, <WhatsappIcon />)}
-        onOpenAutoPurchase={() => openFutureFeature('Compra Automática de Materiais', <AutoPurchaseEarlyAccess project={currentProject} />, <StoreIcon />)}
-        onOpenEmployeeManagement={() => openFutureFeature('Gestão de Funcionários', <EmployeeManagementEarlyAccess />, <UsersIcon />)}
-        onOpenLearningHub={() => openFutureFeature('Hub de Aprendizagem', <LearningHubEarlyAccess />, <CommunityIcon />)}
-        onOpenEncontraPro={() => openFutureFeature('EncontraPro Marketplace', <EncontraProEarlyAccess />, <ProIcon />)}
+        onOpenWhatsapp={() => openFutureFeature('Integração com WhatsApp', <WhatsappEarlyAccessPreview project={currentProject} />, <WhatsappIcon />)}
+        onOpenAutoPurchase={() => openFutureFeature('Compra Automática de Materiais', <AutoPurchaseEarlyAccessPreview project={currentProject} />, <StoreIcon />)}
+        onOpenEmployeeManagement={() => openFutureFeature('Gestão de Funcionários', <EmployeeManagementEarlyAccessPreview />, <UsersIcon />)}
+        onOpenLearningHub={() => openFutureFeature('Hub de Aprendizagem', <LearningHubEarlyAccessPreview />, <CommunityIcon />)}
+        onOpenEncontraPro={() => openFutureFeature('EncontraPro Marketplace', <EncontraProEarlyAccessPreview />, <ProIcon />)}
       />
       <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
