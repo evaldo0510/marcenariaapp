@@ -22,8 +22,8 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({ isOpen, onClose, p
     
     useEffect(() => {
         // Reset costs when a new project is loaded into the modal
-        setCosts({ material: 0, labor: 0 });
-    }, [project.id]);
+        setCosts({ material: project.materialCost || 0, labor: project.laborCost || 0 });
+    }, [project.id, project.materialCost, project.laborCost]);
 
     const handleCostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;

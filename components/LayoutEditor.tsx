@@ -11,6 +11,16 @@ interface LayoutEditorProps {
     showAlert: (message: string, title?: string) => void;
 }
 
+const editSuggestions = [
+    "Mova a porta 50cm para a direita",
+    "Adicione uma janela na parede de cima",
+    "Aumente a largura total em 100cm",
+    "Remova a parede interna",
+    "Adicione uma parede dividindo o ambiente ao meio",
+    "Transforme a janela em uma porta de correr"
+];
+
+
 export const LayoutEditor: React.FC<LayoutEditorProps> = ({ isOpen, floorPlanSrc, projectDescription, onClose, onSave, showAlert }) => {
     const [prompt, setPrompt] = useState('');
     const [isEditing, setIsEditing] = useState(false);
@@ -88,22 +98,36 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ isOpen, floorPlanSrc
                     </div>
                 </main>
                 <footer className="p-4 border-t border-[#e6ddcd] dark:border-[#4a4040] space-y-3">
-                    <div className="flex flex-col sm:flex-row gap-2">
-                         <input
-                            type="text"
+                    <div>
+                         <textarea
+                            rows={2}
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="Ex: Adicione uma ilha central com 2 banquetas"
-                            className="flex-grow bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
+                            placeholder="Ex: Mova a porta 30cm para a direita, adicione uma janela na parede de cima..."
+                            className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
                         />
-                        <button onClick={handleEdit} disabled={isEditing} className="bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] font-bold py-3 px-5 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-                            {isEditing ? <Spinner size="sm" /> : <WandIcon />}
-                            <span>{isEditing ? 'Ajustando...' : 'Ajustar Layout'}</span>
-                        </button>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {editSuggestions.map(suggestion => (
+                                <button
+                                    key={suggestion}
+                                    onClick={() => setPrompt(prev => prev ? `${prev.trim()}, ${suggestion.toLowerCase()}` : suggestion)}
+                                    className="px-3 py-1 bg-[#e6ddcd] dark:bg-[#4a4040] text-[#6a5f5f] dark:text-[#c7bca9] text-xs font-medium rounded-full hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition"
+                                >
+                                    {suggestion}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                     <div className="flex justify-end gap-4">
-                        <button onClick={onClose} className="bg-[#8a7e7e] dark:bg-[#5a4f4f] text-white font-bold py-2 px-4 rounded hover:bg-[#6a5f5f] dark:hover:bg-[#4a4040] transition">Cancelar</button>
-                        <button onClick={handleSave} disabled={!editedImageSrc} className="bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-2 px-4 rounded hover:bg-[#2d2424] dark:hover:bg-[#c89f5e] transition disabled:opacity-50">Salvar Layout</button>
+                     <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                         <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] text-center sm:text-left">Descreva as alterações e a Iara, nossa IA, redesenhará para você.</p>
+                         <div className="flex gap-2 w-full sm:w-auto flex-shrink-0">
+                            <button onClick={onClose} className="flex-1 bg-[#8a7e7e] dark:bg-[#5a4f4f] text-white font-bold py-3 px-5 rounded-lg hover:bg-[#6a5f5f] dark:hover:bg-[#4a4040] transition">Cancelar</button>
+                            <button onClick={handleEdit} disabled={isEditing} className="flex-1 bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] font-bold py-3 px-5 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                                {isEditing ? <Spinner size="sm" /> : <WandIcon />}
+                                <span>{isEditing ? 'Ajustando' : 'Ajustar'}</span>
+                            </button>
+                            <button onClick={handleSave} disabled={!editedImageSrc} className="flex-1 bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-3 px-5 rounded hover:bg-[#2d2424] dark:hover:bg-[#c89f5e] transition disabled:opacity-50">Salvar</button>
+                         </div>
                     </div>
                 </footer>
             </div>
