@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarcenApp - Marcenaria Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f1e8; /* warm beige */
+            color: #3e3535; /* charcoal brown */
+        }
+        .dark body {
+            background-color: #2d2424; /* walnut */
+            color: #f5f1e8; /* cream */
+        }
+        .font-serif {
+          font-family: 'Lora', serif;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes pulse-scale {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideInRightPanel {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        @keyframes slideOutRightPanel {
+            from { transform: translateX(0); }
+            to { transform: translateX(100%); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.5s ease-out forwards; }
+        .animate-fadeInUp { animation: fadeInUp 0.6s ease-out forwards; will-change: transform, opacity; }
+        .animate-scaleIn { animation: scaleIn 0.4s ease-out forwards; }
+        .animate-pulse-scale { animation: pulse-scale 2s ease-in-out infinite; }
+        .animate-slideInLeft { animation: slideInLeft 0.6s ease-out forwards; will-change: transform, opacity; }
+        .animate-slideInRight { animation: slideInRight 0.6s ease-out forwards; will-change: transform, opacity; }
+        .animate-slideInRightPanel { animation: slideInRightPanel 0.3s ease-out forwards; }
+        .animate-slideOutRightPanel { animation: slideOutRightPanel 0.3s ease-out forwards; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.27.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+</head>
+<body class="min-h-screen">
+    <div id="root" class="h-full"></div>
+</body>
+</html>
