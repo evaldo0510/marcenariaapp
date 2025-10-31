@@ -158,17 +158,29 @@ export async function generateFloorPlanFrom3D(project: ProjectHistoryItem): Prom
         mimeType: project.views3d[0].match(/data:(.*);/)?.[1] || 'image/png'
     };
 
-    const prompt = `**Tarefa:** Gerar um desenho técnico 2D (planta baixa) a partir de uma imagem 3D e descrição.
-**Persona:** Você é um arquiteto técnico de precisão.
-**Input:** A imagem 3D de um móvel e a descrição do projeto.
-**Descrição do Projeto:** "${project.description}"
-**Requisitos da Saída:**
-- **Formato:** Desenho técnico 2D, preto e branco.
-- **Estilo:** Similar a um blueprint de AutoCAD, limpo e profissional.
-- **Vistas:** Incluir as vistas essenciais (frontal, superior, lateral).
-- **Cotas:** Adicionar cotas (dimensões) precisas em MILÍMETROS (mm) em todas as vistas.
-- **Escala:** O desenho deve estar em escala.
-- **Foco:** Apenas o móvel, sem fundos ou decorações desnecessárias.`;
+    const prompt = `**Persona:** Você é um arquiteto técnico e desenhista CAD sênior, especialista em criar desenhos de fabricação para marcenaria. Sua precisão é lendária.
+
+**Tarefa:** Converta a imagem 3D e a descrição de um móvel em um desenho técnico 2D profissional, pronto para produção.
+
+**Contexto:** Este desenho é a única fonte de informação para o marceneiro. Erros ou omissões nas dimensões resultarão em desperdício de material. A clareza e a precisão são absolutamente críticas.
+
+**Input:**
+1.  **Imagem 3D:** [A imagem do móvel será fornecida]
+2.  **Descrição do Projeto:** "${project.description}"
+
+**Requisitos de Saída (Siga estas regras sem exceção):**
+1.  **Estilo:** Desenho técnico 2D, preto e branco, linhas finas e precisas (estilo AutoCAD). **NÃO** use sombreamento, gradientes, cores ou texturas. Fundo branco puro.
+2.  **Vistas Essenciais:** A imagem final DEVE conter as três vistas ortográficas principais, organizadas e alinhadas:
+    *   **Vista Superior (Planta Baixa):** Mostrando a profundidade e largura.
+    *   **Vista Frontal:** Mostrando a largura e altura.
+    *   **Vista Lateral (Direita ou Esquerda):** Mostrando a profundidade e altura.
+3.  **Dimensionamento (Cotas) - O MAIS IMPORTANTE:**
+    *   **Unidade Obrigatória:** Todas as cotas DEVEM ser em **MILÍMETROS (mm)**. Não use cm, m ou polegadas.
+    *   **Cotas Gerais:** Adicione as dimensões totais (Altura Total, Largura Total, Profundidade Total) em cada vista apropriada.
+    *   **Cotas Detalhadas:** Adicione dimensões para TODOS os componentes visíveis: espessura de painéis, altura de gavetas, largura de portas, espaçamento entre prateleiras, altura do rodapé. Seja exaustivo.
+    *   **Clareza das Cotas:** As linhas de dimensão, setas e números devem ser nítidos, legíveis e não devem sobrepor o desenho principal.
+4.  **Escala:** O desenho deve ser perfeitamente proporcional. Se possível, adicione uma nota de escala (ex: "Escala 1:10").
+5.  **Foco Absoluto:** O desenho deve mostrar SOMENTE o móvel. Exclua qualquer elemento de fundo da imagem 3D original (paredes, pisos, decorações).`;
 
     return generateImage(prompt, [base64Image]);
 }

@@ -411,8 +411,132 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
     setCurrentProject(null);
   }, []);
 
-  const handleGenerateProject = async () => { /* Logic to generate the project */ };
-  const handleViewProject = (project: ProjectHistoryItem) => { /* Logic to view project */ };
+  const handleGenerateProject = async () => {
+    if (!projectDescription.trim()) {
+      showAlert("Por favor, descreva sua ideia para o projeto no Passo 1.", "Descrição Necessária");
+      descriptionTextAreaRef.current?.focus();
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingMessage('Criando seu projeto com a Iara...');
+    setCurrentProject(null); // Clear previous project from view while generating
+
+    try {
+      // 1. Construct the prompt
+      const preset = activePreset;
+      if (!preset) {
+          throw new Error("Tipo de projeto inválido selecionado.");
+      }
+      
+      const genderArticle = preset.gender === 'f' ? 'uma' : 'um';
+      
+      let finishDescription = 'não especificado';
+      if (selectedFinish) {
+          finishDescription = `${selectedFinish.finish.name} da ${selectedFinish.manufacturer}`;
+          if (selectedFinish.handleDetails) {
+              finishDescription += ` com puxadores do tipo ${selectedFinish.handleDetails}`;
+          }
+      }
+
+      const prompt = `
+**Persona:** Você é um designer de interiores e renderizador 3D de classe mundial, especialista em marcenaria.
+
+**Tarefa:** Crie uma imagem 3D fotorrealista de ${genderArticle} ${preset.name} com base nos detalhes a seguir. O foco principal é o móvel planejado.
+
+**Descrição Detalhada do Móvel:** "${projectDescription}"
+
+**Estilo de Design:** ${stylePreset}.
+
+**Acabamento Principal:** ${finishDescription}.
+
+**Iluminação:** ${withLedLighting ? 'O projeto deve incluir iluminação de LED embutida para criar um ambiente aconchegante e destacar o design.' : 'Iluminação natural e suave.'}
+
+**Requisitos da Imagem:**
+- A imagem deve ser fotorrealista, com alta qualidade de renderização.
+- Mostre o móvel em um ambiente de estúdio de fotografia minimalista, ou um ambiente residencial limpo e neutro que valorize o móvel.
+- O enquadramento deve ser atraente, mostrando os melhores ângulos do móvel.
+- Preste atenção aos detalhes de texturas, sombras e reflexos para um resultado mais realista.
+`;
+
+      // 2. Call the image generation service
+      const base64Image = await generateImage(prompt, uploadedImages);
+      const imageUrl = `data:image/png;base64,${base64Image}`;
+
+      // 3. Create and save the new project
+      const newProjectData: Omit<ProjectHistoryItem, 'id' | 'timestamp'> = {
+        name: `${preset.name} ${stylePreset}`,
+        description: projectDescription,
+        views3d: [imageUrl],
+        image2d: uploadedFloorPlan ? uploadedFloorPlan.full : null,
+        style: stylePreset,
+        withLedLighting,
+        selectedFinish: selectedFinish || null,
+        bom: null,
+        cuttingPlan: null,
+        cuttingPlanImage: null,
+        cuttingPlanOptimization: null,
+        assemblyDetails: null,
+        // Keep uploaded images for reference
+        uploadedReferenceImageUrls: uploadedImages ? uploadedImages.map(img => `data:${img.mimeType};base64,${img.data}`) : null,
+        uploadedFloorPlanUrl: uploadedFloorPlan ? uploadedFloorPlan.full : null,
+      };
+
+      const newHistory = await addProjectToHistory(newProjectData);
+      
+      setHistory(newHistory);
+      // The new project should be the first in the sorted list from getHistory
+      if (newHistory.length > 0) {
+        setCurrentProject(newHistory[0]);
+      }
+
+    } catch (error) {
+      console.error("Failed to generate project:", error);
+      showAlert(error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.', 'Erro na Geração');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleViewProject = (project: ProjectHistoryItem) => {
+    setCurrentProject(project);
+
+    // Populate form with project data to allow for variations
+    setProjectDescription(project.description);
+    
+    const preset = projectTypePresets.find(p => project.name.toLowerCase().includes(p.name.toLowerCase()));
+    setProjectTypePresetId(preset ? preset.id : projectTypePresets[0].id);
+    
+    setStylePreset(project.style);
+
+    if (project.uploadedReferenceImageUrls) {
+        const images = project.uploadedReferenceImageUrls.map(url => {
+            const parts = url.split(',');
+            const data = parts[1];
+            const mimeType = url.match(/data:(.*);/)?.[1] || 'image/png';
+            return { data, mimeType };
+        });
+        setUploadedImages(images);
+    } else {
+        setUploadedImages(null);
+    }
+
+    if (project.uploadedFloorPlanUrl) {
+        const url = project.uploadedFloorPlanUrl;
+        const parts = url.split(',');
+        const data = parts[1];
+        const mimeType = url.match(/data:(.*);/)?.[1] || 'image/png';
+        setUploadedFloorPlan({ data, mimeType, full: url });
+    } else {
+        setUploadedFloorPlan(null);
+    }
+
+    setSelectedFinish(project.selectedFinish || null);
+    setWithLedLighting(project.withLedLighting || false);
+    
+    setIsHistoryOpen(false); // Close panel after selecting
+  };
+
   const handleUpdateProject = async (id: string, updates: Partial<ProjectHistoryItem>) => {
     const updatedProject = await updateProjectInHistory(id, updates);
     if (updatedProject) {
