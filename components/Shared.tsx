@@ -369,3 +369,23 @@ export const ConfirmationModal: React.FC<{
         </div>
     );
 };
+
+export const EarlyAccessModal: React.FC<{isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode}> = ({isOpen, onClose, title, children}) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
+            <div className="bg-[#fffefb] dark:bg-[#4a4040] rounded-xl max-w-3xl w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                <header className="p-4 border-b border-[#e6ddcd] dark:border-[#4a4040] flex justify-between items-center">
+                    <div>
+                        <h2 className="text-xl font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">{title}</h2>
+                        <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/50 px-2 py-0.5 rounded-full">Acesso Antecipado</span>
+                    </div>
+                    <button onClick={onClose} className="text-[#a89d8d] hover:text-[#3e3535] dark:hover:text-white text-2xl">&times;</button>
+                </header>
+                <main className="p-6 text-center max-h-[60vh] overflow-y-auto">
+                    {children}
+                </main>
+            </div>
+        </div>
+    );
+};

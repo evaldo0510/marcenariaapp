@@ -70,21 +70,11 @@ function processImageGenerationResponse(response: GenerateContentResponse, error
 
 export async function generateImage(
     prompt: string, 
-    base64Images: { data: string; mimeType: string }[] | null,
-    generationType: '3d' | '2d' = '3d'
+    base64Images: { data: string; mimeType: string }[] | null
 ): Promise<string> {
     const model = 'gemini-2.5-flash-image';
 
-    const parts: Part[] = [];
-    
-    let fullPrompt = '';
-    if (generationType === '3d') {
-        fullPrompt = `Gere uma imagem 3D fotorrealista de um móvel de marcenaria. O fundo deve ser um estúdio de fotografia minimalista com iluminação suave. Foco total no móvel. ${prompt}`;
-    } else {
-        fullPrompt = `Gere uma planta baixa técnica 2D, em preto e branco, com cotas em milímetros (mm). O estilo deve ser limpo e profissional, como um desenho de AutoCAD. ${prompt}`;
-    }
-    
-    parts.push({ text: fullPrompt });
+    const parts: Part[] = [{ text: prompt }];
 
     if (base64Images) {
         for (const img of base64Images) {
@@ -99,7 +89,7 @@ export async function generateImage(
     });
     
     const response = await callApiWithRetry(apiCall);
-    return processImageGenerationResponse(response, `geração de imagem ${generationType}`);
+    return processImageGenerationResponse(response, `geração de imagem`);
 }
 
 export async function editImage(base64Data: string, mimeType: string, prompt: string): Promise<string> {
@@ -168,10 +158,43 @@ export async function generateFloorPlanFrom3D(project: ProjectHistoryItem): Prom
         mimeType: project.views3d[0].match(/data:(.*);/)?.[1] || 'image/png'
     };
 
-    const prompt = `Você é um arquiteto especialista em desenhos técnicos. Com base na descrição e na imagem 3D fotorrealista de um móvel a seguir, gere uma planta baixa técnica 2D, em preto e branco, com cotas precisas em milímetros (mm). O estilo deve ser limpo e profissional, como um desenho de AutoCAD, mostrando as vistas essenciais (frontal, lateral, superior). Seja detalhista nas medidas. Descrição do projeto: "${project.description}"`;
+    const prompt = `**Tarefa:** Gerar um desenho técnico 2D (planta baixa) a partir de uma imagem 3D e descrição.
+**Persona:** Você é um arquiteto técnico de precisão.
+**Input:** A imagem 3D de um móvel e a descrição do projeto.
+**Descrição do Projeto:** "${project.description}"
+**Requisitos da Saída:**
+- **Formato:** Desenho técnico 2D, preto e branco.
+- **Estilo:** Similar a um blueprint de AutoCAD, limpo e profissional.
+- **Vistas:** Incluir as vistas essenciais (frontal, superior, lateral).
+- **Cotas:** Adicionar cotas (dimensões) precisas em MILÍMETROS (mm) em todas as vistas.
+- **Escala:** O desenho deve estar em escala.
+- **Foco:** Apenas o móvel, sem fundos ou decorações desnecessárias.`;
 
-    // Reusing the generic generateImage function is perfect for this.
-    return generateImage(prompt, [base64Image], '2d');
+    return generateImage(prompt, [base64Image]);
+}
+
+export async function generate3Dfrom2D(project: ProjectHistoryItem, newStyle: string, newFinish: string): Promise<string> {
+    if (!project.image2d) {
+        throw new Error("É necessária uma planta baixa 2D para gerar uma nova vista 3D.");
+    }
+
+    const floorPlanImage = {
+        data: project.image2d.split(',')[1],
+        mimeType: project.image2d.match(/data:(.*);/)?.[1] || 'image/png'
+    };
+
+    const prompt = `Com base na planta baixa 2D fornecida e na descrição do projeto, gere uma imagem 3D fotorrealista.
+- **Descrição Original do Projeto:** "${project.description}"
+- **Estilo Original:** "${project.style}"
+- **NOVO Estilo de Design Desejado:** "${newStyle}"
+- **NOVO Acabamento Principal:** "${newFinish}"
+
+**Requisitos da Imagem:**
+- O fundo deve ser um estúdio de fotografia minimalista com iluminação suave e difusa.
+- O foco deve ser total no móvel, mostrando-o de forma clara e atraente.
+- A qualidade da renderização deve ser fotorrealista.`;
+
+    return generateImage(prompt, [floorPlanImage]);
 }
 
 export async function searchFinishes(query: string): Promise<Finish[]> {
@@ -225,7 +248,7 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
 
   const [text, image, optimization] = await Promise.all([
     generateText(textPrompt, null),
-    generateImage(imagePrompt, null, '2d'),
+    generateImage(imagePrompt, null),
     generateText(optimizationPrompt, null),
   ]);
 

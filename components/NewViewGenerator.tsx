@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { editImage } from '../services/geminiService';
 import { updateProjectInHistory } from '../services/historyService';
 import { Spinner, WandIcon } from './Shared';
 import type { ProjectHistoryItem } from '../types';
+import { initialStylePresets } from '../services/presetService';
 
 interface NewViewGeneratorProps {
     isOpen: boolean;
@@ -13,15 +14,24 @@ interface NewViewGeneratorProps {
 }
 
 export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, project, onSaveComplete, onClose, showAlert }) => {
-    const [prompt, setPrompt] = useState('');
+    const [style, setStyle] = useState(project.style);
+    const [finish, setFinish] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedImageSrc, setGeneratedImageSrc] = useState<string | null>(null);
 
     const originalImageSrc = project.views3d[0];
 
+    useEffect(() => {
+        if (isOpen) {
+            setStyle(project.style);
+            setFinish('');
+            setGeneratedImageSrc(null);
+        }
+    }, [isOpen, project]);
+
     const handleGenerate = async () => {
-        if (!prompt.trim()) {
-            showAlert('Por favor, descreva a nova vista que você deseja.');
+        if (!style.trim() || !finish.trim()) {
+            showAlert('Por favor, selecione um estilo e descreva um acabamento.');
             return;
         }
         setIsGenerating(true);
@@ -30,7 +40,10 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
             const base64Data = originalImageSrc.split(',')[1];
             const mimeType = originalImageSrc.match(/data:(.*);/)?.[1] || 'image/png';
             
-            const fullPrompt = `Com base na imagem 3D fornecida, que representa um móvel no estilo '${project.style}', gere uma nova vista 3D fotorrealista. A instrução do usuário para a nova perspectiva é: "${prompt}". Mantenha ABSOLUTA consistência com a imagem original em termos de estilo, acabamento, cores, iluminação e qualidade de renderização. O objetivo é criar uma imagem complementar para um catálogo.`;
+            const fullPrompt = `Você é um renderizador 3D de IA. A imagem fornecida é uma renderização de um móvel no estilo "${project.style}". Sua tarefa é criar uma nova renderização fotorrealista do MESMO móvel, mas aplicando as seguintes modificações:
+**Novo Estilo:** "${style}"
+**Novo Acabamento Principal:** "${finish}"
+Mantenha a forma, a estrutura e a perspectiva geral do móvel, alterando apenas o estilo e os materiais conforme solicitado. O fundo deve ser um estúdio de fotografia minimalista.`;
 
             const newImageBase64 = await editImage(base64Data, mimeType, fullPrompt);
             setGeneratedImageSrc(`data:image/png;base64,${newImageBase64}`);
@@ -52,8 +65,6 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
     }
 
     const handleClose = () => {
-        setPrompt('');
-        setGeneratedImageSrc(null);
         onClose();
     }
 
@@ -77,7 +88,7 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
                             {isGenerating ? (
                                 <div className="text-center">
                                     <Spinner />
-                                    <p className="mt-2 text-[#8a7e7e] dark:text-[#a89d8d]">Gerando nova perspectiva...</p>
+                                    <p className="mt-2 text-[#8a7e7e] dark:text-[#a89d8d]">Gerando nova variação...</p>
                                 </div>
                             ) : generatedImageSrc ? (
                                 <img src={generatedImageSrc} alt="Nova vista gerada" className="w-full h-auto object-contain rounded-md" />
@@ -91,21 +102,24 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
                     </div>
                 </main>
                 <footer className="p-4 border-t border-[#e6ddcd] dark:border-[#4a4040] space-y-3">
-                    <div className="flex flex-col sm:flex-row gap-2">
-                         <input
-                            type="text"
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="Ex: close-up no puxador, vista de cima"
-                            className="flex-grow bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
-                        />
-                        <button onClick={handleGenerate} disabled={isGenerating} className="bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] font-bold py-3 px-5 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="style-select-new-view" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Novo Estilo de Design</label>
+                            <select id="style-select-new-view" value={style} onChange={(e) => setStyle(e.target.value)} className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition">
+                                {initialStylePresets.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="finish-input-new-view" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Novo Acabamento Principal</label>
+                            <input id="finish-input-new-view" type="text" value={finish} onChange={(e) => setFinish(e.target.value)} placeholder="Ex: Madeira escura, MDF branco" className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition" />
+                        </div>
+                    </div>
+                     <div className="flex justify-end gap-4 mt-2">
+                        <button onClick={handleClose} className="bg-[#8a7e7e] dark:bg-[#5a4f4f] text-white font-bold py-2 px-4 rounded hover:bg-[#6a5f5f] dark:hover:bg-[#4a4040] transition">Cancelar</button>
+                        <button onClick={handleGenerate} disabled={isGenerating} className="bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] font-bold py-2 px-4 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                             {isGenerating ? <Spinner size="sm" /> : <WandIcon />}
                             <span>{isGenerating ? 'Gerando...' : 'Gerar Vista'}</span>
                         </button>
-                    </div>
-                     <div className="flex justify-end gap-4">
-                        <button onClick={handleClose} className="bg-[#8a7e7e] dark:bg-[#5a4f4f] text-white font-bold py-2 px-4 rounded hover:bg-[#6a5f5f] dark:hover:bg-[#4a4040] transition">Cancelar</button>
                         <button onClick={handleSave} disabled={!generatedImageSrc} className="bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-2 px-4 rounded hover:bg-[#2d2424] dark:hover:bg-[#c89f5e] transition disabled:opacity-50">Salvar Nova Vista</button>
                     </div>
                 </footer>
