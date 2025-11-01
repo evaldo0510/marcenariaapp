@@ -1,19 +1,35 @@
 import React, { useState } from 'react';
-import { editImage } from '../services/geminiService';
-import { Spinner, WandIcon } from './Shared';
+import { editImage, suggestImageEdits } from '../services/geminiService';
+import { Spinner, WandIcon, SparklesIcon } from './Shared';
 
 interface ImageEditorProps {
     isOpen: boolean;
     imageSrc: string;
+    projectDescription: string;
     onClose: () => void;
     onSave: (newImageBase64: string) => void;
     showAlert: (message: string, title?: string) => void;
 }
 
-export const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, imageSrc, onClose, onSave, showAlert }) => {
+export const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, imageSrc, projectDescription, onClose, onSave, showAlert }) => {
     const [prompt, setPrompt] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [editedImageSrc, setEditedImageSrc] = useState<string | null>(null);
+    const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [isSuggesting, setIsSuggesting] = useState(false);
+
+    const handleSuggestEdits = async () => {
+        setIsSuggesting(true);
+        setSuggestions([]);
+        try {
+            const result = await suggestImageEdits(projectDescription, imageSrc);
+            setSuggestions(result.slice(0, 4)); // Limit to 4 suggestions
+        } catch (error) {
+            showAlert(error instanceof Error ? error.message : "Erro ao sugerir edições.");
+        } finally {
+            setIsSuggesting(false);
+        }
+    };
 
     const handleEdit = async () => {
         if (!prompt.trim()) {
@@ -45,6 +61,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, imageSrc, onCl
     const handleClose = () => {
         setPrompt('');
         setEditedImageSrc(null);
+        setSuggestions([]);
         onClose();
     }
 
@@ -90,11 +107,30 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, imageSrc, onCl
                             placeholder="Ex: Mude o acabamento para madeira escura"
                             className="flex-grow bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
                         />
+                         <button onClick={handleSuggestEdits} disabled={isSuggesting} title="Sugerir edições com IA" className="p-3 rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] text-[#d4ac6e] disabled:opacity-50">
+                            {isSuggesting ? <Spinner size="sm"/> : <SparklesIcon />}
+                        </button>
                         <button onClick={handleEdit} disabled={isEditing} className="bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] font-bold py-3 px-5 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                             {isEditing ? <Spinner size="sm" /> : <WandIcon />}
                             <span>{isEditing ? 'Otimizando...' : 'Otimizar'}</span>
                         </button>
                     </div>
+                     {isSuggesting && (
+                        <div className="text-center text-sm text-[#8a7e7e] dark:text-[#a89d8d]">Sugerindo edições...</div>
+                    )}
+                    {suggestions.length > 0 && (
+                        <div className="flex flex-wrap gap-2 animate-fadeIn">
+                            {suggestions.map((suggestion, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => setPrompt(suggestion)}
+                                    className="px-3 py-1 bg-[#e6ddcd] dark:bg-[#4a4040] text-[#6a5f5f] dark:text-[#c7bca9] text-xs font-medium rounded-full hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition"
+                                >
+                                    {suggestion}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                      <div className="flex justify-end gap-4">
                         <button onClick={handleClose} className="bg-[#8a7e7e] dark:bg-[#5a4f4f] text-white font-bold py-2 px-4 rounded hover:bg-[#6a5f5f] dark:hover:bg-[#4a4040] transition">Cancelar</button>
                         <button onClick={handleSave} disabled={!editedImageSrc} className="bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-2 px-4 rounded hover:bg-[#2d2424] dark:hover:bg-[#c89f5e] transition disabled:opacity-50">Salvar como Nova Vista</button>

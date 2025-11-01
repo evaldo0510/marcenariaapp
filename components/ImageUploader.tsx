@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, ChangeEvent, useEffect } from 'react';
 import { fileToBase64 } from '../utils/helpers';
-import { CameraIcon } from './Shared';
+import { CameraIcon, SwitchCameraIcon } from './Shared';
 
 interface ImageUploaderProps {
   onImagesChange: (images: { data: string, mimeType: string }[] | null) => void;
@@ -17,6 +17,9 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
+  const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
+
   useEffect(() => {
     if (initialImageUrls) {
         const initialFiles = initialImageUrls.map(url => {
@@ -32,6 +35,30 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
         setUploadedFiles([]);
     }
   }, [initialImageUrls, onImagesChange]);
+
+  useEffect(() => {
+    if (isCameraOpen && cameraDevices.length > 0) {
+        const openStream = async () => {
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
+            const deviceId = cameraDevices[currentDeviceIndex]?.deviceId;
+            const constraints = { video: { deviceId: deviceId ? { exact: deviceId } : undefined } };
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                streamRef.current = stream;
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+            } catch (err) {
+                console.error("Error opening camera stream:", err);
+                showAlert("Não foi possível acessar a câmera selecionada.", "Erro de Câmera");
+            }
+        };
+        openStream();
+    }
+  }, [isCameraOpen, currentDeviceIndex, cameraDevices, showAlert]);
+
 
   const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -84,12 +111,23 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setIsCameraOpen(true);
+        // Request permission and enumerate devices
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        stream.getTracks().forEach(track => track.stop()); // Stop the temporary stream
+
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        if (videoDevices.length === 0) {
+            showAlert("Nenhuma câmera foi encontrada no seu dispositivo.", "Erro de Câmera");
+            return;
+        }
+        setCameraDevices(videoDevices);
+
+        // Prefer back camera
+        const backCameraIndex = videoDevices.findIndex(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('traseira'));
+        setCurrentDeviceIndex(backCameraIndex !== -1 ? backCameraIndex : 0);
+        
+        setIsCameraOpen(true);
     } catch (err) {
       console.error("Camera access error:", err);
       showAlert("Não foi possível acessar a câmera. Verifique as permissões do seu navegador.", "Erro de Câmera");
@@ -101,6 +139,13 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
       streamRef.current.getTracks().forEach(track => track.stop());
     }
     setIsCameraOpen(false);
+  };
+  
+  const handleSwitchCamera = () => {
+    if (cameraDevices.length > 1) {
+        const nextIndex = (currentDeviceIndex + 1) % cameraDevices.length;
+        setCurrentDeviceIndex(nextIndex);
+    }
   };
 
   const blobToDataUrl = (blob: Blob): Promise<string> => {
@@ -171,10 +216,18 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
         <div className="fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center p-4 animate-fadeIn">
           <video ref={videoRef} autoPlay playsInline className="max-w-full max-h-[80%] w-auto h-auto rounded-lg"></video>
           <canvas ref={canvasRef} className="hidden"></canvas>
-          <div className="absolute bottom-10 flex items-center justify-center w-full">
+          <div className="absolute bottom-10 flex items-center justify-center w-full gap-20">
+             {cameraDevices.length > 1 && (
+                <button onClick={handleSwitchCamera} className="text-white bg-black/30 rounded-full w-14 h-14 flex items-center justify-center hover:bg-black/50 transition" aria-label="Trocar câmera">
+                    <SwitchCameraIcon />
+                </button>
+            )}
             <button onClick={handleCapturePhoto} className="w-20 h-20 rounded-full bg-white flex items-center justify-center p-1" aria-label="Tirar foto">
                 <div className="w-full h-full rounded-full bg-white border-4 border-black/50"></div>
             </button>
+             {cameraDevices.length > 1 && (
+                <div className="w-14 h-14"></div> // Spacer to center capture button
+            )}
           </div>
           <button onClick={handleCloseCamera} className="absolute top-5 right-5 text-white text-4xl font-light" aria-label="Fechar câmera">&times;</button>
         </div>

@@ -106,3 +106,11 @@ export interface Marceneiro {
   notaMedia: number;
   email: string;
 }
+
+export interface ProjectLead {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  budget: string;
+}

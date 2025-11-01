@@ -1,6 +1,6 @@
 import { GoogleGenAI, Modality, GenerateContentResponse, Type } from "@google/genai";
 import type { Part } from "@google/genai";
-import type { Finish, ProjectHistoryItem, LocationState, Marceneiro, PricedBomItem } from '../types';
+import type { Finish, ProjectHistoryItem, LocationState, Marceneiro, PricedBomItem, ProjectLead } from '../types';
 import { cleanAndParseJson } from "../utils/helpers";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
@@ -357,6 +357,12 @@ export const findMarceneirosPro = async (especialidade: string, cidade: string):
     return cleanAndParseJson<Marceneiro[]>(response.text);
 };
 
+export const findProjectLeads = async (cidade: string): Promise<ProjectLead[]> => {
+    const prompt = `Você é um assistente que alimenta a plataforma "EncontraPro" com novos projetos para marceneiros. Busque por novos projetos de marcenaria na cidade de "${cidade}". Retorne uma lista de 3 a 5 leads de projetos fictícios. Para cada um, forneça um id único, title, description, location (bairro, cidade) e um budget (orçamento) estimado em Reais. Retorne APENAS um array de objetos JSON.`;
+    const response = await generateGroundedResponse(prompt, null);
+    return cleanAndParseJson<ProjectLead[]>(response.text);
+};
+
 export async function suggestAlternativeStyles(projectDescription: string, currentStyle: string, base64Image: string): Promise<string[]> {
     const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';
     const imageData = base64Image.split(',')[1];
@@ -366,6 +372,30 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
 **Descrição do Projeto:** ${projectDescription}
 
 Retorne a resposta APENAS como um array JSON de strings. Exemplo: ["Estilo A", "Estilo B", "Estilo C"]`;
+    
+    const parts: Part[] = [
+        { text: prompt },
+        fileToGenerativePart(imageData, mimeType)
+    ];
+
+    const apiCall = () => ai.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: { parts },
+    });
+    
+    const response = await callApiWithRetry(apiCall);
+    return cleanAndParseJson<string[]>(response.text);
+}
+
+export async function suggestImageEdits(projectDescription: string, base64Image: string): Promise<string[]> {
+    const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';
+    const imageData = base64Image.split(',')[1];
+
+    const prompt = `Você é um assistente de design criativo. Com base na descrição e na imagem de um móvel, sugira 3 edições curtas e diretas que poderiam ser feitas na imagem. Foque em mudanças de material, cor, adição de pequenos objetos decorativos ou alteração de iluminação.
+
+**Descrição do Projeto:** ${projectDescription}
+
+Retorne a resposta APENAS como um array JSON de strings. Exemplo: ["Adicione um vaso de plantas pequeno ao lado", "Mude o acabamento para laca preta brilhante", "Faça a iluminação ser mais dramática, como ao entardecer"]`;
     
     const parts: Part[] = [
         { text: prompt },

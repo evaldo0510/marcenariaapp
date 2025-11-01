@@ -1,0 +1,21 @@
+{
+  "short_name": "MarcenApp",
+  "name": "MarcenApp - Marcenaria Digital",
+  "description": "An AI assistant to transform carpentry ideas into real projects. Generate realistic 3D projects, 2D floor plans, and material lists from photos, sketches, or voice descriptions.",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#f5f1e8",
+  "background_color": "#f5f1e8"
+}

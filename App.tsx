@@ -31,12 +31,14 @@ import { NewViewGenerator } from './components/NewViewGenerator';
 import { BomGeneratorModal } from './components/BomGeneratorModal';
 import { CuttingPlanGeneratorModal } from './components/CuttingPlanGeneratorModal';
 import { CostEstimatorModal } from './components/CostEstimatorModal';
+import { ARViewer } from './components/ARViewer';
+import { EncontraProModal } from './components/EncontraProModal';
 
 // --- SUB-COMPONENTS ---
 const Project3DViewer: React.FC<{
   views: string[];
   onEditClick: (src: string) => void;
-  onARClick: () => void;
+  onARClick: (src: string) => void;
   onNewViewClick: () => void;
   projectName: string;
 }> = ({ views, onEditClick, onARClick, onNewViewClick, projectName }) => {
@@ -51,7 +53,7 @@ const Project3DViewer: React.FC<{
             <div className="relative group mb-4">
                 <InteractiveImageViewer src={activeView} alt={`Vista 3D ${activeIndex + 1}`} projectName={projectName} />
                 <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                    <button onClick={onARClick} className="text-white bg-[#3e3535]/70 hover:bg-[#2d2424]/80 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                    <button onClick={() => onARClick(activeView)} className="text-white bg-[#3e3535]/70 hover:bg-[#2d2424]/80 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
                         <ARIcon /> Ver em RA
                     </button>
                     <button onClick={onNewViewClick} className="text-white bg-[#3e3535]/70 hover:bg-[#2d2424]/80 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
@@ -318,9 +320,12 @@ const StyleSuggestionsModal: React.FC<{
 interface AppProps {
   onLogout: () => void;
   userEmail: string;
+  userPlan: string;
 }
 
-export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
+const ADMIN_EMAILS = ['evaldo0510@gmail.com'];
+
+export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   // --- STATE MANAGEMENT ---
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Gerando projeto...');
@@ -329,7 +334,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [favoriteFinishes, setFavoriteFinishes] = useState<Finish[]>([]);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const isAdmin = userEmail.toLowerCase() === 'evaldo0510@gmail.com';
+  const isAdmin = ADMIN_EMAILS.includes(userEmail.toLowerCase());
 
   // Input States
   const [projectDescription, setProjectDescription] = useState('');
@@ -364,6 +369,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
   const [styleSuggestions, setStyleSuggestions] = useState<{isOpen: boolean, isLoading: boolean, suggestions: string[]}>({ isOpen: false, isLoading: false, suggestions: [] });
   const [activeTab, setActiveTab] = useState<'3d' | '2d' | 'details'>('3d');
   const [isGenerate3DFrom2DModalOpen, setIsGenerate3DFrom2DModalOpen] = useState(false);
+  const [arViewState, setArViewState] = useState<{ isOpen: boolean; src: string }>({ isOpen: false, src: '' });
+  const [isEncontraProOpen, setIsEncontraProOpen] = useState(false);
 
   // Refs
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -371,6 +378,25 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
 
   // --- DERIVED STATE ---
   const activePreset = useMemo(() => projectTypePresets.find(p => p.id === projectTypePresetId), [projectTypePresetId]);
+
+  const { isProjectCreationAllowed, monthlyProjectCount, projectLimit } = useMemo(() => {
+    if (userPlan !== 'hobby') {
+      return { isProjectCreationAllowed: true, monthlyProjectCount: 0, projectLimit: Infinity };
+    }
+
+    const limit = 5;
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+    const count = history.filter(p => p.timestamp >= startOfMonth).length;
+
+    return {
+      isProjectCreationAllowed: count < limit,
+      monthlyProjectCount: count,
+      projectLimit: limit,
+    };
+  }, [history, userPlan]);
+
 
   // --- EFFECTS ---
   useEffect(() => {
@@ -412,6 +438,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
   }, []);
 
   const handleGenerateProject = async () => {
+    if (!isProjectCreationAllowed) {
+        showAlert(`Você atingiu o limite de ${projectLimit} projetos/mês do plano Hobby. Atualize para o plano Profissional para criar projetos ilimitados.`, "Limite Atingido");
+        return;
+    }
+    
     if (!projectDescription.trim()) {
       showAlert("Por favor, descreva sua ideia para o projeto no Passo 1.", "Descrição Necessária");
       descriptionTextAreaRef.current?.focus();
@@ -712,9 +743,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
 
   const openFutureFeature = (title: string, component: React.ReactNode, icon: React.ReactNode) => {
     if (isAdmin) {
-        setEarlyAccessModal({ isOpen: true, title, component });
+      setEarlyAccessModal({ isOpen: true, title, component });
     } else {
-        setFutureFeatureModal({ isOpen: true, title, icon });
+      setFutureFeatureModal({ isOpen: true, title, icon });
     }
   };
 
@@ -794,7 +825,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
                         views={currentProject.views3d}
                         projectName={currentProject.name}
                         onEditClick={(src) => setImageEditorState({ isOpen: true, src })}
-                        onARClick={() => openFutureFeature('Visualização em Realidade Aumentada', <AREarlyAccessPreview />, <ARIcon />)}
+                        onARClick={(src) => setArViewState({ isOpen: true, src })}
                         onNewViewClick={() => setNewViewGeneratorState({ isOpen: true, project: currentProject })}
                     />
                 )}
@@ -933,7 +964,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
         onOpenAutoPurchase={() => openFutureFeature('Compra Automática de Materiais', <AutoPurchaseEarlyAccessPreview project={currentProject} />, <StoreIcon />)}
         onOpenEmployeeManagement={() => openFutureFeature('Gestão de Funcionários', <EmployeeManagementEarlyAccessPreview />, <UsersIcon />)}
         onOpenLearningHub={() => openFutureFeature('Hub de Aprendizagem', <LearningHubEarlyAccessPreview />, <CommunityIcon />)}
-        onOpenEncontraPro={() => openFutureFeature('EncontraPro Marketplace', <EncontraProEarlyAccessPreview />, <ProIcon />)}
+        onOpenEncontraPro={() => setIsEncontraProOpen(true)}
+        onOpenAR={() => openFutureFeature('Realidade Aumentada', <AREarlyAccessPreview />, <ARIcon />)}
       />
       <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -994,11 +1026,22 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
             
             <button
               onClick={handleGenerateProject}
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-2 text-lg"
+              disabled={isLoading || !isProjectCreationAllowed}
+              title={!isProjectCreationAllowed ? `Você atingiu o limite de ${projectLimit} projetos/mês do plano Hobby.` : ''}
+              className="w-full bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
             >
               {isLoading ? <><Spinner size="sm" /> Gerando...</> : <><WandIcon /> Gerar Projeto com Iara</>}
             </button>
+            {userPlan === 'hobby' && (
+                <div className="mt-2 text-center text-sm text-[#8a7e7e] dark:text-[#a89d8d]">
+                    <p>Projetos criados este mês: {monthlyProjectCount} / {projectLimit}</p>
+                    {!isProjectCreationAllowed && (
+                        <p className="font-semibold text-amber-600 dark:text-amber-400 mt-1">
+                            Atualize para o plano Profissional para criar projetos ilimitados.
+                        </p>
+                    )}
+                </div>
+            )}
           </div>
           {/* Right Column: Results Panel */}
           <div ref={resultsRef} className="space-y-6">
@@ -1028,7 +1071,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
       <ResearchAssistant isOpen={isResearchAssistantOpen} onClose={() => setIsResearchAssistantOpen(false)} showAlert={showAlert} />
       <DistributorFinder isOpen={isDistributorFinderOpen} onClose={() => setIsDistributorFinderOpen(false)} showAlert={showAlert} />
       <ClientPanel isOpen={isClientPanelOpen} onClose={() => setIsClientPanelOpen(false)} clients={clients} projects={history} onSaveClient={handleSaveClient} onDeleteClient={handleDeleteClient} onViewProject={handleViewProject} />
-      {imageEditorState.isOpen && <ImageEditor isOpen={imageEditorState.isOpen} imageSrc={imageEditorState.src} onClose={() => setImageEditorState({ isOpen: false, src: '' })} onSave={(newImg) => handleUpdateProject(currentProject!.id, { views3d: [...currentProject!.views3d, `data:image/png;base64,${newImg}`]})} showAlert={showAlert} />}
+      {imageEditorState.isOpen && currentProject && <ImageEditor isOpen={imageEditorState.isOpen} imageSrc={imageEditorState.src} projectDescription={currentProject.description} onClose={() => setImageEditorState({ isOpen: false, src: '' })} onSave={(newImg) => handleUpdateProject(currentProject!.id, { views3d: [...currentProject!.views3d, `data:image/png;base64,${newImg}`]})} showAlert={showAlert} />}
       {layoutEditorState.isOpen && currentProject && <LayoutEditor isOpen={layoutEditorState.isOpen} floorPlanSrc={layoutEditorState.src} projectDescription={currentProject.description} onClose={() => setLayoutEditorState({ isOpen: false, src: '' })} onSave={(newImg) => handleUpdateProject(currentProject!.id, { image2d: `data:image/png;base64,${newImg}` })} showAlert={showAlert} />}
       {isProposalModalOpen && currentProject && <ProposalModal isOpen={isProposalModalOpen} onClose={() => setIsProposalModalOpen(false)} project={currentProject} client={clients.find(c => c.id === currentProject!.clientId)} showAlert={showAlert} />}
       {newViewGeneratorState.isOpen && newViewGeneratorState.project && <NewViewGenerator isOpen={newViewGeneratorState.isOpen} project={newViewGeneratorState.project} onClose={() => setNewViewGeneratorState({ isOpen: false, project: null })} onSaveComplete={loadAllData} showAlert={showAlert} />}
@@ -1052,6 +1095,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail }) => {
                 setStyleSuggestions({ isOpen: false, isLoading: false, suggestions: [] });
             }}
         />
+       <ARViewer isOpen={arViewState.isOpen} imageSrc={arViewState.src} onClose={() => setArViewState({ isOpen: false, src: '' })} showAlert={showAlert} />
+       <EncontraProModal isOpen={isEncontraProOpen} onClose={() => setIsEncontraProOpen(false)} showAlert={showAlert} />
     </div>
   );
 };

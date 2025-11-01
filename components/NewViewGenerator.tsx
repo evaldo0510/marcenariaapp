@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { editImage } from '../services/geminiService';
+import { editImage, suggestAlternativeStyles } from '../services/geminiService';
 import { updateProjectInHistory } from '../services/historyService';
-import { Spinner, WandIcon } from './Shared';
+import { Spinner, WandIcon, SparklesIcon } from './Shared';
 import type { ProjectHistoryItem } from '../types';
 import { initialStylePresets } from '../services/presetService';
 
@@ -19,6 +19,9 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedImageSrc, setGeneratedImageSrc] = useState<string | null>(null);
 
+    const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [isSuggesting, setIsSuggesting] = useState(false);
+
     const originalImageSrc = project.views3d[0];
 
     useEffect(() => {
@@ -26,8 +29,25 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
             setStyle(project.style);
             setFinish('');
             setGeneratedImageSrc(null);
+            setSuggestions([]);
         }
     }, [isOpen, project]);
+
+    const handleSuggestStyles = async () => {
+        setIsSuggesting(true);
+        setSuggestions([]);
+        try {
+            const result = await suggestAlternativeStyles(project.description, project.style, originalImageSrc);
+            const filteredSuggestions = result
+                .filter(s => s.toLowerCase() !== project.style.toLowerCase())
+                .slice(0, 3);
+            setSuggestions(filteredSuggestions);
+        } catch (error) {
+            showAlert(error instanceof Error ? error.message : "Erro ao sugerir estilos.");
+        } finally {
+            setIsSuggesting(false);
+        }
+    };
 
     const handleGenerate = async () => {
         if (!style.trim() || !finish.trim()) {
@@ -105,9 +125,36 @@ Mantenha a forma, a estrutura e a perspectiva geral do móvel, alterando apenas 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label htmlFor="style-select-new-view" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Novo Estilo de Design</label>
-                            <select id="style-select-new-view" value={style} onChange={(e) => setStyle(e.target.value)} className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition">
-                                {initialStylePresets.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
+                            <div className="flex items-center gap-2">
+                                <select id="style-select-new-view" value={style} onChange={(e) => setStyle(e.target.value)} className="flex-grow bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition">
+                                    {!initialStylePresets.includes(style) && <option key={style} value={style}>{style}</option>}
+                                    {initialStylePresets.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                                <button onClick={handleSuggestStyles} disabled={isSuggesting} title="Sugerir estilos com IA" className="p-3 rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] text-[#d4ac6e] disabled:opacity-50">
+                                    {isSuggesting ? <Spinner size="sm"/> : <SparklesIcon />}
+                                </button>
+                            </div>
+                             {isSuggesting ? (
+                                <div className="text-center p-4 text-sm text-[#8a7e7e] dark:text-[#a89d8d]">Sugerindo estilos...</div>
+                            ) : suggestions.length > 0 && (
+                                <div className="mt-3 space-y-2 animate-fadeIn">
+                                    <h4 className="text-xs font-semibold text-[#8a7e7e] dark:text-[#a89d8d]">Sugestões da Iara:</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {suggestions.map(suggestion => (
+                                            <button 
+                                                key={suggestion}
+                                                onClick={() => {
+                                                    setStyle(suggestion);
+                                                    setSuggestions([]); // Clear suggestions after selection
+                                                }}
+                                                className="px-3 py-1 bg-[#e6ddcd] dark:bg-[#4a4040] text-[#6a5f5f] dark:text-[#c7bca9] text-sm font-medium rounded-full hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition"
+                                            >
+                                                {suggestion}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label htmlFor="finish-input-new-view" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Novo Acabamento Principal</label>
