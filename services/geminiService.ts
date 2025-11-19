@@ -322,21 +322,26 @@ export async function estimateProjectCosts(project: ProjectHistoryItem): Promise
     const prompt = `
     Atue como um Orçamentista Sênior de Marcenaria no Brasil.
     
-    Sua tarefa é estimar com precisão os custos de **Material** e **Mão de Obra** para o projeto descrito abaixo.
+    Sua tarefa é estimar os custos de **Material** e **Mão de Obra** para o projeto, analisando rigorosamente a Lista de Materiais (BOM) fornecida e as Vistas 3D (imagens).
 
     **Dados do Projeto:**
     - Descrição: "${project.description}"
     - Lista de Materiais (BOM): "${project.bom || 'Não fornecida (estime com base na descrição/imagem)'}"
     
-    **Diretrizes de Precificação (Mercado Brasileiro):**
-    1.  **Materiais:** Considere o preço atual de chapas de MDF (ex: Branco TX ~R$ 220, Madeirados ~R$ 350), ferragens (dobradiças, corrediças telescópicas), fitas de borda e insumos (cola, parafusos). Adicione 10% de margem de erro.
-    2.  **Mão de Obra:** Estime as horas necessárias para: corte, fitagem, furação, pré-montagem e instalação. Use uma taxa base de R$ 80,00 a R$ 120,00 por hora técnica, dependendo da complexidade visualizada.
+    **Instruções de Análise:**
+    1.  **Análise da BOM:** Use a lista de materiais como base primária para o custo de insumos.
+    2.  **Análise Visual (3D):** Use as imagens para avaliar a complexidade da montagem (que afeta a Mão de Obra) e para validar se a BOM cobre todos os detalhes visíveis (puxadores, fitas de borda, espessuras duplas).
+    3.  **Contexto de Mercado:** Use preços médios do mercado brasileiro para MDF, ferragens e hora técnica de marcenaria.
+
+    **Diretrizes de Cálculo:**
+    - **Materiais:** Soma de chapas, ferragens, fitas e insumos + 10% de margem.
+    - **Mão de Obra:** Estimativa de horas (Corte, Fitagem, Montagem, Instalação) x Valor Hora Técnica (R$ 80 - R$ 120). Projetos complexos visualmente exigem mais horas.
     
     **Saída Obrigatória:**
-    Retorne APENAS um objeto JSON válido (sem Markdown, sem explicações) com este formato exato:
+    Retorne APENAS um objeto JSON válido com este formato exato:
     {
-      "materialCost": 1250.50,
-      "laborCost": 800.00
+      "materialCost": 0.00,
+      "laborCost": 0.00
     }
     `;
     
