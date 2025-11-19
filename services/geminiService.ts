@@ -115,7 +115,20 @@ export async function editFloorPlan(base64Data: string, mimeType: string, prompt
     
     const parts: Part[] = [
         fileToGenerativePart(base64Data, mimeType),
-        { text: `Você é um editor de plantas baixas 2D. Com base na imagem fornecida e na instrução a seguir, redesenhe a planta baixa mantendo o mesmo estilo (preto e branco, técnico, com cotas). Aplique a seguinte modificação: "${prompt}"` }
+        { text: `Atue como um Desenhista CAD Sênior especializado em arquitetura.
+
+**Tarefa:** Editar a planta baixa técnica (2D) fornecida, aplicando estritamente a seguinte instrução:
+"${prompt}"
+
+**Requisitos Críticos de Estilo (Invioláveis):**
+1.  **Estilo CAD:** Mantenha estritamente o estilo de desenho técnico: linhas pretas nítidas e uniformes sobre fundo branco absoluto.
+2.  **Consistência:** Preserve a espessura das paredes existentes e a escala visual.
+3.  **Simbologia Arquitetônica:**
+    *   **Janelas:** Devem ser representadas como linhas finas duplas ou triplas dentro da parede (simbologia padrão de planta baixa). NÃO desenhe vidro realista.
+    *   **Portas:** Devem incluir o arco de abertura.
+4.  **Orientação Espacial:** Em planta baixa 2D, "parede do fundo" ou "trás" refere-se à parte SUPERIOR do desenho (oposta à entrada/baixo).
+5.  **Sem Arte:** NÃO adicione cores, sombreamento, texturas realistas ou elementos 3D. O resultado deve parecer um documento técnico vetorial impresso.
+6.  **Limpeza:** O desenho deve ser limpo, sem ruído, borrões ou artefatos de compressão.` }
     ];
 
     const apiCall = () => ai.models.generateContent({
@@ -254,9 +267,44 @@ export async function generateGroundedResponse(query: string, location: Location
 export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidth: number, sheetHeight: number): Promise<{ text: string; image: string; optimization: string }> {
   const bom = project.bom || "Lista de materiais não disponível.";
   
-  const textPrompt = `Gere um plano de corte otimizado em Markdown para a seguinte lista de materiais (BOM), considerando chapas de ${sheetWidth}x${sheetHeight}mm. Liste as chapas necessárias e, para cada um, quais peças serão cortadas dela. Forneça o total de chapas e a porcentagem de aproveitamento. BOM: \n${bom}`;
-  const imagePrompt = `Crie um diagrama visual simplificado de um plano de corte para a seguinte BOM, em chapas de ${sheetWidth}x${sheetHeight}mm. Mostre a disposição das peças na chapa. Use linhas simples e texto claro. BOM: \n${bom}`;
-  const optimizationPrompt = `Forneça 2-3 dicas práticas e concisas em Markdown para otimizar o corte e minimizar o desperdício para a BOM a seguir: \n${bom}`;
+  const textPrompt = `
+  Atue como um **Operador de Seccionadora Especialista**.
+  
+  Com base na Lista de Materiais (BOM) abaixo, gere um **Plano de Corte Industrial** para chapas de **${sheetWidth}x${sheetHeight}mm**.
+  
+  **BOM:**
+  ${bom}
+
+  **Requisitos:**
+  1.  **Agrupamento:** Agrupe as peças por tipo de chapa (ex: MDF 15mm Branco, MDF 6mm Fundo).
+  2.  **Lógica de Corte:** Liste as peças na ordem de corte ideal para uma seccionadora (cortes longitudinais primeiro, depois transversais).
+  3.  **Resumo de Chapas:** Indique quantas chapas inteiras são necessárias para cada tipo.
+  4.  **Sobras:** Estime se haverá sobras úteis (retalhos grandes).
+
+  Formate a resposta em Markdown claro e técnico.
+  `;
+
+  const imagePrompt = `
+  Crie um **Diagrama de Plano de Corte Técnico (Nesting)** 2D, estilo CAD, minimalista e de alto contraste (fundo branco, linhas pretas).
+  
+  **Input:** Uma chapa retangular de proporção aproximada ${sheetWidth}:${sheetHeight}.
+  **Conteúdo:** Distribua retângulos menores (representando peças de móveis) dentro desta chapa de forma otimizada, minimizando espaços vazios.
+  **Estilo:** Desenho vetorial técnico, sem texturas realistas. Adicione algumas cotas numéricas ilustrativas.
+  `;
+
+  const optimizationPrompt = `
+  Como um **Especialista em Otimização de Corte (Nesting)**, analise a BOM abaixo e forneça 3 dicas avançadas para reduzir o desperdício e custos neste projeto específico.
+  
+  Considere:
+  - Sentido do veio da madeira (Grain Direction).
+  - Espessura da serra (Kerf) de 3mm.
+  - Possibilidade de rotacionar peças internas (prateleiras/divisórias).
+
+  BOM:
+  ${bom}
+  
+  Responda em Markdown com bullets.
+  `;
 
   const [text, image, optimization] = await Promise.all([
     generateText(textPrompt, null),
@@ -268,10 +316,26 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
 }
 
 export async function estimateProjectCosts(project: ProjectHistoryItem): Promise<{ materialCost: number; laborCost: number }> {
-    const prompt = `Você é um especialista em orçamentos para marcenaria. Com base na descrição, BOM e imagens do projeto, estime o custo de material e o custo de mão de obra em Reais (BRL). A mão de obra deve considerar a complexidade e o tempo de fabricação e montagem.
-    Descrição: ${project.description}
-    BOM: ${project.bom || "Não fornecida"}
-    Retorne a resposta APENAS como um objeto JSON com as chaves "materialCost" e "laborCost".`;
+    const prompt = `
+    Atue como um Orçamentista Sênior de Marcenaria no Brasil.
+    
+    Sua tarefa é estimar com precisão os custos de **Material** e **Mão de Obra** para o projeto descrito abaixo.
+
+    **Dados do Projeto:**
+    - Descrição: "${project.description}"
+    - Lista de Materiais (BOM): "${project.bom || 'Não fornecida (estime com base na descrição/imagem)'}"
+    
+    **Diretrizes de Precificação (Mercado Brasileiro):**
+    1.  **Materiais:** Considere o preço atual de chapas de MDF (ex: Branco TX ~R$ 220, Madeirados ~R$ 350), ferragens (dobradiças, corrediças telescópicas), fitas de borda e insumos (cola, parafusos). Adicione 10% de margem de erro.
+    2.  **Mão de Obra:** Estime as horas necessárias para: corte, fitagem, furação, pré-montagem e instalação. Use uma taxa base de R$ 80,00 a R$ 120,00 por hora técnica, dependendo da complexidade visualizada.
+    
+    **Saída Obrigatória:**
+    Retorne APENAS um objeto JSON válido (sem Markdown, sem explicações) com este formato exato:
+    {
+      "materialCost": 1250.50,
+      "laborCost": 800.00
+    }
+    `;
     
     const images = project.views3d.map(url => ({
         data: url.split(',')[1],

@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { generateText } from '../services/geminiService';
 import { Spinner, SparklesIcon, BookIcon, CopyIcon, CheckIcon } from './Shared';
@@ -30,17 +28,42 @@ export const BomGeneratorModal: React.FC<BomGeneratorModalProps> = ({ isOpen, on
         setCopyFeedback(null);
 
         try {
-            const bomPrompt = `Você é um marceneiro mestre e especialista em custo de materiais. Com base na descrição e nas imagens (se fornecidas) do projeto de marcenaria a seguir, crie uma "Bill of Materials" (BOM - Lista de Materiais) detalhada em Markdown.
+            const bomPrompt = `Atue como um **Orçamentista Técnico Sênior de Marcenaria** com foco em produção industrial.
             
-    **Descrição do Projeto:** "${projectDescription}"
-    ${uploadedImages && uploadedImages.length > 0 ? "Considere as imagens anexadas para detalhes visuais." : ""}
+            Sua tarefa é criar uma **Lista de Materiais (BOM - Bill of Materials)** completa, precisa e formatada profissionalmente para o seguinte projeto.
+            
+            **Dados do Projeto:**
+            "${projectDescription}"
+            ${uploadedImages && uploadedImages.length > 0 ? "(Analise as imagens anexadas para deduzir dimensões e ferragens)" : ""}
 
-    **Instruções para a BOM:**
-    1.  **Estrutura:** Organize a lista por categorias (ex: "Chapas de MDF", "Ferragens", "Acessórios", "Fitas de Borda").
-    2.  **Detalhes das Peças:** Para cada peça nas chapas de MDF, liste a quantidade, dimensões (Altura x Largura x Espessura em mm) e o nome da peça (ex: "2x - 700x500x18mm - Lateral").
-    3.  **Ferragens:** Especifique o tipo e a quantidade (ex: "10x - Dobradiças de 35mm com amortecedor", "5 pares - Corrediças telescópicas de 450mm").
-    4.  **Precisão:** Baseie-se nas informações textuais e nas imagens para estimar as dimensões e quantidades. Seja o mais preciso possível.
-    5.  **Formato:** Use Markdown com cabeçalhos (##) para categorias e listas com marcadores (-) para os itens.`;
+            **Regras de Ouro:**
+            1.  **Segurança:** Adicione uma margem de quebra/perda de 10% nas chapas.
+            2.  **Padronização:** Use milímetros (mm) para todas as medidas.
+            3.  **Completo:** Não esqueça itens "invisíveis" (parafusos, cola, tapa-furos).
+
+            Gere a resposta estritamente em **Markdown**, organizada nas seguintes tabelas e seções:
+
+            ### 1. 🪵 Chapas e Painéis (MDF/MDP)
+            | Material / Espessura | Peça (Descrição) | Qtd | Dimensões (mm) | Fita de Borda |
+            | :--- | :--- | :---: | :--- | :--- |
+            | Ex: MDF Branco TX 15mm | Lateral | 2 | 720 x 550 | 1L + 1C (Frente/Baixo) |
+            | ... | ... | ... | ... | ... |
+            *Estimativa total de chapas:* [Ex: 2 chapas de 15mm, 1 chapa de 6mm (Fundo)]
+
+            ### 2. 🔩 Ferragens e Acessórios
+            | Item | Especificação Técnica | Qtd Estimada | Aplicação |
+            | :--- | :--- | :---: | :--- |
+            | Ex: Dobradiça | 35mm Curva c/ Amortecedor | 8 | Portas |
+            | Ex: Corrediça | Telescópica 450mm Light | 4 pares | Gavetas |
+            | ... | ... | ... | ... |
+
+            ### 3. 🎗️ Acabamentos e Insumos
+            *   **Fita de Borda:** [Ex: 50m de Fita Branca 22mm]
+            *   **Fixação:** [Ex: 100 parafusos 4,0x40, 50 parafusos 3,5x14, Cola PVA]
+            *   **Outros:** [Ex: Pés reguláveis, Pistões a gás, Perfis de alumínio]
+
+            ---
+            *Nota Técnica:* Insira uma breve observação sobre o sentido dos veios da madeira se o material for amadeirado.`;
             
             const bomText = await generateText(bomPrompt, uploadedImages);
 
@@ -107,7 +130,7 @@ export const BomGeneratorModal: React.FC<BomGeneratorModalProps> = ({ isOpen, on
                         className="w-full bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] font-bold py-3 px-5 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 mb-6"
                     >
                         {isLoading ? <Spinner size="sm" /> : <SparklesIcon />}
-                        <span>{isLoading ? 'Gerando BOM...' : 'Gerar BOM com IA'}</span>
+                        <span>{isLoading ? 'Gerando BOM...' : 'Gerar BOM Técnica'}</span>
                     </button>
 
                     {generatedBom && (
@@ -126,7 +149,7 @@ export const BomGeneratorModal: React.FC<BomGeneratorModalProps> = ({ isOpen, on
                      {isLoading && (
                         <div className="text-center p-8">
                             <Spinner />
-                            <p className="mt-2 text-[#8a7e7e] dark:text-[#a89d8d]">A Iara está montando sua lista de materiais...</p>
+                            <p className="mt-2 text-[#8a7e7e] dark:text-[#a89d8d]">A Iara está calculando medidas e ferragens...</p>
                         </div>
                     )}
                 </main>

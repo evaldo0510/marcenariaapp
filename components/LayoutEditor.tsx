@@ -12,6 +12,7 @@ interface LayoutEditorProps {
 }
 
 const editSuggestions = [
+    "Adicionar uma janela maior na parede do fundo",
     "Mova a porta 50cm para a direita",
     "Adicione uma janela na parede de cima",
     "Aumente a largura total em 100cm",
@@ -103,7 +104,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ isOpen, floorPlanSrc
                             rows={2}
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="Ex: Mova a porta 30cm para a direita, adicione uma janela na parede de cima..."
+                            placeholder="Ex: Adicionar uma janela maior na parede do fundo, transformar porta em arco..."
                             className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
                         />
                         <div className="mt-2 flex flex-wrap gap-2">
