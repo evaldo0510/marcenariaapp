@@ -254,7 +254,7 @@ export async function generateGroundedResponse(query: string, location: Location
 export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidth: number, sheetHeight: number): Promise<{ text: string; image: string; optimization: string }> {
   const bom = project.bom || "Lista de materiais não disponível.";
   
-  const textPrompt = `Gere um plano de corte otimizado em Markdown para a seguinte lista de materiais (BOM), considerando chapas de ${sheetWidth}x${sheetHeight}mm. Liste as chapas necessárias e, para cada uma, quais peças serão cortadas dela. Forneça o total de chapas e a porcentagem de aproveitamento. BOM: \n${bom}`;
+  const textPrompt = `Gere um plano de corte otimizado em Markdown para a seguinte lista de materiais (BOM), considerando chapas de ${sheetWidth}x${sheetHeight}mm. Liste as chapas necessárias e, para cada um, quais peças serão cortadas dela. Forneça o total de chapas e a porcentagem de aproveitamento. BOM: \n${bom}`;
   const imagePrompt = `Crie um diagrama visual simplificado de um plano de corte para a seguinte BOM, em chapas de ${sheetWidth}x${sheetHeight}mm. Mostre a disposição das peças na chapa. Use linhas simples e texto claro. BOM: \n${bom}`;
   const optimizationPrompt = `Forneça 2-3 dicas práticas e concisas em Markdown para otimizar o corte e minimizar o desperdício para a BOM a seguir: \n${bom}`;
 
@@ -284,9 +284,40 @@ export async function estimateProjectCosts(project: ProjectHistoryItem): Promise
 }
 
 export async function generateAssemblyDetails(project: ProjectHistoryItem): Promise<string> {
-  const prompt = `Crie um guia de montagem detalhado em Markdown para o projeto a seguir. Inclua uma lista de ferramentas, a ordem dos passos e dicas importantes.
-  Descrição: ${project.description}
-  BOM: ${project.bom || "Não fornecida"}`;
+  const prompt = `
+  Atue como um mestre marceneiro e redator técnico com anos de experiência. Sua tarefa é criar um **Guia de Montagem Passo a Passo** extremamente detalhado e profissional para o projeto de marcenaria descrito abaixo.
+
+  **Contexto do Projeto:**
+  - **Descrição:** ${project.description}
+  - **Lista de Materiais (BOM):** ${project.bom || "Não fornecida (Deduza os materiais prováveis com base na imagem 3D)"}
+
+  **O Guia deve ser formatado em Markdown e conter as seguintes seções:**
+
+  ### 1. 🧰 Ferramentas e Preparação
+  Liste todas as ferramentas necessárias (ex: Parafusadeira, brocas de quais tamanhos, nível, trena, martelo de borracha, estilete, etc.). Liste também os EPIs recomendados (óculos, luvas).
+
+  ### 2. ⚙️ Lista de Ferragens (Estimada)
+  Com base no tipo de móvel, liste as ferragens prováveis e quantidades estimadas (ex: Dobradiças 35mm (reta/curva), Corrediças telescópicas, Dispositivos de montagem como Minifix/VB/Cavilhas, Parafusos (4,0x40mm estrutural, 3,5x14mm para ferragens), Cantoneiras, etc.).
+
+  ### 3. 🚀 Passo a Passo da Montagem
+  Crie uma sequência lógica e numerada de montagem.
+  1.  **Preparação:** Identificação das peças e fixação de dispositivos de montagem (cavilhas, pinos de minifix).
+  2.  **Estrutura:** Montagem da caixa (Base, Laterais, Teto). Dica de esquadro.
+  3.  **Fundo:** Fixação do fundo para travar o esquadro.
+  4.  **Internos:** Prateleiras e divisórias fixas.
+  5.  **Móveis:** Montagem de gavetas e fixação de corrediças.
+  6.  **Fechamento:** Instalação de portas e frentes.
+  7.  **Instalação:** Fixação na parede (se necessário) ou nivelamento dos pés.
+  
+  *Para cada passo, seja específico sobre qual peça usar e como fixar.*
+
+  ### 4. 💡 Dicas de Ouro (Acabamento e Regulagem)
+  - **Regulagem de Dobradiças:** Explique como ajustar altura, profundidade e alinhamento lateral.
+  - **Gavetas:** Dicas para evitar que travem.
+  - **Acabamento:** Uso de tapa-furos adesivos, massa para madeira ou cera. Limpeza final.
+
+  **Estilo:** O texto deve ser encorajador, claro e técnico. Use negrito para destacar peças e ferramentas.
+  `;
   
   const images = project.views3d.map(url => ({
       data: url.split(',')[1],
