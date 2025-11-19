@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { editImage, suggestAlternativeStyles } from '../services/geminiService';
 import { updateProjectInHistory } from '../services/historyService';
@@ -60,16 +61,23 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
             const base64Data = originalImageSrc.split(',')[1];
             const mimeType = originalImageSrc.match(/data:(.*);/)?.[1] || 'image/png';
             
-            const fullPrompt = `Você é um renderizador 3D de IA. A imagem fornecida é uma renderização de um móvel no estilo "${project.style}". 
-Sua tarefa é criar uma nova renderização fotorrealista do MESMO móvel, mantendo a geometria, portas, gavetas e puxadores EXATAMENTE iguais, mas aplicando as seguintes modificações visuais:
-**Novo Estilo:** "${style}"
-**Novo Acabamento Principal:** "${finish}"
+            const fullPrompt = `Atue como um Especialista em Renderização 3D e Design de Interiores.
+            
+**Objetivo:** Gerar uma nova visualização fotorrealista do móvel presente na imagem, aplicando um novo estilo e acabamento, mas **PRESERVANDO ESTRITAMENTE A GEOMETRIA ORIGINAL**.
 
-Instruções Críticas:
-1. Mantenha a estrutura e perspectiva inalteradas.
-2. Substitua as texturas originais pelo acabamento "${finish}".
-3. Ajuste a iluminação e o ambiente de fundo para refletir o estilo "${style}".
-4. O resultado deve parecer uma foto profissional de catálogo.`;
+**Parâmetros de Entrada:**
+- **Imagem de Referência:** (Anexa)
+- **Novo Estilo:** "${style}"
+- **Novo Acabamento:** "${finish}"
+
+**Instruções de Processamento:**
+1.  **Geometria Intocável:** Identifique as bordas, portas, gavetas e volumes do móvel. Estes NÃO podem ser alterados. Apenas a "pele" (material) do móvel muda.
+2.  **Aplicação de Material:** Substitua a textura atual pelo acabamento "${finish}".
+    *   Se o acabamento for **Madeira Escura**: Garanta veios visíveis, tom rico (nogueira/imbuia) e acabamento acetinado.
+3.  **Contextualização (Estilo - ${style}):**
+    *   Adapte o ambiente e a iluminação para refletir o estilo "${style}".
+    *   **Se Industrial Moderno:** Use iluminação de contraste (chiaroscuro), fundo de cimento queimado ou tijolinho suave, e detalhes metálicos em preto fosco.
+4.  **Qualidade:** A saída deve ser uma imagem de alta resolução (4k), fotorrealista, parecendo uma fotografia de estúdio.`;
 
             const newImageBase64 = await editImage(base64Data, mimeType, fullPrompt);
             setGeneratedImageSrc(`data:image/png;base64,${newImageBase64}`);

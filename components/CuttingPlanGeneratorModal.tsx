@@ -14,7 +14,7 @@ interface CuttingPlanGeneratorModalProps {
 export const CuttingPlanGeneratorModal: React.FC<CuttingPlanGeneratorModalProps> = ({ isOpen, onClose, showAlert }) => {
     const [bomInput, setBomInput] = useState('');
     const [sheetWidth, setSheetWidth] = useState(2750); // Default common MDF sheet size
-    const [sheetHeight, setSheetHeight] = useState(1850); // Default common MDF sheet size
+    const [sheetHeight, setSheetHeight] = useState(1830); // Updated to 1830mm standard
     const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
     const [generatedPlanImage, setGeneratedPlanImage] = useState<string | null>(null);
     const [generatedOptimization, setGeneratedOptimization] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export const CuttingPlanGeneratorModal: React.FC<CuttingPlanGeneratorModalProps>
     const handleClose = () => {
         setBomInput('');
         setSheetWidth(2750);
-        setSheetHeight(1850);
+        setSheetHeight(1830);
         setGeneratedPlan(null);
         setGeneratedPlanImage(null);
         setGeneratedOptimization(null);
@@ -179,7 +179,7 @@ export const CuttingPlanGeneratorModal: React.FC<CuttingPlanGeneratorModalProps>
                      {isLoading && (
                         <div className="text-center p-8">
                             <Spinner />
-                            <p className="mt-2 text-[#8a7e7e] dark:text-[#a89d8d]">A Iara está otimizando seu plano de corte e gerando o diagrama...</p>
+                            <p className="mt-2 text-[#8a7e7e] dark:text-[#a89d8d]">A Iara está otimizando seu plano de corte e gerando o diagrama de nesting...</p>
                         </div>
                     )}
                 </main>

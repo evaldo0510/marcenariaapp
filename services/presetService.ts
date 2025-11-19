@@ -1,3 +1,4 @@
+
 import { KitchenIcon, LivingRoomIcon, BedroomIcon, BathroomIcon, ClosetIcon, OfficeIcon, BalconyIcon, PantryIcon, WineCellarIcon } from '../components/Shared';
 
 export const projectTypePresets = [

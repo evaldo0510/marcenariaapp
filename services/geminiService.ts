@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Modality, GenerateContentResponse, Type } from "@google/genai";
 import type { Part } from "@google/genai";
 import type { Finish, ProjectHistoryItem, LocationState, Marceneiro, PricedBomItem, ProjectLead } from '../types';
@@ -270,33 +271,35 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
   const textPrompt = `
   Atue como um **Operador de Seccionadora Especialista**.
   
-  Com base na Lista de Materiais (BOM) abaixo, gere um **Plano de Corte Industrial** para chapas de **${sheetWidth}x${sheetHeight}mm**.
+  Com base na Lista de Materiais (BOM) abaixo, gere um **Plano de Corte Industrial e Diagrama de Nesting** para chapas de **${sheetWidth}x${sheetHeight}mm**.
   
   **BOM:**
   ${bom}
 
   **Requisitos:**
   1.  **Agrupamento:** Agrupe as peças por tipo de chapa (ex: MDF 15mm Branco, MDF 6mm Fundo).
-  2.  **Lógica de Corte:** Liste as peças na ordem de corte ideal para uma seccionadora (cortes longitudinais primeiro, depois transversais).
-  3.  **Resumo de Chapas:** Indique quantas chapas inteiras são necessárias para cada tipo.
+  2.  **Lógica de Corte (Nesting):** Liste as peças na ordem de corte ideal para minimizar o desperdício, explicando como elas devem ser encaixadas na chapa.
+  3.  **Resumo de Chapas:** Indique quantas chapas inteiras de ${sheetWidth}x${sheetHeight}mm são necessárias para cada material.
   4.  **Sobras:** Estime se haverá sobras úteis (retalhos grandes).
 
   Formate a resposta em Markdown claro e técnico.
   `;
 
   const imagePrompt = `
-  Crie um **Diagrama de Plano de Corte Técnico (Nesting)** 2D, estilo CAD, minimalista e de alto contraste (fundo branco, linhas pretas).
+  Crie uma imagem técnica vetorial plana (2D) de um **Diagrama de Nesting (Plano de Corte)**.
   
-  **Input:** Uma chapa retangular de proporção aproximada ${sheetWidth}:${sheetHeight}.
-  **Conteúdo:** Distribua retângulos menores (representando peças de móveis) dentro desta chapa de forma otimizada, minimizando espaços vazios.
-  **Estilo:** Desenho vetorial técnico, sem texturas realistas. Adicione algumas cotas numéricas ilustrativas.
+  **Contexto:** Otimização de corte de marcenaria.
+  **Canvas:** Uma única chapa retangular branca de proporção ${sheetWidth}:${sheetHeight} (Paisagem).
+  **Conteúdo:** Preencha a chapa com vários retângulos (peças) organizados eficientemente para minimizar espaços vazios (sobras), simulando um software de corte.
+  **Estilo:** Traço CAD preto sobre fundo branco. Sem sombras, sem 3D, sem perspectiva. Apenas linhas de corte nítidas.
+  **Detalhes:** Identifique algumas peças com números sequenciais (1, 2, 3...). Mostre a margem da chapa claramente.
   `;
 
   const optimizationPrompt = `
   Como um **Especialista em Otimização de Corte (Nesting)**, analise a BOM abaixo e forneça 3 dicas avançadas para reduzir o desperdício e custos neste projeto específico.
   
   Considere:
-  - Sentido do veio da madeira (Grain Direction).
+  - Sentido do veio da madeira (Grain Direction) para peças de ${sheetWidth}x${sheetHeight}mm.
   - Espessura da serra (Kerf) de 3mm.
   - Possibilidade de rotacionar peças internas (prateleiras/divisórias).
 
