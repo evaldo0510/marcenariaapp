@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 // Types
@@ -290,21 +291,25 @@ const StyleSuggestionsModal: React.FC<{
                     </h2>
                     <button onClick={onClose} className="text-[#a89d8d] hover:text-[#3e3535] dark:hover:text-white text-2xl">&times;</button>
                 </header>
-                <main className="p-6 min-h-[200px] flex items-center justify-center">
+                <main className="p-6 min-h-[200px] flex flex-col items-center justify-center">
                     {isLoading ? (
                         <div className="text-center">
                             <Spinner />
-                            <p className="mt-4 text-[#8a7e7e] dark:text-[#a89d8d]">Analisando seu projeto...</p>
+                            <p className="mt-4 text-[#8a7e7e] dark:text-[#a89d8d]">Analisando seu projeto e gerando ideias...</p>
                         </div>
                     ) : (
                         <div className="w-full space-y-3">
+                            <p className="text-sm text-[#6a5f5f] dark:text-[#c7bca9] mb-4 text-center">
+                                Selecione um estilo abaixo para aplicá-lo ao seu projeto e gerar uma nova versão.
+                            </p>
                             {suggestions.map((style, index) => (
                                 <button
                                     key={index}
                                     onClick={() => onSelectStyle(style)}
-                                    className="w-full text-center bg-[#f0e9dc] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] font-semibold py-3 px-4 rounded-lg hover:bg-[#e6ddcd] dark:hover:bg-[#5a4f4f] transition-transform hover:scale-105"
+                                    className="w-full text-left bg-[#f0e9dc] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] font-semibold py-3 px-4 rounded-lg hover:bg-[#e6ddcd] dark:hover:bg-[#5a4f4f] transition-transform hover:scale-105 flex justify-between items-center group"
                                 >
-                                    {style}
+                                    <span>{style}</span>
+                                    <span className="opacity-0 group-hover:opacity-100 text-xs bg-[#d4ac6e] text-[#3e3535] px-2 py-1 rounded font-bold transition-opacity">Aplicar</span>
                                 </button>
                             ))}
                         </div>

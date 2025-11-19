@@ -352,48 +352,76 @@ export async function estimateProjectCosts(project: ProjectHistoryItem): Promise
 
 export async function generateAssemblyDetails(project: ProjectHistoryItem): Promise<string> {
   const prompt = `
-  Atue como um **Mestre Marceneiro Sênior** e Instrutor Técnico.
-  
-  Crie um **Guia de Montagem Passo a Passo Detalhado** para o seguinte projeto:
-  
+  Atue como um **Mestre Marceneiro e Instrutor Técnico Sênior**.
+  Sua tarefa é criar um **Manual de Montagem Profissional** completo para o seguinte projeto:
+
   **Projeto:** ${project.description}
-  **Contexto de Materiais (BOM):** ${project.bom || "Considere materiais padrão (MDF 15mm/18mm) e ferragens adequadas."}
+  **Contexto (BOM):** ${project.bom || "Considere materiais padrão (MDF 15mm) e estime as ferragens necessárias."}
 
-  **Requisitos de Formatação:**
-  Use Markdown limpo e estruturado. Use emojis para facilitar a leitura visual.
+  **REQUISITOS DE FORMATAÇÃO:**
+  - Use Markdown estruturado com títulos, listas e negrito.
+  - Use Emojis para facilitar a visualização das seções.
+  - Use checkboxes '[ ]' nas etapas para o usuário marcar o progresso.
 
-  **Estrutura Obrigatória do Guia:**
+  **ESTRUTURA DO MANUAL (Siga rigorosamente):**
 
-  # 🛠️ Guia de Montagem: [Nome do Móvel]
+  # 🛠️ Guia de Montagem Completo: [Nome do Móvel]
 
-  **Resumo:**
-  *   ⏱️ **Tempo Estimado:** [X] horas
-  *   💪 **Nível de Dificuldade:** [Fácil/Médio/Difícil]
-  *   👥 **Pessoas Recomendadas:** [1 ou 2]
+  ## 📊 Visão Geral
+  *   **Tempo Estimado:** [X] horas
+  *   **Nível de Dificuldade:** [Fácil/Médio/Difícil]
+  *   **Equipe Recomendada:** [1 ou 2 pessoas]
 
-  ## 1. 🧰 Lista de Ferramentas Necessárias
-  *Liste todas as ferramentas manuais e elétricas essenciais. Ex: Parafusadeira, Brocas (tamanhos), Nível, Trena, Martelo de Borracha, Esquadro...*
+  ## 1. 📋 Lista de Materiais e Ferragens (BOM)
+  *Liste as peças principais (Laterais, Base, Portas) e as quantidades de ferragens (Parafusos, Dobradiças, Corrediças).*
 
-  ## 2. 🔩 Lista de Ferragens e Insumos (Sugestão)
-  *Liste o hardware provável. Ex: Parafusos estruturais (4,0x40 ou 4,0x50), Parafusos de fixação (3,5x14), Cavilhas, Cola, Dobradiças, Corrediças.*
+  ## 2. 🧰 Ferramentas Necessárias
+  *Liste ferramentas manuais e elétricas.*
+  *   [ ] Parafusadeira/Furadeira
+  *   [ ] Brocas (3mm, 35mm se necessário)
+  *   [ ] Chaves (Philips, Fenda)
+  *   [ ] Nível
+  *   [ ] Esquadro
+  *   [ ] Martelo de Borracha
 
-  ## 3. 🛡️ Segurança Primeiro
-  *Dicas rápidas de EPI e proteção do ambiente.*
+  ## 3. 🦺 Segurança e EPI
+  *   [ ] Óculos de proteção (obrigatório)
+  *   [ ] Luvas de proteção (cuidado com arestas cortantes)
+  *   [ ] Ambiente limpo e iluminado
 
-  ## 4. 🚀 Passo a Passo da Montagem
-  *Descreva a ordem lógica de montagem, do início ao fim. Divida em etapas claras.*
-  *   **Etapa 1: Preparação:** (Marcação, pré-furos, fixação de calços e corrediças nas laterais antes de montar).
-  *   **Etapa 2: Estrutura (Caixote):** (União de base, laterais e teto/travessas).
-  *   **Etapa 3: Esquadrejamento e Fundo:** (Como pregar o fundo para travar o esquadro).
-  *   **Etapa 4: Instalação:** (Se for aéreo, como fixar na parede; se for chão, nivelamento dos pés).
-  *   **Etapa 5: Internos e Frentes:** (Prateleiras, gavetas e portas).
+  ## 4. 🚀 Passo a Passo Detalhado
+  *(Divida em etapas lógicas. Explique COMO fazer).*
 
-  ## 5. 💡 Dicas de Mestre (O Pulo do Gato)
-  *   **Regulagem:** Como ajustar as dobradiças (altura, profundidade, lateral) para alinhar as portas perfeitamente.
-  *   **Acabamento:** Como limpar marcas de lápis, usar tapa-furos, etc.
+  ### Etapa 1: Preparação (Marcação e Ferragens)
+  *   [ ] Fixação de calços de dobradiças nas laterais.
+  *   [ ] Instalação de corrediças nas gavetas e laterais.
+  *   [ ] Inserção de cavilhas/minifix.
 
-  ## 6. ⚠️ Solução de Problemas Comuns
-  *O que fazer se o móvel balançar, se a gaveta travar, etc.*
+  ### Etapa 2: Montagem da Estrutura (Caixote)
+  *   [ ] União da Base com as Laterais (Dica: use o esquadro).
+  *   [ ] Fixação do Teto/Travessas.
+
+  ### Etapa 3: Travamento e Fundo
+  *   [ ] Fixação do fundo (Essencial para o esquadro).
+
+  ### Etapa 4: Instalação e Nivelamento
+  *   [ ] Posicionamento no local final.
+  *   [ ] **Nivelamento dos pés** (Crucial para portas funcionarem).
+
+  ### Etapa 5: Acabamento e Frentes
+  *   [ ] Instalação de prateleiras.
+  *   [ ] Encaixe e regulagem de portas/gavetas.
+
+  ## 5. 💡 Dicas de Mestre: Regulagem Fina
+  *   **Regulagem de Dobradiças:** Explique a função de cada parafuso da dobradiça (Altura, Profundidade, Lateral).
+  *   **Alinhamento de Gavetas:** Como ajustar se a frente estiver torta.
+
+  ## 6. ✂️ Diagrama de Corte (Conceitual)
+  *Breve descrição de como otimizar o corte das peças na chapa (sentido do veio, sobras).*
+
+  ## 7. ⚠️ Solução de Problemas Comuns (Troubleshooting)
+  *   *Móvel balançando?* Verifique o nivelamento e o aperto dos parafusos do fundo.
+  *   *Portas batendo?* Ajuste a profundidade da dobradiça.
   `;
   
   const images = project.views3d.map(url => ({
@@ -475,11 +503,20 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
     const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';
     const imageData = base64Image.split(',')[1];
 
-    const prompt = `Você é um designer de interiores de renome. Com base na descrição e na imagem de um projeto de marcenaria, sugira 3 nomes de estilos alternativos que também funcionariam bem. O estilo atual é "${currentStyle}". Não sugira o estilo atual. Seja criativo e específico (ex: "Minimalista Japandi", "Industrial Urbano", "Rústico Moderno").
-
-**Descrição do Projeto:** ${projectDescription}
-
-Retorne a resposta APENAS como um array JSON de strings. Exemplo: ["Estilo A", "Estilo B", "Estilo C"]`;
+    const prompt = `Você é um Diretor de Arte e Designer de Interiores Sênior.
+    Analise a imagem 3D fornecida e a descrição do móvel.
+    
+    **Contexto:**
+    - Descrição: "${projectDescription}"
+    - Estilo Atual: "${currentStyle}"
+    
+    **Tarefa:**
+    Sugira 3 estilos de design alternativos e DISTINTOS que transformariam completamente a estética deste móvel, mantendo sua função.
+    Evite o estilo atual.
+    Seja criativo e específico (ex: "Japandi", "Industrial Loft", "Boho Chic", "Art Déco", "Minimalista Dinamarquês").
+    
+    **Saída:**
+    Retorne APENAS um array JSON de strings com os nomes dos estilos. Exemplo: ["Estilo A", "Estilo B", "Estilo C"]`;
     
     const parts: Part[] = [
         { text: prompt },
