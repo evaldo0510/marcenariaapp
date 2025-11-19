@@ -353,75 +353,83 @@ export async function estimateProjectCosts(project: ProjectHistoryItem): Promise
 export async function generateAssemblyDetails(project: ProjectHistoryItem): Promise<string> {
   const prompt = `
   Atue como um **Mestre Marceneiro e Instrutor Técnico Sênior**.
-  Sua tarefa é criar um **Manual de Montagem Profissional** completo para o seguinte projeto:
+  Sua tarefa é criar um **Manual de Montagem Profissional** completo e detalhado para o seguinte projeto de marcenaria:
 
-  **Projeto:** ${project.description}
+  **Descrição do Projeto:** ${project.description}
   **Contexto (BOM):** ${project.bom || "Considere materiais padrão (MDF 15mm) e estime as ferragens necessárias."}
 
   **REQUISITOS DE FORMATAÇÃO:**
-  - Use Markdown estruturado com títulos, listas e negrito.
-  - Use Emojis para facilitar a visualização das seções.
+  - Use Markdown estruturado com títulos (H1, H2, H3), listas com bullets e negrito para ênfase.
+  - Use Emojis relevantes para tornar a leitura agradável e intuitiva.
   - Use checkboxes '[ ]' nas etapas para o usuário marcar o progresso.
 
-  **ESTRUTURA DO MANUAL (Siga rigorosamente):**
+  **ESTRUTURA DO MANUAL (Siga rigorosamente esta ordem):**
 
-  # 🛠️ Guia de Montagem Completo: [Nome do Móvel]
+  # 🛠️ Guia de Montagem: [Nome Sugerido para o Móvel]
 
-  ## 📊 Visão Geral
+  ## 📊 Visão Geral do Projeto
   *   **Tempo Estimado:** [X] horas
   *   **Nível de Dificuldade:** [Fácil/Médio/Difícil]
-  *   **Equipe Recomendada:** [1 ou 2 pessoas]
+  *   **Pessoas Necessárias:** [1 ou 2]
+  *   **Habilidades Chave:** [Ex: Furação precisa, Regulagem de portas]
 
-  ## 1. 📋 Lista de Materiais e Ferragens (BOM)
-  *Liste as peças principais (Laterais, Base, Portas) e as quantidades de ferragens (Parafusos, Dobradiças, Corrediças).*
+  ## 1. 📋 Lista de Materiais e Ferragens (Checklist)
+  *Liste as peças e ferragens essenciais. Inclua quantidades estimadas.*
+  - [ ] Peças de Madeira (Laterais, Base, Tampo, Portas, Gavetas...)
+  - [ ] Ferragens (Dobradiças [Curva/Reta], Corrediças, Parafusos [tamanhos], Cavilhas, Minifix/Girofix, Pés/Rodízios)
 
-  ## 2. 🧰 Ferramentas Necessárias
-  *Liste ferramentas manuais e elétricas.*
-  *   [ ] Parafusadeira/Furadeira
-  *   [ ] Brocas (3mm, 35mm se necessário)
-  *   [ ] Chaves (Philips, Fenda)
-  *   [ ] Nível
-  *   [ ] Esquadro
-  *   [ ] Martelo de Borracha
+  ## 2. 🧰 Ferramentas Obrigatórias
+  *Liste tudo o que o montador vai precisar.*
+  - [ ] Parafusadeira/Furadeira
+  - [ ] Brocas (Aço rápido 3mm, Chata 35mm p/ dobradiça se não vier furado)
+  - [ ] Chaves Manuais (Philips PH2, Fenda)
+  - [ ] Instrumentos de Medição (Trena, Esquadro, Nível de bolha)
+  - [ ] Martelo de Borracha (para não marcar o MDF)
+  - [ ] Lápis de Carpinteiro
 
-  ## 3. 🦺 Segurança e EPI
-  *   [ ] Óculos de proteção (obrigatório)
-  *   [ ] Luvas de proteção (cuidado com arestas cortantes)
-  *   [ ] Ambiente limpo e iluminado
+  ## 3. 🦺 Segurança em Primeiro Lugar
+  - [ ] Óculos de proteção (Sempre!)
+  - [ ] Luvas de proteção (Cuidado com as bordas vivas da fita de borda)
+  - [ ] Proteção auricular (Se usar ferramentas elétricas por longo período)
 
-  ## 4. 🚀 Passo a Passo Detalhado
-  *(Divida em etapas lógicas. Explique COMO fazer).*
+  ## 4. 🚀 Passo a Passo da Montagem
+  *(Descreva o processo em ordem cronológica lógica. Seja didático: Explique O QUE fazer e COMO fazer).*
 
-  ### Etapa 1: Preparação (Marcação e Ferragens)
-  *   [ ] Fixação de calços de dobradiças nas laterais.
-  *   [ ] Instalação de corrediças nas gavetas e laterais.
-  *   [ ] Inserção de cavilhas/minifix.
+  ### Fase 1: Preparação das Peças
+  *   [ ] **Marcação:** Marque onde irão as corrediças e dobradiças antes de montar a caixa.
+  *   [ ] **Pré-furação:** Faça furos guias para evitar que o MDF rache.
+  *   [ ] **Fixação de Ferragens:** Instale calços de dobradiças e corrediças nas laterais agora (é muito mais difícil depois).
 
-  ### Etapa 2: Montagem da Estrutura (Caixote)
-  *   [ ] União da Base com as Laterais (Dica: use o esquadro).
-  *   [ ] Fixação do Teto/Travessas.
+  ### Fase 2: Estrutura Principal (O Caixote)
+  *   [ ] Unir Base e Laterais. **Dica:** Use o esquadro para garantir 90º perfeitos.
+  *   [ ] Fixar Travessas Superiores ou Teto.
+  *   [ ] Instalar o Fundo. **Crítico:** O fundo trava o esquadro do móvel. Pregue ou parafuse com atenção.
 
-  ### Etapa 3: Travamento e Fundo
-  *   [ ] Fixação do fundo (Essencial para o esquadro).
+  ### Fase 3: Instalação no Local
+  *   [ ] Posicionar o móvel no local final.
+  *   [ ] **Nivelamento:** Ajuste os pés reguláveis. Use o nível. Se o móvel estiver torcido, as portas nunca ficarão alinhadas.
 
-  ### Etapa 4: Instalação e Nivelamento
-  *   [ ] Posicionamento no local final.
-  *   [ ] **Nivelamento dos pés** (Crucial para portas funcionarem).
+  ### Fase 4: Componentes Móveis e Acabamento
+  *   [ ] Montar e inserir gavetas.
+  *   [ ] Fixar portas nos calços.
+  *   [ ] Instalar prateleiras internas.
+  *   [ ] Colocar puxadores.
+  *   [ ] Limpeza final e remoção de marcas de lápis.
 
-  ### Etapa 5: Acabamento e Frentes
-  *   [ ] Instalação de prateleiras.
-  *   [ ] Encaixe e regulagem de portas/gavetas.
+  ## 5. 💡 Segredos de Mestre (Regulagem Fina)
+  *   **Portas Desalinhadas?**
+      *   Parafuso de trás: Ajusta a profundidade (para frente/trás).
+      *   Parafuso do meio/exêntrico: Ajusta a altura (para cima/baixo).
+      *   Parafuso da frente: Ajusta o recobrimento (esquerda/direita).
+  *   **Gaveta pegando?** Verifique se os parafusos da corrediça estão bem rentes (cabeça chata) e se o móvel está no esquadro.
 
-  ## 5. 💡 Dicas de Mestre: Regulagem Fina
-  *   **Regulagem de Dobradiças:** Explique a função de cada parafuso da dobradiça (Altura, Profundidade, Lateral).
-  *   **Alinhamento de Gavetas:** Como ajustar se a frente estiver torta.
+  ## 6. 🔧 Manutenção Preventiva
+  *   Reaperto geral após 30 dias.
+  *   Como limpar (pano úmido, sabão neutro, nunca usar abrasivos).
 
-  ## 6. ✂️ Diagrama de Corte (Conceitual)
-  *Breve descrição de como otimizar o corte das peças na chapa (sentido do veio, sobras).*
-
-  ## 7. ⚠️ Solução de Problemas Comuns (Troubleshooting)
-  *   *Móvel balançando?* Verifique o nivelamento e o aperto dos parafusos do fundo.
-  *   *Portas batendo?* Ajuste a profundidade da dobradiça.
+  ## 7. ⚠️ Troubleshooting (Solução de Problemas)
+  *   *Rachou o MDF ao parafusar?* -> Use broca guia mais fina e escareador.
+  *   *Fundo soltou?* -> Reforce com parafusos 3,5x14mm e arruelas se necessário.
   `;
   
   const images = project.views3d.map(url => ({
