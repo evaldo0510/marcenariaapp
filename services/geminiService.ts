@@ -285,38 +285,51 @@ export async function estimateProjectCosts(project: ProjectHistoryItem): Promise
 
 export async function generateAssemblyDetails(project: ProjectHistoryItem): Promise<string> {
   const prompt = `
-  Atue como um mestre marceneiro e redator técnico com anos de experiência. Sua tarefa é criar um **Guia de Montagem Passo a Passo** extremamente detalhado e profissional para o projeto de marcenaria descrito abaixo.
-
-  **Contexto do Projeto:**
-  - **Descrição:** ${project.description}
-  - **Lista de Materiais (BOM):** ${project.bom || "Não fornecida (Deduza os materiais prováveis com base na imagem 3D)"}
-
-  **O Guia deve ser formatado em Markdown e conter as seguintes seções:**
-
-  ### 1. 🧰 Ferramentas e Preparação
-  Liste todas as ferramentas necessárias (ex: Parafusadeira, brocas de quais tamanhos, nível, trena, martelo de borracha, estilete, etc.). Liste também os EPIs recomendados (óculos, luvas).
-
-  ### 2. ⚙️ Lista de Ferragens (Estimada)
-  Com base no tipo de móvel, liste as ferragens prováveis e quantidades estimadas (ex: Dobradiças 35mm (reta/curva), Corrediças telescópicas, Dispositivos de montagem como Minifix/VB/Cavilhas, Parafusos (4,0x40mm estrutural, 3,5x14mm para ferragens), Cantoneiras, etc.).
-
-  ### 3. 🚀 Passo a Passo da Montagem
-  Crie uma sequência lógica e numerada de montagem.
-  1.  **Preparação:** Identificação das peças e fixação de dispositivos de montagem (cavilhas, pinos de minifix).
-  2.  **Estrutura:** Montagem da caixa (Base, Laterais, Teto). Dica de esquadro.
-  3.  **Fundo:** Fixação do fundo para travar o esquadro.
-  4.  **Internos:** Prateleiras e divisórias fixas.
-  5.  **Móveis:** Montagem de gavetas e fixação de corrediças.
-  6.  **Fechamento:** Instalação de portas e frentes.
-  7.  **Instalação:** Fixação na parede (se necessário) ou nivelamento dos pés.
+  Você é um Mestre Marceneiro com 30 anos de experiência e um redator técnico premiado. Sua tarefa é criar o **Guia de Montagem Definitivo** para o projeto de marcenaria descrito.
   
-  *Para cada passo, seja específico sobre qual peça usar e como fixar.*
+  **Dados do Projeto:**
+  - **Descrição:** ${project.description}
+  - **Materiais (BOM):** ${project.bom || "Não fornecida (Deduza os materiais com base nas práticas padrão de marcenaria para este tipo de móvel)"}
 
-  ### 4. 💡 Dicas de Ouro (Acabamento e Regulagem)
-  - **Regulagem de Dobradiças:** Explique como ajustar altura, profundidade e alinhamento lateral.
-  - **Gavetas:** Dicas para evitar que travem.
-  - **Acabamento:** Uso de tapa-furos adesivos, massa para madeira ou cera. Limpeza final.
+  Gere a resposta estritamente em **Markdown** bem formatado, seguindo esta estrutura exata:
 
-  **Estilo:** O texto deve ser encorajador, claro e técnico. Use negrito para destacar peças e ferramentas.
+  # 🛠️ Guia de Montagem Profissional: [Nome do Projeto]
+
+  **⏱️ Tempo Estimado:** [Estimar horas de montagem] | **💪 Dificuldade:** [Fácil/Médio/Difícil]
+
+  ## 1. 🛡️ Segurança e Preparação (Obrigatório)
+  *   **EPIs:** Liste óculos, protetor auricular, luvas, etc.
+  *   **Ambiente:** Dicas para proteger o piso e organizar o espaço.
+
+  ## 2. 🧰 Lista de Ferramentas
+  Divida em:
+  *   **Medição e Marcação:** (Trena, esquadro, lápis...)
+  *   **Furação e Fixação:** (Parafusadeira/Furadeira, brocas específicas - ex: 3mm guia, 35mm para dobradiça, bits Phillips/Torx)
+  *   **Montagem e Ajuste:** (Martelo de borracha, nível, chaves manuais)
+
+  ## 3. 🔩 Lista de Ferragens e Insumos (Estimativa)
+  Liste detalhadamente (ex: Parafuso 4,0x40mm para caixa, 3,5x14mm para ferragens, cavilhas, cola PVA, Minifix/VB se aplicável, Dobradiças, Corrediças). Explique *onde* cada um é usado.
+
+  ## 4. 🚀 Passo a Passo da Montagem (Lógica de Fabricação)
+  Crie uma sequência lógica de montagem do "caixote" para fora.
+  *   **Passo 1: Preparação das Peças:** Onde colocar cavilhas, onde fixar os calços das dobradiças e as corrediças *antes* de montar a caixa.
+  *   **Passo 2: Estrutura Principal:** Ordem de fixação (Base, Laterais, Travessas/Teto). *Dica de Mestre: Como garantir o esquadro perfeito.*
+  *   **Passo 3: O Fundo:** A importância do fundo para travar a estrutura.
+  *   **Passo 4: Internos:** Instalação de prateleiras fixas e móveis.
+  *   **Passo 5: Instalação no Local:** (Se for aéreo/suspenso ou fixação na parede).
+  *   **Passo 6: Componentes Móveis:** Montagem das gavetas e fixação das portas.
+
+  ## 5. 🔧 O Segredo do Acabamento: Regulagens
+  *   **Dobradiças:** Explique os 3 parafusos de ajuste (Altura, Profundidade, Cobrimento/Lateral).
+  *   **Gavetas:** Como nivelar frentes de gaveta.
+  *   **Limpeza Final:** Remoção de marcas de lápis e cola.
+
+  ## 6. ⚠️ Troubleshooting (Resolução de Problemas)
+  *   *Problema:* "A porta não fecha direito." -> *Solução:* ...
+  *   *Problema:* "O móvel está balançando." -> *Solução:* ...
+
+  ---
+  *Estilo:* Use negrito para destacar peças e medidas. Seja encorajador mas extremamente técnico e preciso. Use emojis para tornar a leitura agradável.
   `;
   
   const images = project.views3d.map(url => ({

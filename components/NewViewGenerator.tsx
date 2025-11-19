@@ -60,10 +60,16 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
             const base64Data = originalImageSrc.split(',')[1];
             const mimeType = originalImageSrc.match(/data:(.*);/)?.[1] || 'image/png';
             
-            const fullPrompt = `Você é um renderizador 3D de IA. A imagem fornecida é uma renderização de um móvel no estilo "${project.style}". Sua tarefa é criar uma nova renderização fotorrealista do MESMO móvel, mas aplicando as seguintes modificações:
+            const fullPrompt = `Você é um renderizador 3D de IA. A imagem fornecida é uma renderização de um móvel no estilo "${project.style}". 
+Sua tarefa é criar uma nova renderização fotorrealista do MESMO móvel, mantendo a geometria, portas, gavetas e puxadores EXATAMENTE iguais, mas aplicando as seguintes modificações visuais:
 **Novo Estilo:** "${style}"
 **Novo Acabamento Principal:** "${finish}"
-Mantenha a forma, a estrutura e a perspectiva geral do móvel, alterando apenas o estilo e os materiais conforme solicitado. O fundo deve ser um estúdio de fotografia minimalista.`;
+
+Instruções Críticas:
+1. Mantenha a estrutura e perspectiva inalteradas.
+2. Substitua as texturas originais pelo acabamento "${finish}".
+3. Ajuste a iluminação e o ambiente de fundo para refletir o estilo "${style}".
+4. O resultado deve parecer uma foto profissional de catálogo.`;
 
             const newImageBase64 = await editImage(base64Data, mimeType, fullPrompt);
             setGeneratedImageSrc(`data:image/png;base64,${newImageBase64}`);

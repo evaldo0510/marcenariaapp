@@ -68,6 +68,7 @@ export const projectTypePresets = [
 
 export const initialStylePresets = [
     'Moderno',
+    'Industrial Moderno',
     'Contemporâneo',
     'Industrial',
     'Rústico',
