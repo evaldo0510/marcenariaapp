@@ -318,6 +318,52 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
   return { text, image, optimization };
 }
 
+export async function generateProjectBom(project: ProjectHistoryItem): Promise<string> {
+  const images = project.views3d.map(url => ({
+      data: url.split(',')[1],
+      mimeType: url.match(/data:(.*);/)?.[1] || 'image/png'
+  }));
+
+  const bomPrompt = `Atue como um **Orçamentista Técnico Sênior de Marcenaria** com foco em produção industrial.
+            
+  Sua tarefa é criar uma **Lista de Materiais (BOM - Bill of Materials)** completa, precisa e formatada profissionalmente para o seguinte projeto.
+  
+  **Descrição do Projeto:**
+  "${project.description}"
+  (Analise as imagens 3D anexadas para deduzir dimensões exatas, ferragens e sistemas de abertura).
+
+  **Regras de Ouro:**
+  1.  **Segurança:** Adicione uma margem de quebra/perda de 10% nas chapas.
+  2.  **Padronização:** Use milímetros (mm) para todas as medidas.
+  3.  **Completo:** Não esqueça itens "invisíveis" (parafusos, cola, tapa-furos).
+
+  Gere a resposta estritamente em **Markdown**, organizada nas seguintes tabelas e seções:
+
+  ### 1. 🪵 Chapas e Painéis (MDF/MDP)
+  | Material / Espessura | Peça (Descrição) | Qtd | Dimensões (mm) | Fita de Borda |
+  | :--- | :--- | :---: | :--- | :--- |
+  | Ex: MDF Branco TX 15mm | Lateral | 2 | 720 x 550 | 1L + 1C (Frente/Baixo) |
+  | ... | ... | ... | ... | ... |
+  *Estimativa total de chapas:* [Ex: 2 chapas de 15mm, 1 chapa de 6mm (Fundo)]
+
+  ### 2. 🔩 Ferragens e Acessórios
+  | Item | Especificação Técnica | Qtd Estimada | Aplicação |
+  | :--- | :--- | :---: | :--- |
+  | Ex: Dobradiça | 35mm Curva c/ Amortecedor | 8 | Portas |
+  | Ex: Corrediça | Telescópica 450mm Light | 4 pares | Gavetas |
+  | ... | ... | ... | ... |
+
+  ### 3. 🎗️ Acabamentos e Insumos
+  *   **Fita de Borda:** [Ex: 50m de Fita Branca 22mm]
+  *   **Fixação:** [Ex: 100 parafusos 4,0x40, 50 parafusos 3,5x14, Cola PVA]
+  *   **Outros:** [Ex: Pés reguláveis, Pistões a gás, Perfis de alumínio]
+
+  ---
+  *Nota Técnica:* Insira uma breve observação sobre o sentido dos veios da madeira se o material for amadeirado.`;
+
+  return await generateText(bomPrompt, images);
+}
+
 export async function estimateProjectCosts(project: ProjectHistoryItem): Promise<{ materialCost: number; laborCost: number }> {
     const prompt = `
     Atue como um Orçamentista Sênior de Marcenaria no Brasil.

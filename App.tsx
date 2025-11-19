@@ -6,14 +6,14 @@ import type { AlertState, ImageModalState, ProjectHistoryItem, Finish, Client, P
 
 // Services
 import { projectTypePresets, initialStylePresets } from './services/presetService';
-import { generateImage, generateText, editImage, generateCuttingPlan, editFloorPlan, estimateProjectCosts, generateAssemblyDetails, parseBomToList, findSupplierPrice, calculateFinancialSummary, fetchSupplierCatalog, calculateShippingCost, suggestAlternativeStyles, generateFloorPlanFrom3D, generate3Dfrom2D } from './services/geminiService';
+import { generateImage, generateText, editImage, generateCuttingPlan, editFloorPlan, estimateProjectCosts, generateAssemblyDetails, parseBomToList, findSupplierPrice, calculateFinancialSummary, fetchSupplierCatalog, calculateShippingCost, suggestAlternativeStyles, generateFloorPlanFrom3D, generate3Dfrom2D, generateProjectBom } from './services/geminiService';
 import { getHistory, addProjectToHistory, updateProjectInHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish } from './services/historyService';
 import { convertMarkdownToHtml } from './utils/helpers';
 
 
 // Components
 import { Header } from './components/Header';
-import { AlertModal, ImageModal, ConfirmationModal, Spinner, WandIcon, BlueprintIcon, CubeIcon, ToolsIcon, DocumentDuplicateIcon, BookIcon, CheckIcon, StarIcon, SparklesIcon, RulerIcon, LogoIcon, CurrencyDollarIcon, WhatsappIcon, StoreIcon, UsersIcon, TagIcon, SearchIcon, MessageIcon, TimerIcon, CatalogIcon, DollarCircleIcon, ARIcon, VideoIcon, CommunityIcon, ShareIcon, CopyIcon, EmailIcon, ProIcon, DocumentTextIcon, EarlyAccessModal } from './components/Shared';
+import { AlertModal, ImageModal, ConfirmationModal, Spinner, WandIcon, BlueprintIcon, CubeIcon, ToolsIcon, DocumentDuplicateIcon, BookIcon, CheckIcon, StarIcon, SparklesIcon, RulerIcon, LogoIcon, CurrencyDollarIcon, WhatsappIcon, StoreIcon, UsersIcon, TagIcon, SearchIcon, MessageIcon, TimerIcon, CatalogIcon, DollarCircleIcon, ARIcon, VideoIcon, CommunityIcon, ShareIcon, CopyIcon, EmailIcon, ProIcon, DocumentTextIcon, EarlyAccessModal, ErrorIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { FinishesSelector } from './components/FinishesSelector';
 import { ImageUploader } from './components/ImageUploader';
@@ -98,6 +98,86 @@ const Project2DViewer: React.FC<{
         </div>
     );
 };
+
+const ProjectToolsPanel: React.FC<{
+    project: ProjectHistoryItem;
+    onGenerateBom: () => void;
+    onGenerateCuttingPlan: () => void;
+    onGenerateCosts: () => void;
+    onGenerateAssembly: () => void;
+    loadingState: {[key: string]: boolean};
+    onViewDetails: () => void;
+}> = ({ project, onGenerateBom, onGenerateCuttingPlan, onGenerateCosts, onGenerateAssembly, loadingState, onViewDetails }) => {
+    
+    const ToolCard: React.FC<{
+        title: string;
+        icon: React.ReactNode;
+        status: 'pending' | 'done';
+        isLoading: boolean;
+        onAction: () => void;
+        actionLabel: string;
+        disabled?: boolean;
+    }> = ({ title, icon, status, isLoading, onAction, actionLabel, disabled }) => (
+        <div className={`p-3 rounded-lg border flex flex-col items-center justify-center text-center transition-all ${status === 'done' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-white dark:bg-[#3e3535] border-[#e6ddcd] dark:border-[#4a4040]'}`}>
+            <div className={`p-2 rounded-full mb-2 ${status === 'done' ? 'bg-green-100 dark:bg-green-800 text-green-600 dark:text-green-200' : 'bg-[#f0e9dc] dark:bg-[#2d2424] text-[#6a5f5f] dark:text-[#c7bca9]'}`}>
+                {status === 'done' ? <CheckIcon className="w-5 h-5" /> : icon}
+            </div>
+            <h4 className="text-xs font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-2">{title}</h4>
+            <button 
+                onClick={status === 'done' ? onViewDetails : onAction} 
+                disabled={isLoading || disabled}
+                className={`text-xs px-2 py-1 rounded w-full font-semibold transition-colors ${
+                    status === 'done' 
+                        ? 'bg-transparent text-green-600 hover:bg-green-100' 
+                        : disabled 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] hover:bg-[#2d2424] dark:hover:bg-[#c89f5e]'
+                }`}
+            >
+                {isLoading ? <Spinner size="sm" /> : (status === 'done' ? 'Ver' : actionLabel)}
+            </button>
+        </div>
+    );
+
+    return (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 animate-fadeIn">
+            <ToolCard 
+                title="Lista de Materiais" 
+                icon={<BookIcon />} 
+                status={project.bom ? 'done' : 'pending'} 
+                isLoading={loadingState['bom']} 
+                onAction={onGenerateBom} 
+                actionLabel="Gerar"
+            />
+            <ToolCard 
+                title="Plano de Corte" 
+                icon={<ToolsIcon />} 
+                status={project.cuttingPlan ? 'done' : 'pending'} 
+                isLoading={loadingState['cut']} 
+                onAction={onGenerateCuttingPlan} 
+                actionLabel="Otimizar"
+                disabled={!project.bom}
+            />
+            <ToolCard 
+                title="Custos" 
+                icon={<CurrencyDollarIcon />} 
+                status={project.materialCost ? 'done' : 'pending'} 
+                isLoading={loadingState['cost']} 
+                onAction={onGenerateCosts} 
+                actionLabel="Calcular"
+                disabled={!project.bom}
+            />
+            <ToolCard 
+                title="Montagem" 
+                icon={<RulerIcon />} 
+                status={project.assemblyDetails ? 'done' : 'pending'} 
+                isLoading={loadingState['assembly']} 
+                onAction={onGenerateAssembly} 
+                actionLabel="Criar Guia"
+            />
+        </div>
+    );
+}
 
 
 // --- NEW EARLY ACCESS PREVIEW COMPONENTS ---
@@ -376,6 +456,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [isGenerate3DFrom2DModalOpen, setIsGenerate3DFrom2DModalOpen] = useState(false);
   const [arViewState, setArViewState] = useState<{ isOpen: boolean; src: string }>({ isOpen: false, src: '' });
   const [isEncontraProOpen, setIsEncontraProOpen] = useState(false);
+  
+  const [autoToolsLoading, setAutoToolsLoading] = useState<{[key: string]: boolean}>({});
 
   // Refs
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -693,13 +775,29 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         setIsLoading(false);
     }
   };
+  
+  // --- AUTO GENERATION HANDLERS FOR PANEL ---
+  const handleGenerateBomForCurrentProject = async () => {
+      if (!currentProject) return;
+      setAutoToolsLoading(prev => ({...prev, bom: true}));
+      try {
+          const bom = await generateProjectBom(currentProject);
+          await handleUpdateProject(currentProject.id, { bom });
+          setActiveTab('details');
+      } catch (error) {
+          showAlert(error instanceof Error ? error.message : 'Erro ao gerar BOM.');
+      } finally {
+          setAutoToolsLoading(prev => ({...prev, bom: false}));
+      }
+  };
 
   const handleGenerateCuttingPlan = async () => {
     if (!currentProject || !currentProject.bom) {
         showAlert("É necessário ter uma Lista de Materiais (BOM) gerada para este projeto.", "Ação Inválida");
         return;
     }
-    setIsLoading(true);
+    setAutoToolsLoading(prev => ({...prev, cut: true}));
+    setIsLoading(true); // Global loading for feedback if modal
     setLoadingMessage('Otimizando plano de corte...');
     try {
         const { text, image, optimization } = await generateCuttingPlan(currentProject, 2750, 1830);
@@ -708,29 +806,35 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             cuttingPlanImage: `data:image/png;base64,${image}`,
             cuttingPlanOptimization: optimization,
         });
+        setActiveTab('details');
     } catch (error) {
         showAlert(error instanceof Error ? error.message : 'Erro ao gerar o plano de corte.');
     } finally {
         setIsLoading(false);
+        setAutoToolsLoading(prev => ({...prev, cut: false}));
     }
   };
 
   const handleGenerateAssemblyDetails = async () => {
     if (!currentProject) return;
+    setAutoToolsLoading(prev => ({...prev, assembly: true}));
     setIsLoading(true);
     setLoadingMessage('Gerando guia de montagem...');
     try {
         const details = await generateAssemblyDetails(currentProject);
         await handleUpdateProject(currentProject.id, { assemblyDetails: details });
+        setActiveTab('details');
     } catch (error) {
         showAlert(error instanceof Error ? error.message : 'Erro ao gerar o guia de montagem.');
     } finally {
         setIsLoading(false);
+        setAutoToolsLoading(prev => ({...prev, assembly: false}));
     }
   };
   
   const handleEstimateCurrentProjectCosts = async () => {
     if (!currentProject) return;
+    setAutoToolsLoading(prev => ({...prev, cost: true}));
     setIsLoading(true);
     setLoadingMessage('Estimando custos do projeto...');
     try {
@@ -739,10 +843,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             materialCost,
             laborCost,
         });
+        setActiveTab('details');
     } catch (error) {
         showAlert(error instanceof Error ? error.message : 'Erro ao estimar custos.');
     } finally {
         setIsLoading(false);
+        setAutoToolsLoading(prev => ({...prev, cost: false}));
     }
   };
 
@@ -808,6 +914,19 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                 </div>
             </div>
 
+            {/* Quick Tools Panel */}
+            <div className="px-4 pt-4">
+                <ProjectToolsPanel 
+                    project={currentProject}
+                    onGenerateBom={handleGenerateBomForCurrentProject}
+                    onGenerateCuttingPlan={handleGenerateCuttingPlan}
+                    onGenerateCosts={handleEstimateCurrentProjectCosts}
+                    onGenerateAssembly={handleGenerateAssemblyDetails}
+                    loadingState={autoToolsLoading}
+                    onViewDetails={() => setActiveTab('details')}
+                />
+            </div>
+
             {/* Tabs */}
             <div className="px-4 border-b border-[#e6ddcd] dark:border-[#4a4040]">
                 <nav className="-mb-px flex space-x-2 sm:space-x-4 overflow-x-auto">
@@ -818,7 +937,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         <BlueprintIcon /> Planta Baixa 2D
                     </button>
                     <button onClick={() => setActiveTab('details')} className={`${tabBaseClasses} ${activeTab === 'details' ? tabActiveClasses : tabInactiveClasses}`}>
-                        <ToolsIcon /> Detalhes
+                        <ToolsIcon /> Detalhes Técnicos
                     </button>
                 </nav>
             </div>
@@ -859,7 +978,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                             ) : (
                                 <div className="text-center p-6 bg-[#f0e9dc] dark:bg-[#2d2424]/50 rounded-lg">
                                     <p className="text-sm text-[#8a7e7e] dark:text-[#a89d8d] mb-4">A lista de materiais ainda não foi gerada.</p>
-                                    <button onClick={() => setIsBomGeneratorOpen(true)} className="bg-[#3e3535] hover:bg-[#2d2424] text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm">Gerar BOM</button>
+                                    <button onClick={handleGenerateBomForCurrentProject} disabled={autoToolsLoading.bom} className="bg-[#3e3535] hover:bg-[#2d2424] text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm flex items-center gap-2 mx-auto">
+                                        {autoToolsLoading.bom ? <Spinner size="sm"/> : <SparklesIcon />} Gerar BOM Automaticamente
+                                    </button>
                                 </div>
                             )}
                         </section>
@@ -886,11 +1007,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                     <p className="text-sm text-[#8a7e7e] dark:text-[#a89d8d] mb-4">O plano de corte ainda não foi gerado.</p>
                                     <button
                                     onClick={handleGenerateCuttingPlan}
-                                    disabled={!currentProject.bom || isLoading}
-                                    className="bg-[#3e3535] hover:bg-[#2d2424] text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm flex items-center gap-2 disabled:opacity-50"
+                                    disabled={!currentProject.bom || isLoading || autoToolsLoading.cut}
+                                    className="bg-[#3e3535] hover:bg-[#2d2424] text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm flex items-center gap-2 disabled:opacity-50 mx-auto"
                                     title={!currentProject.bom ? "Gere a BOM primeiro" : ""}
                                     >
-                                    {isLoading ? <Spinner size="sm" /> : <WandIcon />}
+                                    {isLoading || autoToolsLoading.cut ? <Spinner size="sm" /> : <WandIcon />}
                                     Gerar Plano de Corte (2750x1830mm)
                                     </button>
                                 </div>
@@ -905,8 +1026,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                             ) : (
                                 <div className="text-center p-6 bg-[#f0e9dc] dark:bg-[#2d2424]/50 rounded-lg">
                                     <p className="text-sm text-[#8a7e7e] dark:text-[#a89d8d] mb-4">O guia de montagem ainda não foi gerado.</p>
-                                    <button onClick={handleGenerateAssemblyDetails} disabled={isLoading} className="bg-[#3e3535] hover:bg-[#2d2424] text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm flex items-center gap-2 disabled:opacity-50">
-                                        {isLoading ? <Spinner size="sm" /> : <WandIcon />}
+                                    <button onClick={handleGenerateAssemblyDetails} disabled={isLoading || autoToolsLoading.assembly} className="bg-[#3e3535] hover:bg-[#2d2424] text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm flex items-center gap-2 disabled:opacity-50 mx-auto">
+                                        {isLoading || autoToolsLoading.assembly ? <Spinner size="sm" /> : <WandIcon />}
                                         Gerar Guia de Montagem
                                     </button>
                                 </div>
@@ -923,7 +1044,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                      <button
                                         onClick={handleEstimateCurrentProjectCosts}
-                                        disabled={isLoading || !currentProject.bom}
+                                        disabled={isLoading || !currentProject.bom || autoToolsLoading.cost}
                                         className="bg-[#3e3535] hover:bg-[#2d2424] text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2 disabled:opacity-50"
                                         title={!currentProject.bom ? "Gere a BOM primeiro" : "Estimar custos com IA"}
                                     >
