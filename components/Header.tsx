@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, CheckIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, WhatsappIcon, CommunityIcon, ProIcon, ARIcon } from './Shared';
+import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon } from './Shared';
 
 interface HeaderProps {
     userEmail: string;
@@ -46,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
     
     return (
         <header className="bg-[#f5f1e8]/80 dark:bg-[#2d2424]/80 backdrop-blur-sm sticky top-0 z-30 border-b border-[#e6ddcd] dark:border-[#4a4040]">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto px-4 sm:p-6 lg:px-8">
                 <div className="flex items-center justify-between h-20">
                     {/* Left side: Brand */}
                     <div className="flex items-center gap-3">
@@ -58,33 +58,11 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                     <div className="flex items-center gap-2">
                         {/* Action icons hidden on small screens */}
                         <nav className="hidden md:flex items-center gap-2">
-                                <button onClick={onOpenEncontraPro} className="p-2 rounded-full text-indigo-500 hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition-colors" title="EncontraPro - Marketplace">
-                                    <ProIcon className="w-5 h-5" />
-                                </button>
-                                <button onClick={onOpenWhatsapp} className="p-2 rounded-full text-green-500 hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition-colors" title="Integração WhatsApp (Beta)">
-                                    <WhatsappIcon className="w-5 h-5" />
-                                </button>
-                                <button onClick={onOpenAutoPurchase} className="p-2 rounded-full text-blue-500 hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition-colors" title="Compra Automática (Beta)">
-                                    <StoreIcon className="w-5 h-5" />
-                                </button>
-                                <button onClick={onOpenEmployeeManagement} className="p-2 rounded-full text-yellow-500 hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition-colors" title="Gestão de Funcionários (Beta)">
-                                    <UsersIcon className="w-5 h-5" />
-                                </button>
-                                <button onClick={onOpenLearningHub} className="p-2 rounded-full text-purple-500 hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition-colors" title="Hub de Aprendizagem">
-                                    <CommunityIcon className="w-5 h-5" />
-                                </button>
-                                <button onClick={onOpenAR} className="p-2 rounded-full text-teal-500 hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition-colors" title="Realidade Aumentada (Beta)">
-                                    <ARIcon className="w-5 h-5" />
-                                </button>
-                                <div className="w-px h-6 bg-[#e6ddcd] dark:border-[#4a4040] mx-2"></div>
                             <button onClick={onOpenResearch} className="p-2 rounded-full text-[#6a5f5f] dark:text-[#a89d8d] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] hover:text-[#3e3535] dark:hover:text-[#f5f1e8] transition-colors" title="Pesquisar com Iara">
                                 <SearchIcon />
                             </button>
                             <button onClick={onOpenLive} className="p-2 rounded-full text-[#6a5f5f] dark:text-[#a89d8d] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] hover:text-[#3e3535] dark:hover:text-[#f5f1e8] transition-colors" title="Conversar com Iara (Voz)">
                                 <HeadsetIcon />
-                            </button>
-                             <button onClick={onOpenDistributors} className="p-2 rounded-full text-[#6a5f5f] dark:text-[#a89d8d] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] hover:text-[#3e3535] dark:hover:text-[#f5f1e8] transition-colors" title="Encontrar Distribuidores">
-                                <StoreIcon />
                             </button>
                         </nav>
                         
@@ -102,15 +80,8 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                                     </div>
                                     <div className="my-2 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
                                     <nav className="flex flex-col gap-1 md:hidden">
-                                            <button onClick={() => {onOpenEncontraPro(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><ProIcon /> EncontraPro</button>
-                                            <button onClick={() => {onOpenWhatsapp(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><WhatsappIcon /> WhatsApp (Beta)</button>
-                                            <button onClick={() => {onOpenAutoPurchase(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><StoreIcon /> Compras (Beta)</button>
-                                            <button onClick={() => {onOpenEmployeeManagement(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><UsersIcon /> Equipe (Beta)</button>
-                                            <button onClick={() => {onOpenLearningHub(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><CommunityIcon /> Hub de Aprendizagem</button>
-                                            <button onClick={() => {onOpenAR(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><ARIcon /> Realidade Aumentada (Beta)</button>
                                         <button onClick={() => {onOpenResearch(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><SearchIcon /> Pesquisar com Iara</button>
                                         <button onClick={() => {onOpenLive(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><HeadsetIcon /> Conversar com Iara</button>
-                                        <button onClick={() => {onOpenDistributors(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><StoreIcon /> Distribuidores</button>
                                         <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
                                     </nav>
                                     <button onClick={() => {onOpenHistory(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><HistoryIcon /> Histórico de Projetos</button>
