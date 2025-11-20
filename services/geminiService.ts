@@ -44,6 +44,41 @@ export function cleanAndParseJson<T>(text: string): T {
     }
 }
 
+// --- GENERATE IMAGE FUNCTION ---
+export async function generateImage(prompt: string, referenceImages?: { data: string, mimeType: string }[] | null): Promise<string> {
+    const parts: any[] = [{ text: prompt }];
+    
+    if (referenceImages && referenceImages.length > 0) {
+        referenceImages.forEach(img => {
+             parts.push(fileToGenerativePart(img.data, img.mimeType));
+        });
+        // Instrução reforçada para fidelidade geométrica
+        parts.push({ text: "IMPORTANTE: As imagens fornecidas são a REFERÊNCIA ESTRUTURAL ABSOLUTA. O render 3D deve manter EXATAMENTE o mesmo layout, geometria, quantidade de portas/gavetas e proporções do desenho/foto original. Use a descrição de texto APENAS para definir materiais, cores, texturas e iluminação. NÃO adicione, remova ou modifique a estrutura do móvel mostrado na referência." });
+    }
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: { parts },
+            config: {
+                responseModalities: [Modality.IMAGE],
+            }
+        });
+
+        // Iterate parts to find inlineData image
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
+        
+        if (imagePart && imagePart.inlineData) {
+            return imagePart.inlineData.data;
+        }
+        
+        throw new Error("A IA não retornou uma imagem válida. Tente simplificar a descrição.");
+    } catch (error) {
+        console.error("Generate Image Error:", error);
+        throw error;
+    }
+}
+
 // 1. Suggest Alternative Styles
 export async function suggestAlternativeStyles(projectDescription: string, currentStyle: string, base64Image?: string): Promise<string[]> {
     const prompt = `Atue como um Diretor de Arte e Consultor de Tendências de Design Sênior.
@@ -89,17 +124,72 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
     return [];
 }
 
+// 1.1 Suggest Alternative Finishes
+export async function suggestAlternativeFinishes(projectDescription: string, style: string): Promise<Finish[]> {
+    const prompt = `Atue como um Especialista em Materiais e Acabamentos de Marcenaria.
+    
+    **Contexto:**
+    - Projeto: "${projectDescription}"
+    - Estilo de Design: "${style}"
+    
+    **Tarefa:**
+    Sugira 3 acabamentos específicos, priorizando uma variação entre **Madeira** (MDF madeirado ou lâmina), **Laca** (Pintura sólida fosca ou brilho) e **Metal** (ou detalhes metalizados), disponíveis no mercado brasileiro, que combinem perfeitamente com o estilo "${style}" e valorizem este projeto.
+    
+    Para cada sugestão, forneça:
+    - id: string única (ex: 'sug_1')
+    - name: Nome comercial e cor (ex: "MDF Carvalho Hannover", "Laca Cinza Grafite", "Aço Corten")
+    - description: Por que este acabamento combina com o estilo ${style}?
+    - type: 'wood' | 'solid' | 'metal' | 'stone' | 'concrete' | 'ceramic' | 'fabric' | 'glass' | 'laminate' | 'veneer'
+    - manufacturer: Fabricante real sugerido (Duratex, Arauco, Guararapes, Sudati, Sayyerlack, etc.)
+    - hexCode: Código HEX aproximado da cor para visualização.
+    - imageUrl: deixe null.
+    
+    Retorne JSON array.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        id: { type: Type.STRING },
+                        name: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        type: { type: Type.STRING, enum: ['wood', 'solid', 'metal', 'stone', 'concrete', 'ceramic', 'fabric', 'glass', 'laminate', 'veneer'] },
+                        manufacturer: { type: Type.STRING },
+                        imageUrl: { type: Type.STRING, nullable: true },
+                        hexCode: { type: Type.STRING }
+                    },
+                    required: ['id', 'name', 'description', 'type', 'manufacturer', 'hexCode']
+                }
+            }
+        }
+    });
+
+    if (response.text) {
+        return cleanAndParseJson<Finish[]>(response.text);
+    }
+    return [];
+}
+
+
 // 2. Search Finishes (for FinishesSelector)
 export async function searchFinishes(query: string): Promise<Finish[]> {
-    const prompt = `Procure ou gere sugestões de acabamentos de marcenaria (MDF, pedras, metais, vidros) que correspondam à descrição: "${query}".
-    Retorne 4 opções variadas.
+    const prompt = `Procure ou gere sugestões de acabamentos de marcenaria (MDF, pedras, metais, vidros) do mercado brasileiro que correspondam à descrição: "${query}".
+    Retorne 4 opções variadas e realistas.
+    
     Para cada opção, forneça:
     - id: string única
-    - name: nome comercial comum
-    - description: breve descrição visual
+    - name: nome comercial comum (ex: MDF Carvalho Hannover, MDF Branco Diamante)
+    - description: breve descrição visual (cor, textura, acabamento)
     - type: 'wood' | 'solid' | 'metal' | 'stone' | 'concrete' | 'ceramic' | 'fabric' | 'glass' | 'laminate' | 'veneer'
-    - manufacturer: fabricante sugerido (ex: Arauco, Duratex, Guararapes) ou 'Genérico'
-    - imageUrl: deixe em branco (null)
+    - manufacturer: fabricante sugerido real (ex: Duratex, Arauco, Guararapes, Sudati, Eucatex) ou 'Genérico' se não aplicável.
+    - imageUrl: deixe null.
+    - hexCode: código HEX aproximado da cor predominante (ex: #8B4513 para madeira escura).
     
     Retorne JSON.`;
 
@@ -118,9 +208,10 @@ export async function searchFinishes(query: string): Promise<Finish[]> {
                         description: { type: Type.STRING },
                         type: { type: Type.STRING, enum: ['wood', 'solid', 'metal', 'stone', 'concrete', 'ceramic', 'fabric', 'glass', 'laminate', 'veneer'] },
                         manufacturer: { type: Type.STRING },
-                        imageUrl: { type: Type.STRING, nullable: true }
+                        imageUrl: { type: Type.STRING, nullable: true },
+                        hexCode: { type: Type.STRING, description: "Código HEX aproximado da cor" }
                     },
-                    required: ['id', 'name', 'description', 'type', 'manufacturer']
+                    required: ['id', 'name', 'description', 'type', 'manufacturer', 'hexCode']
                 }
             }
         }
@@ -189,11 +280,6 @@ export async function suggestImageEdits(projectDescription: string, imageSrc: st
 // 5. Generate Grounded Response (for ResearchAssistant and DistributorFinder)
 export async function generateGroundedResponse(prompt: string, location: { latitude: number, longitude: number } | null): Promise<{ text: string, sources: any[] }> {
     const tools: any[] = [{ googleSearch: {} }];
-    // If using googleMaps, it should be distinct, but generic search handles most queries.
-    // If location provided and query implies places, maps might be better, but mixing is restrictive.
-    // We will use Google Search grounding which returns web results and sometimes entity/map-like data.
-    
-    // Note: gemini-2.5-flash supports googleSearch.
     
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -206,7 +292,6 @@ export async function generateGroundedResponse(prompt: string, location: { latit
     const text = response.text || "Não encontrei informações.";
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     
-    // Extract simplified sources
     const sources = groundingChunks.map((chunk: any) => {
         if (chunk.web) return { web: chunk.web };
         return null;
@@ -217,26 +302,48 @@ export async function generateGroundedResponse(prompt: string, location: { latit
 
 // 6. Edit Floor Plan (for LayoutEditor)
 export async function editFloorPlan(base64Data: string, mimeType: string, prompt: string): Promise<string> {
-    // Similar to editImage but prompt context is specific to floor plans
     return editImage(base64Data, mimeType, `Aja como um arquiteto. Edite esta planta baixa: ${prompt}. Mantenha o estilo técnico.`);
 }
 
 // 7. Estimate Project Costs (for CostEstimatorModal and ProposalModal)
 export async function estimateProjectCosts(project: ProjectHistoryItem): Promise<{ materialCost: number, laborCost: number }> {
-    const prompt = `Atue como um orçamentista de marcenaria.
-    Analise os dados do projeto abaixo e ESTIME os custos de produção no Brasil (BRL).
+    const parts: any[] = [];
+
+    const prompt = `Atue como um Orçamentista Técnico Sênior de Marcenaria no Brasil.
     
-    Projeto: ${project.name}
-    Descrição: ${project.description}
-    BOM (Lista de Materiais): ${project.bom || "Não fornecida, estime com base na descrição"}
-    
-    Considere preços médios de mercado para MDF, ferragens e hora/homem de marceneiro qualificado.
-    
-    Retorne JSON: { "materialCost": number, "laborCost": number }`;
+    Sua tarefa é realizar uma estimativa precisa de custos de **Material** e **Mão de Obra** para o projeto, realizando uma auditoria cruzada entre a Lista de Materiais (BOM) e a complexidade visual do projeto 3D.
+
+    **Dados do Projeto:**
+    - Nome: ${project.name}
+    - Descrição: ${project.description}
+    - BOM (Lista de Materiais): ${project.bom || "Não fornecida, deduza da imagem e descrição."}
+
+    **Instruções de Cálculo:**
+    1. **Materiais:** Considere preços médios de mercado (São Paulo/BR) para MDF (chapas de 15mm, 18mm, 6mm), fitas de borda, ferragens (dobradiças com amortecedor, corrediças telescópicas) e insumos.
+    2. **Mão de Obra:** Analise as **IMAGENS 3D fornecidas** (se houver) para determinar a **Complexidade de Montagem**.
+       - Projetos simples (caixaria reta, portas de abrir): Mão de obra padrão (aprox. 80-100% do material).
+       - Projetos complexos (muitos nichos, gavetas internas, recortes, fitas de LED, ripados, laca): Aumente significativamente o valor da mão de obra (pode chegar a 150-200% do material).
+       - Considere todas as etapas: Corte, Fitação, Pré-montagem, Transporte e Instalação no cliente.
+
+    **Saída:**
+    Retorne APENAS um JSON com os valores estimados em Reais (BRL):
+    { "materialCost": number, "laborCost": number }`;
+
+    parts.push({ text: prompt });
+
+    if (project.views3d && project.views3d.length > 0) {
+        // Use up to 3 views for better context on complexity
+        const viewsToUse = project.views3d.slice(0, 3);
+        viewsToUse.forEach(imageSrc => {
+            const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
+            const data = imageSrc.split(',')[1];
+            parts.push(fileToGenerativePart(data, mimeType));
+        });
+    }
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: prompt,
+        contents: { parts },
         config: {
             responseMimeType: 'application/json',
             responseSchema: {
@@ -266,14 +373,14 @@ export async function generateText(prompt: string, images?: { data: string, mime
     }
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview', // Reasoning model for complex BOM generation
+        model: 'gemini-3-pro-preview',
         contents: { parts }
     });
 
     return response.text || "Não foi possível gerar o texto.";
 }
 
-// 9. Generate Cutting Plan (for CuttingPlanGeneratorModal)
+// 9. Generate Cutting Plan
 export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidth: number, sheetHeight: number): Promise<{ text: string, image: string, optimization: string }> {
     const prompt = `Gere um plano de corte otimizado para chapas de ${sheetWidth}x${sheetHeight}mm.
     Baseado na seguinte BOM ou Descrição:
@@ -284,7 +391,6 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
     
     Para a imagem do diagrama, não é possível gerar diretamente aqui em texto, então forneça uma descrição detalhada visual do layout das peças na chapa para que eu possa visualizar mentalmente.`;
 
-    // Step 1: Get Text Plan
     const responseText = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: prompt
@@ -292,15 +398,12 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
     
     const textPlan = responseText.text || "Plano não gerado.";
 
-    // Step 2: Try to generate a visual diagram representation (Image)
     const imagePrompt = `Um diagrama técnico esquemático 2D de um plano de corte de marcenaria (nesting) em uma chapa de MDF retangular. 
     Mostrar peças retangulares organizadas para otimizar espaço. Fundo branco, linhas pretas. Estilo vetorial técnico.
     Contexto: ${project.name}`;
     
     let imageBase64 = "";
     try {
-        imageBase64 = await editImage("", "", imagePrompt); // Using editImage logic but actually generating from scratch if allow empty inputs or handle inside editImage logic?
-        // Wait, editImage expects input. Let's make a direct call here since we don't have input image.
         const imgResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: { parts: [{ text: imagePrompt }] },
@@ -311,7 +414,6 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
         }
     } catch (e) {
         console.warn("Could not generate cutting plan diagram", e);
-        // Use a placeholder or empty
     }
 
     return {
@@ -321,15 +423,15 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
     };
 }
 
-// 10. Find Project Leads (for EncontraProModal)
+// 10. Find Project Leads
 export async function findProjectLeads(city: string): Promise<ProjectLead[]> {
     const prompt = `Gere uma lista fictícia (simulação para demonstração) de 3 oportunidades de projetos de marcenaria (leads) na cidade de ${city}.
     Retorne JSON array com objetos:
     - id
-    - title (ex: Armário de Cozinha Planejado)
-    - description (breve)
-    - location (Bairro, Cidade)
-    - budget (Estimativa, ex: R$ 5.000 - R$ 8.000)
+    - title
+    - description
+    - location
+    - budget
     `;
 
     const response = await ai.models.generateContent({
@@ -359,3 +461,183 @@ export async function findProjectLeads(city: string): Promise<ProjectLead[]> {
     }
     return [];
 }
+
+// 11. Generate Project BOM (Automated)
+export async function generateProjectBom(project: ProjectHistoryItem): Promise<string> {
+    const parts: any[] = [];
+    
+    const prompt = `Atue como um **Orçamentista Técnico Sênior**.
+    Crie uma **Lista de Materiais (BOM)** completa para o seguinte projeto.
+    
+    **Projeto:** ${project.name}
+    **Descrição:** ${project.description}
+    
+    **Regras:**
+    1. Adicione 10% de margem de perda.
+    2. Use milímetros (mm).
+    3. Inclua chapas, ferragens e acabamentos.
+    
+    Gere a resposta em **Markdown** com tabelas claras.`;
+    
+    parts.push({ text: prompt });
+
+    if (project.views3d && project.views3d.length > 0) {
+        const imageSrc = project.views3d[0];
+        const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
+        const data = imageSrc.split(',')[1];
+        parts.push(fileToGenerativePart(data, mimeType));
+    }
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-3-pro-preview',
+        contents: { parts }
+    });
+
+    return response.text || "Não foi possível gerar a BOM.";
+}
+
+// 12. Generate Assembly Details
+export async function generateAssemblyDetails(project: ProjectHistoryItem): Promise<string> {
+    const parts: any[] = [];
+    
+    const prompt = `Atue como um **Instrutor de Marcenaria Sênior**.
+    Crie um **Guia de Montagem Passo a Passo** profissional e detalhado para o projeto abaixo.
+    
+    **Projeto:** ${project.name}
+    **Descrição:** ${project.description}
+    
+    **Estrutura Obrigatória do Guia (Markdown):**
+    
+    ## 1. 🧰 Preparação
+    *   **Ferramentas Necessárias:** Liste furadeiras, brocas (diâmetros), chaves, martelo, nível, etc.
+    *   **Ferragens:** Liste os parafusos (tamanhos), cavilhas, dobradiças e corrediças que serão usados.
+    *   **Segurança:** Itens de EPI recomendados.
+    
+    ## 2. 🏗️ Sequência de Montagem (Passo a Passo)
+    *Divida em etapas lógicas (ex: Estrutura Externa, Gavetas, Portas, Instalação).*
+    *   **Passo 1:** ...
+    *   **Passo 2:** ...
+    
+    ## 3. 🔧 Dicas de Mestre (Regulagem e Acabamento)
+    *   Como regular as dobradiças para alinhar as portas perfeitamente.
+    *   Como instalar as corrediças niveladas.
+    *   Dicas para fixação na parede (se aéreo).
+    
+    Use linguagem técnica mas acessível.`;
+    
+    parts.push({ text: prompt });
+
+    if (project.views3d && project.views3d.length > 0) {
+        const imageSrc = project.views3d[0];
+        const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
+        const data = imageSrc.split(',')[1];
+        parts.push(fileToGenerativePart(data, mimeType));
+    }
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-3-pro-preview',
+        contents: { parts }
+    });
+
+    return response.text || "Guia não gerado.";
+}
+
+// 13. Parse BOM to List
+export async function parseBomToList(bomText: string): Promise<any[]> {
+    const prompt = `Extraia os itens da seguinte Lista de Materiais (BOM) e retorne um array JSON estruturado.
+    
+    BOM:
+    ${bomText}
+    
+    Retorne JSON array: [{ "item": "nome", "qty": "quantidade", "dimensions": "dimensões ou detalhes" }]`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        item: { type: Type.STRING },
+                        qty: { type: Type.STRING },
+                        dimensions: { type: Type.STRING }
+                    }
+                }
+            }
+        }
+    });
+
+    if (response.text) {
+        return cleanAndParseJson<any[]>(response.text);
+    }
+    return [];
+}
+
+// 14. Find Supplier Price
+export async function findSupplierPrice(itemDescription: string): Promise<{ price: number, supplier: string, url: string }> {
+    // Simulation or grounding search
+    // For now, simulated estimate
+    const prompt = `Estime o preço médio unitário (BRL) para: "${itemDescription}" no mercado brasileiro de marcenaria (ex: Leo Madeiras, GMAD).
+    Retorne JSON: { "price": number, "supplier": "Nome do Fornecedor Exemplo", "url": "url_exemplo" }`;
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    price: { type: Type.NUMBER },
+                    supplier: { type: Type.STRING },
+                    url: { type: Type.STRING }
+                }
+            }
+        }
+    });
+
+    if (response.text) {
+        return cleanAndParseJson<{ price: number, supplier: string, url: string }>(response.text);
+    }
+    return { price: 0, supplier: "N/A", url: "" };
+}
+
+// 15. Generate Floor Plan from 3D
+export async function generateFloorPlanFrom3D(project: ProjectHistoryItem): Promise<string> {
+    if (!project.views3d || project.views3d.length === 0) throw new Error("Sem imagem 3D para base.");
+    
+    const imageSrc = project.views3d[0];
+    const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
+    const data = imageSrc.split(',')[1];
+    
+    const prompt = `Gere uma planta baixa técnica 2D (vista superior) esquemática baseada neste móvel 3D.
+    Estilo: Desenho técnico arquitetônico, linhas pretas, fundo branco.
+    Mostre as dimensões gerais e layout interno se visível.`;
+    
+    return editImage(data, mimeType, prompt); // Reusing editImage logic which uses gemini-2.5-flash-image
+}
+
+// 16. Generate 3D from 2D
+export async function generate3Dfrom2D(project: ProjectHistoryItem, style: string, finish: string): Promise<string> {
+    if (!project.image2d) throw new Error("Sem planta baixa 2D.");
+    
+    const imageSrc = project.image2d;
+    const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
+    const data = imageSrc.split(',')[1];
+    
+    const prompt = `Renderize uma visualização 3D fotorrealista baseada nesta planta baixa 2D.
+    Estilo de Design: ${style}.
+    Acabamento: ${finish}.
+    Perspectiva: Vista frontal ou isométrica atraente.
+    Iluminação: Estúdio suave.`;
+    
+    return editImage(data, mimeType, prompt);
+}
+
+// Placeholder functions for missing exports referenced in App.tsx imports
+export async function calculateFinancialSummary(project: any) { return {}; }
+export async function fetchSupplierCatalog() { return []; }
+export async function calculateShippingCost() { return 0; }

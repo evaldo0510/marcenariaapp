@@ -10,8 +10,9 @@ export interface Finish {
   name: string;
   description: string;
   type: 'wood' | 'solid' | 'metal' | 'stone' | 'concrete' | 'ceramic' | 'fabric' | 'glass' | 'laminate' | 'veneer';
-  imageUrl: string;
+  imageUrl: string | null;
   manufacturer: string;
+  hexCode?: string;
 }
 
 export interface AlertState {

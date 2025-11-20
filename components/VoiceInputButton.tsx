@@ -40,13 +40,19 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onTranscript
     };
 
     recognition.onerror = (event: any) => {
+      // Silently handle no-speech error to avoid annoying user with alerts for timeouts
+      if (event.error === 'no-speech') {
+        setIsRecording(false);
+        setIsSpeaking(false);
+        return;
+      }
+
       console.error("Speech recognition error", event.error);
       let errorMessage = `Erro no reconhecimento de voz: ${event.error}`;
       if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
         errorMessage = "A permissão para usar o microfone foi negada. Verifique as configurações do seu navegador.";
-      } else if (event.error === 'no-speech') {
-        errorMessage = "Nenhuma fala foi detectada. Tente falar mais perto do microfone.";
       }
+      
       showAlert(errorMessage, "Erro de Gravação");
       setIsRecording(false);
       setIsSpeaking(false); // Ensure reset on error

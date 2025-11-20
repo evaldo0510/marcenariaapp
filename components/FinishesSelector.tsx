@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Finish } from '../types';
 import { searchFinishes } from '../services/geminiService';
-import { Spinner, SearchIcon, MicIcon, StarIcon } from './Shared';
+import { Spinner, SearchIcon, MicIcon, StarIcon, WandIcon } from './Shared';
 
 interface FinishesSelectorProps {
   onFinishSelect: (selection: { manufacturer: string; finish: Finish; handleDetails?: string } | null) => void;
@@ -9,9 +9,10 @@ interface FinishesSelectorProps {
   showAlert: (message: string, title?: string) => void;
   favoriteFinishes: Finish[];
   onToggleFavorite: (finish: Finish) => void;
+  onRequestSuggestions?: () => void;
 }
 
-export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSelect, value, showAlert, favoriteFinishes, onToggleFavorite }) => {
+export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSelect, value, showAlert, favoriteFinishes, onToggleFavorite, onRequestSuggestions }) => {
     const [handleDetails, setHandleDetails] = useState('');
     const [iaraSearchState, setIaraSearchState] = useState({
         query: '',
@@ -47,12 +48,16 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
             recognition.onend = () => setIsRecording(false);
 
             recognition.onerror = (event: any) => {
+                // Silently handle no-speech error to avoid annoying user with alerts for timeouts
+                if (event.error === 'no-speech') {
+                    setIsRecording(false);
+                    return;
+                }
+
                 console.error("Speech recognition error", event.error);
                 let errorMessage = `Erro no reconhecimento de voz: ${event.error}`;
                 if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                     errorMessage = "A permissão para usar o microfone foi negada.";
-                } else if (event.error === 'no-speech') {
-                    errorMessage = "Nenhuma fala foi detectada.";
                 }
                 showAlert(errorMessage, "Erro de Gravação");
                 setIsRecording(false);
@@ -141,30 +146,28 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
                             <StarIcon isFavorite={isFavorite} />
                         </button>
 
-                        <div className="w-full h-24 bg-[#e6ddcd] dark:bg-[#2d2424] overflow-hidden">
-                            {finish.imageUrl && (
+                        <div 
+                            className="w-full h-24 bg-[#e6ddcd] dark:bg-[#2d2424] overflow-hidden relative"
+                            style={finish.hexCode ? { backgroundColor: finish.hexCode } : {}}
+                        >
+                            {finish.imageUrl ? (
                                 <img 
                                     src={finish.imageUrl} 
                                     alt={finish.name} 
                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
-                                    onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
-                                        const parent = target.parentElement;
-                                        if (parent) {
-                                            const textDiv = document.createElement('div');
-                                            textDiv.className = 'w-full h-full flex items-center justify-center text-xs text-[#8a7e7e] dark:text-[#a89d8d] p-2 text-center';
-                                            textDiv.innerText = finish.name;
-                                            parent.appendChild(textDiv);
-                                        }
-                                    }}
                                 />
+                            ) : (
+                                !finish.hexCode && (
+                                    <div className="w-full h-full flex items-center justify-center text-xs text-[#8a7e7e] dark:text-[#a89d8d] p-2 text-center">
+                                        {finish.type === 'wood' ? 'Amadeirado' : finish.name}
+                                    </div>
+                                )
                             )}
                         </div>
                         <div className="p-3 flex flex-col justify-between flex-grow">
                             <div>
-                                <div className="font-semibold text-[#3e3535] dark:text-[#f5f1e8] text-sm truncate">{finish.name}</div>
-                                <div className="text-xs text-[#6a5f5f] dark:text-[#c7bca9] mt-1 h-8 line-clamp-2">{finish.description}</div>
+                                <div className="font-semibold text-[#3e3535] dark:text-[#f5f1e8] text-sm truncate" title={finish.name}>{finish.name}</div>
+                                <div className="text-xs text-[#6a5f5f] dark:text-[#c7bca9] mt-1 h-8 line-clamp-2" title={finish.description}>{finish.description}</div>
                             </div>
                             <div className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] mt-2 font-medium self-end">{finish.manufacturer}</div>
                         </div>
@@ -176,7 +179,18 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
     
     return (
         <div>
-            <h2 className="text-2xl font-semibold mb-4 text-[#3e3535] dark:text-[#f5f1e8]">Passo 2: Escolha o Acabamento</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-semibold text-[#3e3535] dark:text-[#f5f1e8]">Passo 2: Escolha o Acabamento</h2>
+                {onRequestSuggestions && (
+                    <button 
+                        onClick={onRequestSuggestions} 
+                        className="p-2 bg-[#e6ddcd] dark:bg-[#5a4f4f] rounded-lg hover:bg-[#dcd6c8] dark:hover:bg-[#4a4040] text-[#d4ac6e] transition"
+                        title="Sugerir acabamentos com IA"
+                    >
+                        <WandIcon />
+                    </button>
+                )}
+            </div>
 
             {favoriteFinishes.length > 0 && (
                 <div className="mb-6 p-4 bg-[#f0e9dc] dark:bg-[#2d2424]/50 rounded-lg animate-fadeIn">
