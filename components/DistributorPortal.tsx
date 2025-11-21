@@ -35,7 +35,8 @@ export const DistributorPortal: React.FC<DistributorPortalProps> = ({ isOpen, on
                 level: 'bronze',
                 totalSales: 12500,
                 commissionRate: 15,
-                joinDate: Date.now()
+                joinDate: Date.now(),
+                status: 'active'
             });
         }
         setProfile(p);

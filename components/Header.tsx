@@ -30,9 +30,11 @@ interface HeaderProps {
     onOpenWallet: () => void;
     // New prop for AI Project Generation
     onOpenProjectGenerator: () => void;
+    // New prop for Store Mode
+    onOpenStoreMode: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onLogout, theme, setTheme, onOpenManagement, onOpenPartnerPortal, onOpenNotifications, onOpenWallet, onOpenProjectGenerator }) => {
+export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onLogout, theme, setTheme, onOpenManagement, onOpenPartnerPortal, onOpenNotifications, onOpenWallet, onOpenProjectGenerator, onOpenStoreMode }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -77,15 +79,20 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                             
                             <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
+                            {/* New Store Mode Button */}
+                            <button onClick={onOpenStoreMode} className="flex items-center gap-2 bg-[#3e3535] dark:bg-[#f5f1e8] text-white dark:text-[#3e3535] font-bold py-2 px-3 rounded-lg hover:opacity-90 transition shadow-sm text-sm" title="Mudar para modo Loja de Móveis">
+                                <StoreIcon className="w-4 h-4"/> Modo Loja
+                            </button>
+
                             {/* New AI Project Button */}
-                            <button onClick={onOpenProjectGenerator} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:opacity-90 transition shadow-sm">
-                                <MagicIcon className="w-5 h-5"/> Criar Projeto com IA
+                            <button onClick={onOpenProjectGenerator} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:opacity-90 transition shadow-sm text-sm">
+                                <MagicIcon className="w-4 h-4"/> Criar com IA
                             </button>
 
                             <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-1"></div>
 
-                            <button onClick={onOpenManagement} className="flex items-center gap-2 bg-[#d4ac6e] text-[#3e3535] font-bold py-2 px-4 rounded-lg hover:bg-[#c89f5e] transition shadow-sm">
-                                <ChartBarIcon className="w-5 h-5"/> Gestão
+                            <button onClick={onOpenManagement} className="flex items-center gap-2 bg-[#d4ac6e] text-[#3e3535] font-bold py-2 px-4 rounded-lg hover:bg-[#c89f5e] transition shadow-sm text-sm">
+                                <ChartBarIcon className="w-4 h-4"/> Gestão
                             </button>
                             
                             <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-2"></div>
@@ -111,6 +118,7 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                                     </div>
                                     <div className="my-2 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
                                     
+                                    <button onClick={() => {onOpenStoreMode(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-white bg-[#3e3535] dark:bg-[#f5f1e8] dark:text-[#3e3535] hover:opacity-90 mb-1 md:hidden"><StoreIcon /> Modo Loja</button>
                                     <button onClick={() => {onOpenProjectGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 mb-2 md:hidden"><MagicIcon /> Criar com IA</button>
                                     <button onClick={() => {onOpenManagement(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-[#3e3535] dark:text-[#f5f1e8] bg-[#f0e9dc] dark:bg-[#2d2424] hover:bg-[#e6ddcd] mb-1"><ChartBarIcon /> Dashboard Gestão</button>
                                     <button onClick={() => {onOpenPartnerPortal(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-[#3e3535] dark:text-[#f5f1e8] bg-[#d4ac6e] hover:bg-[#c89f5e] mb-2"><UsersIcon /> Portal do Parceiro</button>

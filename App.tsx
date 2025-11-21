@@ -20,15 +20,15 @@ import { ImageEditor } from './components/ImageEditor';
 import { LayoutEditor } from './components/LayoutEditor';
 import { NewViewGenerator } from './components/NewViewGenerator';
 import { ManagementDashboard } from './components/ManagementDashboard';
-import { DistributorPortal } from './components/DistributorPortal'; // Import Partner Portal
-import { DistributorAdmin } from './components/DistributorAdmin'; // Import Admin Panel
-import { NotificationSystem } from './components/NotificationSystem'; // Import Notification
-import { CommissionWallet } from './components/CommissionWallet'; // Import Wallet
-import { ImageProjectGenerator } from './components/ImageProjectGenerator'; // Import New AI Generator
-import { AlertModal, Spinner, ImageModal, ConfirmationModal, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, ToolsIcon, SparklesIcon, RulerIcon } from './components/Shared';
+import { DistributorPortal } from './components/DistributorPortal';
+import { NotificationSystem } from './components/NotificationSystem'; 
+import { CommissionWallet } from './components/CommissionWallet'; 
+import { ImageProjectGenerator } from './components/ImageProjectGenerator';
+import { StoreDashboard } from './components/StoreDashboard'; // Import Store Dashboard
+import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
-import { generateText, suggestAlternativeStyles, generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D } from './services/geminiService';
+import { suggestAlternativeStyles, generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D } from './services/geminiService';
 import type { ProjectHistoryItem, Client, Finish } from './types';
 import { initialStylePresets } from './services/presetService';
 
@@ -172,11 +172,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       layoutEditor: false,
       newView: false,
       management: false,
-      partnerPortal: false, // Partner dashboard
-      admin: false, // Distributor Admin
+      partnerPortal: false,
+      admin: false,
       wallet: false,
       notifications: false,
-      projectGenerator: false // New AI Project Generator
+      projectGenerator: false,
+      storeMode: false // New Store Mode state
   });
   
   const [styleSuggestions, setStyleSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as string[] });
@@ -384,7 +385,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         onOpenPartnerPortal={() => toggleModal('partnerPortal', true)}
         onOpenNotifications={() => toggleModal('notifications', true)}
         onOpenWallet={() => toggleModal('wallet', true)}
-        onOpenProjectGenerator={() => toggleModal('projectGenerator', true)} // Added prop
+        onOpenProjectGenerator={() => toggleModal('projectGenerator', true)}
+        onOpenStoreMode={() => toggleModal('storeMode', true)} // Added Store Mode toggle
         onLogout={onLogout}
         theme={theme}
         setTheme={setTheme}
@@ -587,6 +589,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       <ManagementDashboard isOpen={modals.management} onClose={() => toggleModal('management', false)} />
       <DistributorPortal isOpen={modals.partnerPortal} onClose={() => toggleModal('partnerPortal', false)} />
       <ImageProjectGenerator isOpen={modals.projectGenerator} onClose={() => toggleModal('projectGenerator', false)} showAlert={showAlert} />
+      <StoreDashboard isOpen={modals.storeMode} onClose={() => toggleModal('storeMode', false)} /> 
       
       {/* Notifications & Wallet Modals Wrapper */}
         {modals.notifications && (
@@ -598,4 +601,44 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         )}
         {modals.wallet && (
             <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => toggleModal('wallet', false)}>
-                <div className="w-full max-w-4xl bg-[#f5f1e8] dark:bg-[#2d2424] p-6 rounded
+                <div className="w-full max-w-4xl bg-[#f5f1e8] dark:bg-[#2d2424] p-6 rounded-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold dark:text-white">Minha Carteira</h2>
+                        <button onClick={() => toggleModal('wallet', false)} className="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                    </div>
+                    <CommissionWallet />
+                </div>
+            </div>
+        )}
+
+      
+      {currentProject && (
+        <>
+            <ProposalModal 
+                isOpen={modals.proposal} 
+                onClose={() => toggleModal('proposal', false)} 
+                project={currentProject} 
+                client={clients.find(c => c.id === currentProject.clientId)}
+                showAlert={showAlert}
+            />
+            <NewViewGenerator 
+                isOpen={modals.newView} 
+                project={currentProject} 
+                onClose={() => toggleModal('newView', false)} 
+                onSaveComplete={async () => setHistory(await getHistory())} 
+                showAlert={showAlert} 
+            />
+            <LayoutEditor 
+                isOpen={modals.layoutEditor}
+                floorPlanSrc={currentProject.image2d || ''}
+                projectDescription={currentProject.description}
+                onClose={() => toggleModal('layoutEditor', false)}
+                onSave={handleSaveLayout}
+                showAlert={showAlert}
+            />
+        </>
+      )}
+
+    </div>
+  );
+};
