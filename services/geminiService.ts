@@ -33,10 +33,10 @@ export function cleanAndParseJson<T>(text: string): T {
 }
 
 // --- GENERATE IMAGE FUNCTION (Estilo PROMOB / V-Ray) ---
-export async function generateImage(prompt: string, referenceImages?: { data: string, mimeType: string }[] | null): Promise<string> {
-    // Engenharia de prompt para estilo PROMOB/V-Ray
+export async function generateImage(prompt: string, referenceImages?: { data: string, mimeType: string }[] | null, framingStrategy?: string): Promise<string> {
+    // Engenharia de prompt para estilo PROMOB/V-Ray com proteção contra alucinações
     let technicalPrompt = `
-    ATUE COMO: Um renderizador 3D profissional de Marcenaria (V-Ray/Corona para Promob).
+    ATUE COMO: Um fotógrafo de arquitetura e renderizador 3D profissional (V-Ray/Corona).
     
     TAREFA: Gerar visualização fotorrealista de móveis planejados.
     
@@ -44,20 +44,36 @@ export async function generateImage(prompt: string, referenceImages?: { data: st
     "${prompt}"
     `;
 
+    // --- BLOCO DE ENQUADRAMENTO E CÂMERA (CRÍTICO PARA EVITAR CORTES) ---
+    technicalPrompt += `
+    \n**DIRETRIZES OBRIGATÓRIAS DE CÂMERA E ENQUADRAMENTO:**
+    `;
+
+    // Injeta a estratégia específica escolhida pelo usuário, se houver
+    if (framingStrategy) {
+        technicalPrompt += `\n**COMANDO PRIORITÁRIO DE ENQUADRAMENTO:** "${framingStrategy}"\n`;
+    }
+
+    technicalPrompt += `
+    1. **LENTE:** Use uma lente **Grande Angular (Wide Angle - 24mm ou 28mm)**. Isso é CRUCIAL para garantir que o objeto inteiro caiba na cena, especialmente em ambientes pequenos.
+    2. **DISTÂNCIA (ZOOM OUT):** Afaste a câmera virtual. O objeto NÃO deve tocar as bordas da imagem.
+    3. **MARGINS (SAFETY PADDING):** Deixe uma **margem de segurança (espaço vazio/respiro)** de pelo menos 15% em TODAS as bordas (topo, base, esquerda, direita). O móvel deve flutuar no centro, totalmente visível.
+    4. **COMPOSIÇÃO:** Centralize o objeto principal. Se for um móvel alto, mostre do chão ao teto com folga. Se for comprido, mostre as duas laterais.
+    5. **NUNCA CORTE:** É estritamente proibido cortar partes do móvel (pés, topo, laterais). A imagem deve ser um "Full Shot" (Plano Inteiro).
+    `;
+
     if (referenceImages && referenceImages.length > 0) {
         technicalPrompt += `
-        \n**REGRAS DE PRECISÃO GEOMÉTRICA (CRÍTICO):**
-        1. Use a imagem fornecida como "Blueprint" (Planta). Mantenha a estrutura, paredes, chão e posição dos móveis EXATAMENTE como na foto.
-        2. NÃO adicione móveis que não foram solicitados.
-        3. NÃO altere a perspectiva da sala.
-        4. Se o usuário pediu para alterar um móvel específico, altere APENAS ele, mantendo o resto da sala intacto.
+        \n**REGRAS DE PRECISÃO GEOMÉTRICA:**
+        1. **BLUEPRINT:** Use a imagem fornecida como planta/base obrigatória. Mantenha a estrutura da sala, paredes, janelas e piso EXATAMENTE como na foto.
+        2. **INTEGRAÇÃO:** O móvel deve parecer construído no local da foto original, respeitando a perspectiva da foto.
         `;
     }
 
     technicalPrompt += `
     \n**DIRETRIZES VISUAIS (Fotorrealismo):**
-    1. **Materiais:** Texturas de alta definição. Madeira deve ter veios visíveis. Lacas devem ter reflexo acetinado ou alto brilho (conforme pedido).
-    2. **Iluminação:** Iluminação Global (GI) suave. Sombras de contato realistas (Ambient Occlusion) nos rodapés e puxadores.
+    1. **Materiais:** Texturas de alta definição. Madeira com veios naturais. Lacas com reflexo correto.
+    2. **Iluminação:** Iluminação Global (GI) suave. Sombras de contato (Ambient Occlusion) para "aterrar" o móvel no chão.
     3. **Estilo:** Renderização limpa, comercial, pronta para catálogo.
     4. **Qualidade:** 4K, nítida, sem distorções.
     `;
@@ -206,12 +222,18 @@ export async function searchFinishes(query: string): Promise<Finish[]> {
 // 3. Edit Image
 export async function editImage(base64Data: string, mimeType: string, prompt: string): Promise<string> {
     try {
+        // Adicionando reforço de enquadramento também na edição
+        const enhancedPrompt = `${prompt}
+        
+        **REGRA CRÍTICA DE MANUTENÇÃO DE ENQUADRAMENTO:**
+        Ao editar, NÃO dê zoom in. Mantenha o enquadramento original ou afaste a câmera (Zoom Out) se necessário para mostrar o objeto inteiro. Mantenha margens de segurança nas bordas.`;
+
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: {
                 parts: [
                     fileToGenerativePart(base64Data, mimeType),
-                    { text: prompt }
+                    { text: enhancedPrompt }
                 ]
             },
             config: {
@@ -523,7 +545,8 @@ export async function generate3Dfrom2D(project: ProjectHistoryItem, style: strin
     CONFIGURAÇÃO DO RENDER:
     - **Estilo de Design:** ${style}.
     - **Acabamento Principal:** ${finish} (Aplique texturas realistas de alta resolução).
-    - **Câmera:** Perspectiva isométrica ou frontal de estúdio, mostrando profundidade e volume baseados na planta.
+    - **Câmera:** Perspectiva isométrica ou frontal de estúdio (Wide Angle 24mm), mostrando profundidade e volume baseados na planta.
+    - **Enquadramento:** NÃO corte o móvel. Mostre o objeto inteiro com margem de segurança.
     - **Iluminação:** Iluminação de estúdio suave, realçando os materiais.
     - **Fundo:** Neutro/Branco infinito.
     

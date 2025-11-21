@@ -126,19 +126,19 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                             {/* Column 2: Decisions & Intent */}
                             <div className="space-y-4">
                                 <div className="bg-white dark:bg-[#3e3535] p-4 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040]">
-                                    <h3 className="font-bold mb-2 text-[#3e3535] dark:text-[#f5f1e8]">O que você quer fazer? (Precisão)</h3>
-                                    <p className="text-xs text-gray-500 mb-2">Descreva onde e o que quer construir. Ex: "Quero um armário na parede direita, do chão ao teto".</p>
+                                    <h3 className="font-bold mb-2 text-[#3e3535] dark:text-[#f5f1e8]">O que você quer fazer? (Importante)</h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Descreva onde e o que quer construir para a IA não "chutar". <br/>Ex: "Quero um armário na parede direita, do chão ao teto, com portas de vidro".</p>
                                     <textarea 
                                         value={userIntent}
                                         onChange={(e) => setUserIntent(e.target.value)}
-                                        placeholder="Seja específico para a IA acertar..."
-                                        className="w-full p-3 rounded border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f] h-24"
+                                        placeholder="Seja específico: 'Armário na parede do fundo...'"
+                                        className="w-full p-3 rounded border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f] h-24 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition text-[#3e3535] dark:text-[#f5f1e8]"
                                     />
                                 </div>
 
                                 <div className="bg-white dark:bg-[#3e3535] p-4 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040]">
                                     <h3 className="font-bold mb-2 text-[#3e3535] dark:text-[#f5f1e8]">Estilo do Projeto</h3>
-                                    <select value={style} onChange={e => setStyle(e.target.value)} className="w-full p-2 rounded border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f]">
+                                    <select value={style} onChange={e => setStyle(e.target.value)} className="w-full p-2 rounded border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f] text-[#3e3535] dark:text-[#f5f1e8]">
                                         {['Moderno', 'Industrial', 'Clássico', 'Minimalista', 'Rústico', 'Escandinavo'].map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
                                 </div>
@@ -154,7 +154,7 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                                         <li><strong>Ambiente:</strong> {roomType}</li>
                                         <li><strong>Estilo:</strong> {style}</li>
                                         <li><strong>Móveis:</strong> {selectedFurniture.length} itens selecionados</li>
-                                        <li><strong>Objetivo:</strong> {userIntent || 'Não especificado (IA decidirá)'}</li>
+                                        <li><strong>Objetivo:</strong> {userIntent ? 'Definido pelo usuário' : 'Automático (IA decidirá)'}</li>
                                     </ul>
                                     <Project3DGenerator 
                                         inputData={{ 

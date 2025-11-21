@@ -156,10 +156,7 @@ export const ARViewer: React.FC<ARViewerProps> = ({ isOpen, onClose, imageSrc, s
             const imageWidth = imageToDraw.width * transform.scale;
             const imageHeight = imageToDraw.height * transform.scale;
             
-            const centerX = transform.x + imageWidth / 2;
-            const centerY = transform.y + imageHeight / 2;
-
-            // Ensure we draw relative to center for proper rotation
+            // Center drawing calculation
             const drawX = canvas.width / 2 + transform.x - imageWidth / 2;
             const drawY = canvas.height / 2 + transform.y - imageHeight / 2;
 
@@ -182,7 +179,7 @@ export const ARViewer: React.FC<ARViewerProps> = ({ isOpen, onClose, imageSrc, s
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center text-white animate-fadeIn">
+        <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center text-white animate-fadeIn" style={{ touchAction: 'none' }}>
             <video ref={videoRef} autoPlay playsInline muted className="absolute top-0 left-0 w-full h-full object-cover"></video>
             
             {isCameraLoading && (
@@ -195,7 +192,7 @@ export const ARViewer: React.FC<ARViewerProps> = ({ isOpen, onClose, imageSrc, s
             <canvas ref={canvasRef} className="hidden"></canvas>
 
             <div 
-                className="absolute top-0 left-0 w-full h-full cursor-move touch-none" // Added touch-none to prevent browser gestures
+                className="absolute top-0 left-0 w-full h-full cursor-move"
                 onMouseDown={onMouseDown}
                 onMouseMove={onMouseMove}
                 onMouseUp={handleInteractionEnd}
@@ -203,6 +200,7 @@ export const ARViewer: React.FC<ARViewerProps> = ({ isOpen, onClose, imageSrc, s
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={handleInteractionEnd}
+                style={{ touchAction: 'none' }} // Prevent default browser scrolling/zooming
             >
                 <img 
                     src={imageSrc}
@@ -223,7 +221,7 @@ export const ARViewer: React.FC<ARViewerProps> = ({ isOpen, onClose, imageSrc, s
             
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-md px-4 flex flex-col items-center gap-4 z-50">
                  <div className="w-full flex items-center gap-3 bg-black/30 p-2 rounded-full backdrop-blur-sm">
-                    <span className="text-sm">Opacidade</span>
+                    <span className="text-sm font-bold">Opacidade</span>
                     <input 
                         type="range"
                         min="0.1"
@@ -231,17 +229,18 @@ export const ARViewer: React.FC<ARViewerProps> = ({ isOpen, onClose, imageSrc, s
                         step="0.05"
                         value={opacity}
                         onChange={(e) => setOpacity(Number(e.target.value))}
-                        className="w-full h-2 bg-white/30 rounded-lg appearance-none cursor-pointer"
+                        className="w-full h-4 bg-white/30 rounded-lg appearance-none cursor-pointer accent-[#d4ac6e]"
                     />
                  </div>
 
                 <button 
                     onClick={handleSnapshot} 
-                    className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg"
+                    className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
                     aria-label="Tirar foto"
                 >
                     <div className="w-16 h-16 bg-white rounded-full border-4 border-black/50"></div>
                 </button>
+                <p className="text-xs text-white/70 text-center mt-2">Arraste para mover, pince para zoom/rotação</p>
             </div>
         </div>
     );

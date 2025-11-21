@@ -25,7 +25,7 @@ import { NotificationSystem } from './components/NotificationSystem';
 import { CommissionWallet } from './components/CommissionWallet'; 
 import { ImageProjectGenerator } from './components/ImageProjectGenerator';
 import { StoreDashboard } from './components/StoreDashboard';
-import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon } from './components/Shared';
+import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
 import { suggestAlternativeStyles, generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D } from './services/geminiService';
@@ -135,12 +135,22 @@ const ToolButton: React.FC<{ icon: React.ReactNode; label: string; onClick: () =
     </button>
 );
 
+const framingOptions = [
+    { label: 'Padrão (Inteiro)', value: 'Renderize o ambiente inteiro em 3D, centralizando todos os itens principais, garantindo que nada fique cortado nas bordas da imagem.' },
+    { label: 'Grande Angular (Tudo Visível)', value: 'Gere uma imagem 3D do projeto, ajustando o enquadramento para que todo o espaço fique visível, inclusive as paredes, teto e piso.' },
+    { label: 'Horizontal (Sem Cortes)', value: 'Mostre o móvel ou ambiente completamente, em formato horizontal, detalhando todas as laterais e evitando cortes nos extremos.' },
+    { label: 'Social Media (Quadrado)', value: 'Produza uma imagem 3D quadrada do ambiente, ideal para redes sociais, sem corte das bordas nem partes ocultas.' },
+    { label: 'Foco em Detalhes (Zoom)', value: 'Renderize o espaço em ângulo aberto, ajustando o zoom para exibir todo o projeto e os detalhes do acabamento.' },
+    { label: 'Aprovação Cliente (Luz/Sombra)', value: 'Gere o projeto com todos os aspectos do ambiente visíveis, inclusive filtra luz e sombra para facilitar aprovação do cliente.' }
+];
+
 export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   
   // Main Input States
   const [description, setDescription] = useState('');
   const [stylePreset, setStylePreset] = useState('Moderno');
+  const [framingStrategy, setFramingStrategy] = useState(framingOptions[0].value);
   const [availableStyles, setAvailableStyles] = useState(initialStylePresets);
   const [uploadedImages, setUploadedImages] = useState<{ data: string, mimeType: string }[] | null>(null);
   const [selectedFinish, setSelectedFinish] = useState<{ manufacturer: string; finish: Finish; handleDetails?: string } | null>(null);
@@ -231,7 +241,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           } else {
               fullPrompt = `Atue como um Designer de Móveis e Renderizador 3D.
               Crie um projeto de marcenaria fotorrealista (render 3D) seguindo EXATAMENTE esta descrição: "${description}".
-              O móvel deve ser o foco principal da imagem.`;
+              O móvel deve estar no foco.`;
           }
 
           fullPrompt += `\n\n**Estilo:** ${stylePreset}.`;
@@ -245,7 +255,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
               fullPrompt += `\n**Iluminação:** Inclua LEDs em nichos/prateleiras.`;
           }
 
-          const imageBase64 = await generateImage(fullPrompt, uploadedImages);
+          // Pass explicit framing strategy
+          const imageBase64 = await generateImage(fullPrompt, uploadedImages, framingStrategy);
           
           const projectData: Omit<ProjectHistoryItem, 'id' | 'timestamp'> = {
               name: `Projeto ${stylePreset} - ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
@@ -441,14 +452,32 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         <button onClick={handleGetStyleSuggestions} className="text-xs text-[#d4ac6e] font-bold underline">Sugerir</button>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2 mb-4">
-                        <select 
-                            value={stylePreset} 
-                            onChange={(e) => setStylePreset(e.target.value)}
-                            className="col-span-2 p-3 rounded-xl bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-medium"
-                        >
-                            {availableStyles.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="col-span-2 md:col-span-1">
+                            <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] block mb-1">Estilo Visual</label>
+                            <select 
+                                value={stylePreset} 
+                                onChange={(e) => setStylePreset(e.target.value)}
+                                className="w-full p-3 rounded-xl bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-medium"
+                            >
+                                {availableStyles.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                        </div>
+                        
+                        <div className="col-span-2 md:col-span-1">
+                            <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] flex items-center gap-1 mb-1">
+                                <VideoCameraIcon className="w-3 h-3" /> Enquadramento
+                            </label>
+                            <select 
+                                value={framingStrategy} 
+                                onChange={(e) => setFramingStrategy(e.target.value)}
+                                className="w-full p-3 rounded-xl bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-medium text-sm"
+                            >
+                                {framingOptions.map(option => (
+                                    <option key={option.label} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     <ImageUploader onImagesChange={setUploadedImages} showAlert={showAlert} initialImageUrls={currentProject?.uploadedReferenceImageUrls} />
