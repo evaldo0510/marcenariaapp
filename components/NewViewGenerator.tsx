@@ -28,12 +28,7 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
     useEffect(() => {
         if (isOpen) {
             setStyle(project.style);
-            // Pre-fill finish if available
-            if (project.selectedFinish) {
-                setFinish(`${project.selectedFinish.finish.name} (${project.selectedFinish.manufacturer})`);
-            } else {
-                setFinish('');
-            }
+            setFinish('');
             setGeneratedImageSrc(null);
             setSuggestions([]);
         }
@@ -69,8 +64,6 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
             const fullPrompt = `Atue como um Especialista em Renderização 3D e Design de Interiores.
             
 **Objetivo:** Gerar uma nova visualização fotorrealista do móvel presente na imagem, aplicando um novo estilo e acabamento, mas **PRESERVANDO ESTRITAMENTE A GEOMETRIA ORIGINAL**.
-
-**Contexto Original:** "${project.description}"
 
 **Parâmetros de Entrada:**
 - **Imagem de Referência:** (Anexa)

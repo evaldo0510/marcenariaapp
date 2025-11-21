@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Header } from './components/Header';
 import { FinishesSelector } from './components/FinishesSelector';
@@ -19,11 +18,10 @@ import { ProposalModal } from './components/ProposalModal';
 import { ImageEditor } from './components/ImageEditor';
 import { LayoutEditor } from './components/LayoutEditor';
 import { NewViewGenerator } from './components/NewViewGenerator';
-import { AssemblyGuideModal } from './components/AssemblyGuideModal';
-import { AlertModal, Spinner, ImageModal, ConfirmationModal, EarlyAccessModal, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, ToolsIcon, SparklesIcon, ShareIcon, WhatsappIcon, CopyIcon, DocumentTextIcon, CubeIcon, StoreIcon } from './components/Shared';
+import { AlertModal, Spinner, ImageModal, ConfirmationModal, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, ToolsIcon, SparklesIcon, RulerIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
-import { generateText, suggestAlternativeStyles, generateImage, suggestAlternativeFinishes } from './services/geminiService';
+import { generateText, suggestAlternativeStyles, generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D } from './services/geminiService';
 import type { ProjectHistoryItem, Client, Finish } from './types';
 import { initialStylePresets } from './services/presetService';
 
@@ -166,21 +164,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       imageEditor: false,
       layoutEditor: false,
       newView: false,
-      assembly: false,
-      whatsapp: false,
-      autoPurchase: false,
-      employees: false,
-      learning: false,
   });
   
   const [styleSuggestions, setStyleSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as string[] });
   const [finishSuggestions, setFinishSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as Finish[] });
   const [alert, setAlert] = useState({ show: false, title: '', message: '' });
-  
-  // Share Menu State
-  const [showShareMenu, setShowShareMenu] = useState(false);
-  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
-  const shareMenuRef = useRef<HTMLDivElement>(null);
   
   // Refs & Selected Items
   const descriptionTextAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -204,16 +192,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         }
     };
     loadData();
-  }, []);
-
-  useEffect(() => {
-      const handleClickOutside = (event: MouseEvent) => {
-          if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
-              setShowShareMenu(false);
-          }
-      };
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const showAlert = (message: string, title = 'Aviso') => setAlert({ show: true, title, message });
@@ -328,35 +306,46 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       }
   };
 
-  const handleShareWhatsapp = () => {
-      if (!currentProject) return;
-      const text = `Confira meu projeto no MarcenApp:\n*${currentProject.name}*\n${currentProject.description}`;
-      window.open(`whatsapp://send?text=${encodeURIComponent(text)}`, '_blank');
-      setShowShareMenu(false);
+  const handleOpenLayoutEditor = async () => {
+    if (!currentProject) return;
+
+    if (!currentProject.image2d) {
+        if (!confirm("Este projeto ainda não tem uma planta baixa. Deseja gerar uma agora? Isso pode levar alguns segundos.")) return;
+        
+        setIsGenerating(true);
+        try {
+            const floorPlanBase64 = await generateFloorPlanFrom3D(currentProject);
+            const newImage2d = `data:image/png;base64,${floorPlanBase64}`;
+            const updatedProject = await updateProjectInHistory(currentProject.id, { image2d: newImage2d });
+            
+            if (updatedProject) {
+                setHistory(await getHistory());
+                setCurrentProject(updatedProject);
+                toggleModal('layoutEditor', true);
+                showAlert("Planta baixa gerada! Agora você pode editá-la.", "Sucesso");
+            }
+        } catch (e) {
+            console.error(e);
+            showAlert("Erro ao gerar planta baixa: " + (e instanceof Error ? e.message : "Erro desconhecido"));
+        } finally {
+            setIsGenerating(false);
+        }
+    } else {
+        toggleModal('layoutEditor', true);
+    }
   };
 
-  const handleCopyImage = async () => {
-      if (!currentProject?.views3d?.[0]) return;
-      try {
-          const res = await fetch(currentProject.views3d[0]);
-          const blob = await res.blob();
-          await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-          setShareFeedback("Imagem copiada!");
-          setTimeout(() => setShareFeedback(null), 2000);
-          setShowShareMenu(false);
-      } catch (e) {
-          console.error(e);
-          showAlert("Erro ao copiar imagem. Tente baixar via 'Nova Vista'.");
+  const handleSaveLayout = async (newImageBase64: string) => {
+      if (!currentProject) return;
+      const newImage2d = `data:image/png;base64,${newImageBase64}`;
+      const updatedProject = await updateProjectInHistory(currentProject.id, { image2d: newImage2d });
+      if (updatedProject) {
+          setHistory(await getHistory());
+          setCurrentProject(updatedProject);
+          toggleModal('layoutEditor', false);
+          showAlert("Layout da planta baixa atualizado!", "Sucesso");
       }
   };
-  
-  const handleCopyDescription = () => {
-      if (!currentProject) return;
-      navigator.clipboard.writeText(`${currentProject.name}\n\n${currentProject.description}`);
-      setShareFeedback("Texto copiado!");
-      setTimeout(() => setShareFeedback(null), 2000);
-      setShowShareMenu(false);
-  }
 
   return (
     <div className="min-h-screen bg-[#f5f1e8] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] transition-colors duration-300">
@@ -372,10 +361,10 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         onOpenBomGenerator={() => toggleModal('bom', true)}
         onOpenCuttingPlanGenerator={() => toggleModal('cutting', true)}
         onOpenCostEstimator={() => toggleModal('cost', true)}
-        onOpenWhatsapp={() => toggleModal('whatsapp', true)}
-        onOpenAutoPurchase={() => toggleModal('autoPurchase', true)}
-        onOpenEmployeeManagement={() => toggleModal('employees', true)}
-        onOpenLearningHub={() => toggleModal('learning', true)}
+        onOpenWhatsapp={() => showAlert("Integração WhatsApp em breve!")}
+        onOpenAutoPurchase={() => showAlert("Compra automática em breve!")}
+        onOpenEmployeeManagement={() => showAlert("Gestão de equipe em breve!")}
+        onOpenLearningHub={() => showAlert("Hub de aprendizado em breve!")}
         onOpenEncontraPro={() => toggleModal('encontraPro', true)}
         onOpenAR={() => toggleModal('ar', true)}
         onLogout={onLogout}
@@ -482,46 +471,18 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                     <h3 className="text-2xl font-bold text-[#3e3535] dark:text-[#f5f1e8]">{currentProject.name}</h3>
                                     <p className="text-[#6a5f5f] dark:text-[#c7bca9]">{currentProject.style}</p>
                                 </div>
-                                <div className="flex gap-2 relative" ref={shareMenuRef}>
-                                    {shareFeedback && (
-                                        <div className="absolute top-full right-0 mt-2 p-2 bg-green-100 text-green-800 text-xs rounded shadow animate-fadeIn whitespace-nowrap z-20">
-                                            {shareFeedback}
-                                        </div>
-                                    )}
-                                    <button 
-                                        onClick={() => setShowShareMenu(!showShareMenu)} 
-                                        className="bg-[#e6ddcd] dark:bg-[#4a4040] text-[#3e3535] dark:text-[#f5f1e8] p-2 rounded-lg hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition"
-                                        title="Compartilhar"
-                                    >
-                                        <ShareIcon />
-                                    </button>
-                                    {showShareMenu && (
-                                        <div className="absolute top-full right-0 mt-2 w-48 bg-[#fffefb] dark:bg-[#3e3535] border border-[#e6ddcd] dark:border-[#4a4040] rounded-lg shadow-xl p-2 z-10 flex flex-col gap-1 animate-fadeIn">
-                                            <button onClick={handleShareWhatsapp} className="w-full flex items-center gap-2 text-left p-2 rounded hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040]/50 transition text-sm text-[#3e3535] dark:text-[#f5f1e8]">
-                                                <WhatsappIcon className="w-4 h-4 text-green-500" /> WhatsApp
-                                            </button>
-                                            <button onClick={handleCopyImage} className="w-full flex items-center gap-2 text-left p-2 rounded hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040]/50 transition text-sm text-[#3e3535] dark:text-[#f5f1e8]">
-                                                <CopyIcon /> Copiar Imagem
-                                            </button>
-                                            <button onClick={handleCopyDescription} className="w-full flex items-center gap-2 text-left p-2 rounded hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040]/50 transition text-sm text-[#3e3535] dark:text-[#f5f1e8]">
-                                                <DocumentTextIcon /> Copiar Texto
-                                            </button>
-                                        </div>
-                                    )}
-                                    <button onClick={() => toggleModal('proposal', true)} className="bg-[#d4ac6e] text-[#3e3535] px-4 py-2 rounded-lg font-bold hover:bg-[#c89f5e] transition">
-                                        Gerar Proposta
-                                    </button>
-                                </div>
+                                <button onClick={() => toggleModal('proposal', true)} className="bg-[#d4ac6e] text-[#3e3535] px-4 py-2 rounded-lg font-bold hover:bg-[#c89f5e] transition">
+                                    Gerar Proposta
+                                </button>
                             </div>
 
                             {/* Tools Grid */}
                             <h4 className="font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-3 uppercase text-xs tracking-wider">Ferramentas de Produção</h4>
-                            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6">
-                                 <ToolButton icon={<CubeIcon />} label="Render 3D" onClick={() => toggleModal('newView', true)} done={false} />
+                            <div className="grid grid-cols-4 gap-2 mb-6">
                                  <ToolButton icon={<BookIcon />} label="BOM" onClick={() => toggleModal('bom', true)} done={!!currentProject.bom} />
                                  <ToolButton icon={<BlueprintIcon />} label="Corte" onClick={() => toggleModal('cutting', true)} done={!!currentProject.cuttingPlan} />
                                  <ToolButton icon={<CurrencyDollarIcon />} label="Custos" onClick={() => toggleModal('cost', true)} done={!!currentProject.materialCost} />
-                                 <ToolButton icon={<ToolsIcon />} label="Montagem" onClick={() => toggleModal('assembly', true)} done={!!currentProject.assemblyDetails} />
+                                 <ToolButton icon={<RulerIcon />} label="Planta 2D" onClick={handleOpenLayoutEditor} done={!!currentProject.image2d} />
                             </div>
                             
                             {/* Description */}
@@ -600,102 +561,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         onViewProject={(p) => { setCurrentProject(p); toggleModal('clients', false); toggleModal('proposal', true); }}
       />
       <AboutModal isOpen={modals.about} onClose={() => toggleModal('about', false)} />
-      <BomGeneratorModal 
-        isOpen={modals.bom} 
-        onClose={() => toggleModal('bom', false)} 
-        showAlert={showAlert}
-        initialDescription={currentProject?.description}
-        initialImageUrls={currentProject ? (currentProject.views3d.length > 0 ? currentProject.views3d : currentProject.uploadedReferenceImageUrls || undefined) : undefined}
-      />
+      <BomGeneratorModal isOpen={modals.bom} onClose={() => toggleModal('bom', false)} showAlert={showAlert} />
       <CuttingPlanGeneratorModal isOpen={modals.cutting} onClose={() => toggleModal('cutting', false)} showAlert={showAlert} />
       <CostEstimatorModal isOpen={modals.cost} onClose={() => toggleModal('cost', false)} showAlert={showAlert} />
       <EncontraProModal isOpen={modals.encontraPro} onClose={() => toggleModal('encontraPro', false)} showAlert={showAlert} />
       <ARViewer isOpen={modals.ar} onClose={() => toggleModal('ar', false)} imageSrc={currentProject?.views3d[0] || ''} showAlert={showAlert} />
       
-      <EarlyAccessModal
-        isOpen={modals.whatsapp}
-        onClose={() => toggleModal('whatsapp', false)}
-        title="Integração WhatsApp Business"
-      >
-        <div className="space-y-4">
-            <p className="text-gray-600 dark:text-gray-300">
-                Envie orçamentos, atualizações de projeto e tire dúvidas dos seus clientes diretamente pelo MarcenApp.
-            </p>
-            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800 flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white">
-                    <WhatsappIcon className="w-6 h-6" />
-                </div>
-                <div>
-                    <h4 className="font-bold text-green-800 dark:text-green-300">Status: Beta</h4>
-                    <p className="text-sm text-green-700 dark:text-green-400">Disponível para testes.</p>
-                </div>
-            </div>
-            <button className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3 rounded-lg transition">
-                Conectar Conta WhatsApp
-            </button>
-        </div>
-      </EarlyAccessModal>
-
-      <EarlyAccessModal
-        isOpen={modals.autoPurchase}
-        onClose={() => toggleModal('autoPurchase', false)}
-        title="Compra Automática de Materiais"
-      >
-        <div className="space-y-4">
-             <p className="text-gray-600 dark:text-gray-300">
-                Transforme sua Lista de Materiais (BOM) em um carrinho de compras pronto nos maiores fornecedores do Brasil.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-                {['Leo Madeiras', 'GMAD', 'Gasômetro', 'Madeiras do Brasil'].map(store => (
-                    <div key={store} className="p-3 border rounded-lg text-center hover:border-[#d4ac6e] cursor-pointer transition bg-[#fffefb] dark:bg-[#3e3535]">
-                        <span className="font-semibold text-[#3e3535] dark:text-[#f5f1e8]">{store}</span>
-                    </div>
-                ))}
-            </div>
-            <button className="w-full bg-[#d4ac6e] text-[#3e3535] font-bold py-3 rounded-lg hover:bg-[#c89f5e] transition">
-                Vincular Fornecedor
-            </button>
-        </div>
-      </EarlyAccessModal>
-
-      <EarlyAccessModal
-        isOpen={modals.employees}
-        onClose={() => toggleModal('employees', false)}
-        title="Gestão de Equipe"
-      >
-        <div className="space-y-4">
-            <p className="text-gray-600 dark:text-gray-300">
-                Adicione colaboradores, atribua tarefas de corte e montagem, e controle a produtividade da sua marcenaria.
-            </p>
-            <div className="border-dashed border-2 border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                <div className="mx-auto w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
-                    <span className="text-2xl text-gray-500">+</span>
-                </div>
-                <span className="text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8]">Convidar Colaborador</span>
-            </div>
-        </div>
-      </EarlyAccessModal>
-
-      <EarlyAccessModal
-        isOpen={modals.learning}
-        onClose={() => toggleModal('learning', false)}
-        title="Hub de Aprendizado"
-      >
-        <div className="space-y-4">
-             <p className="text-gray-600 dark:text-gray-300">
-                Acesse cursos, tutoriais de softwares (SketchUp, Cortecloud) e dicas de acabamento.
-            </p>
-            <div className="space-y-2">
-                {['Técnicas de Fita de Borda', 'Iluminação LED em Nichos', 'Uso Avançado da Iara IA'].map(course => (
-                    <div key={course} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <span className="text-[#3e3535] dark:text-[#f5f1e8]">{course}</span>
-                        <button className="text-sm text-[#d4ac6e] font-bold">Assistir</button>
-                    </div>
-                ))}
-            </div>
-        </div>
-      </EarlyAccessModal>
-
       {currentProject && (
         <>
             <ProposalModal 
@@ -712,14 +583,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                 onSaveComplete={async () => setHistory(await getHistory())} 
                 showAlert={showAlert} 
             />
-             <AssemblyGuideModal 
-                isOpen={modals.assembly}
-                project={currentProject}
-                onClose={() => toggleModal('assembly', false)}
-                onUpdateProject={(updated) => {
-                    setCurrentProject(updated);
-                    setHistory(prev => prev.map(p => p.id === updated.id ? updated : p));
-                }}
+            <LayoutEditor 
+                isOpen={modals.layoutEditor}
+                floorPlanSrc={currentProject.image2d || ''}
+                projectDescription={currentProject.description}
+                onClose={() => toggleModal('layoutEditor', false)}
+                onSave={handleSaveLayout}
                 showAlert={showAlert}
             />
         </>
