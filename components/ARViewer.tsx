@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, WheelEvent, MouseEvent, TouchEvent, useCallback } from 'react';
 import { Spinner } from './Shared';
 
@@ -158,11 +159,15 @@ export const ARViewer: React.FC<ARViewerProps> = ({ isOpen, onClose, imageSrc, s
             const centerX = transform.x + imageWidth / 2;
             const centerY = transform.y + imageHeight / 2;
 
-            context.translate(centerX, centerY);
+            // Ensure we draw relative to center for proper rotation
+            const drawX = canvas.width / 2 + transform.x - imageWidth / 2;
+            const drawY = canvas.height / 2 + transform.y - imageHeight / 2;
+
+            context.translate(drawX + imageWidth/2, drawY + imageHeight/2);
             context.rotate(transform.rotation * Math.PI / 180);
-            context.translate(-centerX, -centerY);
+            context.translate(-(drawX + imageWidth/2), -(drawY + imageHeight/2));
             
-            context.drawImage(imageToDraw, transform.x, transform.y, imageWidth, imageHeight);
+            context.drawImage(imageToDraw, drawX, drawY, imageWidth, imageHeight);
             context.restore();
             
             const dataUrl = canvas.toDataURL('image/jpeg');
@@ -190,7 +195,7 @@ export const ARViewer: React.FC<ARViewerProps> = ({ isOpen, onClose, imageSrc, s
             <canvas ref={canvasRef} className="hidden"></canvas>
 
             <div 
-                className="absolute top-0 left-0 w-full h-full cursor-move"
+                className="absolute top-0 left-0 w-full h-full cursor-move touch-none" // Added touch-none to prevent browser gestures
                 onMouseDown={onMouseDown}
                 onMouseMove={onMouseMove}
                 onMouseUp={handleInteractionEnd}
@@ -203,18 +208,20 @@ export const ARViewer: React.FC<ARViewerProps> = ({ isOpen, onClose, imageSrc, s
                     src={imageSrc}
                     alt="AR Overlay"
                     draggable="false"
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none"
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none origin-center"
                     style={{
                         transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale}) rotate(${transform.rotation}deg)`,
                         opacity: opacity,
                         willChange: 'transform',
+                        maxWidth: '80%', // Prevent huge initial size
+                        maxHeight: '80%'
                     }}
                 />
             </div>
             
-            <button onClick={onClose} className="absolute top-4 right-4 text-white text-4xl font-light bg-black/30 rounded-full w-12 h-12 flex items-center justify-center">&times;</button>
+            <button onClick={onClose} className="absolute top-4 right-4 text-white text-4xl font-light bg-black/30 rounded-full w-12 h-12 flex items-center justify-center z-50">&times;</button>
             
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-md px-4 flex flex-col items-center gap-4">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-md px-4 flex flex-col items-center gap-4 z-50">
                  <div className="w-full flex items-center gap-3 bg-black/30 p-2 rounded-full backdrop-blur-sm">
                     <span className="text-sm">Opacidade</span>
                     <input 

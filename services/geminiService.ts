@@ -35,20 +35,31 @@ export function cleanAndParseJson<T>(text: string): T {
 // --- GENERATE IMAGE FUNCTION (Estilo PROMOB / V-Ray) ---
 export async function generateImage(prompt: string, referenceImages?: { data: string, mimeType: string }[] | null): Promise<string> {
     // Engenharia de prompt para estilo PROMOB/V-Ray
-    const technicalPrompt = `
-    ATUE COMO: Um motor de renderização 3D de alta fidelidade (estilo V-Ray / Corona Render para Promob).
+    let technicalPrompt = `
+    ATUE COMO: Um renderizador 3D profissional de Marcenaria (V-Ray/Corona para Promob).
     
-    TAREFA: Gerar uma visualização 3D fotorrealista de marcenaria baseada na descrição abaixo.
+    TAREFA: Gerar visualização fotorrealista de móveis planejados.
     
-    DESCRIÇÃO DO PROJETO:
+    ENTRADA DO USUÁRIO:
     "${prompt}"
-    
-    DIRETRIZES VISUAIS (ESTILO PROMOB):
-    1. **Fotorrealismo:** Use iluminação global (GI), oclusão de ambiente e sombras suaves de estúdio.
-    2. **Materiais:** Represente fielmente texturas de madeira (veios visíveis), reflexos em vidros, brilho em lacas e metalizados.
-    3. **Perspectiva:** Use uma lente de 35mm a 50mm, levemente isométrica ou frontal, focada no móvel.
-    4. **Ambiente:** Fundo neutro de estúdio ou ambiente residencial moderno, limpo e bem iluminado.
-    5. **Qualidade:** Renderização em 4K, nítida, sem distorções geométricas.
+    `;
+
+    if (referenceImages && referenceImages.length > 0) {
+        technicalPrompt += `
+        \n**REGRAS DE PRECISÃO GEOMÉTRICA (CRÍTICO):**
+        1. Use a imagem fornecida como "Blueprint" (Planta). Mantenha a estrutura, paredes, chão e posição dos móveis EXATAMENTE como na foto.
+        2. NÃO adicione móveis que não foram solicitados.
+        3. NÃO altere a perspectiva da sala.
+        4. Se o usuário pediu para alterar um móvel específico, altere APENAS ele, mantendo o resto da sala intacto.
+        `;
+    }
+
+    technicalPrompt += `
+    \n**DIRETRIZES VISUAIS (Fotorrealismo):**
+    1. **Materiais:** Texturas de alta definição. Madeira deve ter veios visíveis. Lacas devem ter reflexo acetinado ou alto brilho (conforme pedido).
+    2. **Iluminação:** Iluminação Global (GI) suave. Sombras de contato realistas (Ambient Occlusion) nos rodapés e puxadores.
+    3. **Estilo:** Renderização limpa, comercial, pronta para catálogo.
+    4. **Qualidade:** 4K, nítida, sem distorções.
     `;
 
     const parts: any[] = [{ text: technicalPrompt }];
@@ -57,7 +68,6 @@ export async function generateImage(prompt: string, referenceImages?: { data: st
         referenceImages.forEach(img => {
              parts.push(fileToGenerativePart(img.data, img.mimeType));
         });
-        parts.push({ text: "IMPORTANTE: Mantenha a fidelidade ESTRUTURAL geométrica das imagens de referência. Aplique apenas os materiais e a iluminação descritos." });
     }
 
     try {
@@ -118,15 +128,15 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
 
 // 1.1 Suggest Alternative Finishes
 export async function suggestAlternativeFinishes(projectDescription: string, style: string): Promise<Finish[]> {
-    const prompt = `Atue como um Especialista em Materiais.
+    const prompt = `Atue como um Especialista em Materiais de Marcenaria.
     Projeto: "${projectDescription}"
     Estilo: "${style}"
     
-    Sugira 3 acabamentos (Madeira, Laca, Metal) que combinem com este projeto.
+    Sugira 3 acabamentos REAIS e populares (Madeira, Laca, Metal) que combinem.
+    Priorize padrões de MDF comuns no mercado (Duratex, Arauco, Guararapes).
     
-    Retorne JSON array com objetos Finish (id, name, description, type, manufacturer, hexCode).
-    Type deve ser um de: 'wood', 'solid', 'metal', 'stone', 'glass'.
-    Deixe imageUrl como null.`;
+    Retorne JSON array com objetos Finish.
+    Type deve ser um de: 'wood', 'solid', 'metal', 'stone', 'glass'.`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',

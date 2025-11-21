@@ -1,5 +1,6 @@
+
 import React, { useState, useRef } from 'react';
-import { LogoIcon, CubeIcon, BlueprintIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, StarIcon, CheckIcon } from './Shared';
+import { LogoIcon, CubeIcon, BlueprintIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, StarIcon, CheckIcon, StoreIcon, ChartBarIcon, HandshakeIcon } from './Shared';
 
 interface LandingPageProps {
   onLoginSuccess: (email: string) => void;
@@ -10,73 +11,95 @@ const plans = [
     name: 'Hobby',
     price: 'Grátis',
     priceDescription: 'para sempre',
-    description: 'Ideal para entusiastas e projetos pessoais.',
+    description: 'Para entusiastas e pequenos projetos pessoais.',
     features: [
-      '5 projetos por mês',
-      'Geração de imagens 3D',
-      'Geração de planta baixa 2D',
-      'Histórico de projetos',
-      'Suporte da comunidade',
+      '3 projetos por mês',
+      'Geração 3D Básica',
+      'Planta Baixa Automática',
+      'Acesso à Comunidade',
     ],
-    cta: 'Começar Agora',
+    cta: 'Começar Grátis',
     planId: 'hobby',
+    highlight: false,
   },
   {
     name: 'Profissional',
-    price: 'R$ 49,90',
+    price: 'R$ 69,90',
     priceDescription: '/mês',
     description: 'Para marceneiros autônomos e designers.',
     features: [
-      'Projetos ilimitados',
-      'Todas as funcionalidades do Hobby',
-      'Geração de BOM e Plano de Corte',
-      'Estimativa de Custos',
-      'Gerenciamento de Clientes',
-      'Propostas em PDF',
-      'Suporte prioritário por e-mail',
+      'Projetos Ilimitados',
+      'Render 3D em 4K (IA Avançada)',
+      'Plano de Corte & Lista de Compras',
+      'Orçamentos em PDF',
+      'CRM Básico de Clientes',
+      'Suporte Prioritário',
     ],
-    cta: 'Escolher Profissional',
+    cta: 'Ser Profissional',
     planId: 'pro',
-    popular: true,
+    highlight: true,
+    badge: 'Mais Popular'
   },
   {
     name: 'Oficina',
-    price: 'R$ 149,90',
+    price: 'R$ 199,90',
     priceDescription: '/mês',
-    description: 'Para marcenarias com equipes e alto volume.',
+    description: 'Gestão completa para marcenarias e lojas.',
     features: [
-      'Todas as funcionalidades do Profissional',
-      'Ferramentas para equipes (Em breve)',
-      'Relatórios Avançados de Produtividade',
-      'Compra automática de materiais (Beta)',
-      'Integração WhatsApp (Beta)',
-      'Acesso antecipado a novas funcionalidades',
+      'Tudo do Profissional',
+      'Gestão Financeira & Estoque',
+      'Modo Loja (Showroom Virtual)',
+      'Gestão de Equipe (Multi-usuário)',
+      'Relatórios de Produtividade',
+      'Contratos Digitais',
     ],
-    cta: 'Escolher Oficina',
+    cta: 'Migrar para Oficina',
     planId: 'business',
+    highlight: false,
+  },
+  {
+    name: 'Parceiro',
+    price: 'R$ 390,00',
+    priceDescription: '/mês',
+    description: 'Para distribuidores e redes de fornecedores.',
+    features: [
+      'Portal do Distribuidor Exclusivo',
+      'Gestão de Comissões e Vendas',
+      'Painel de Múltiplos Clientes',
+      'Materiais de Marketing White-label',
+      'API de Integração',
+      'Gerente de Conta Dedicado',
+    ],
+    cta: 'Tornar-se Parceiro',
+    planId: 'partner',
+    highlight: false,
+    badge: 'B2B'
   },
 ];
 
 const PlanCard: React.FC<{ plan: typeof plans[0]; onSelect: () => void; }> = ({ plan, onSelect }) => {
-  const isPopular = plan.popular;
+  const isHighlight = plan.highlight;
   return (
-    <div className={`relative flex flex-col rounded-xl border p-6 shadow-lg transition-all duration-300 ${isPopular ? 'border-[#d4ac6e] bg-[#fffefb] dark:bg-[#3e3535] scale-105' : 'border-[#e6ddcd] dark:border-[#4a4040] bg-white dark:bg-[#2d2424] hover:shadow-xl'}`}>
-      {isPopular && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#d4ac6e] text-[#3e3535] px-4 py-1 rounded-full text-sm font-semibold shadow-md">
-          Mais Popular
+    <div className={`relative flex flex-col rounded-2xl border p-6 shadow-lg transition-all duration-300 ${isHighlight ? 'border-[#d4ac6e] bg-[#fffefb] dark:bg-[#3e3535] scale-105 z-10' : 'border-[#e6ddcd] dark:border-[#4a4040] bg-white dark:bg-[#2d2424] hover:shadow-xl'}`}>
+      {plan.badge && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#d4ac6e] text-[#3e3535] px-4 py-1 rounded-full text-sm font-bold shadow-md uppercase tracking-wide">
+          {plan.badge}
         </div>
       )}
       <div className="flex-grow">
         <h3 className="text-2xl font-bold font-serif text-center text-[#3e3535] dark:text-[#f5f1e8]">{plan.name}</h3>
         <div className="mt-4 text-center">
-          <span className="text-4xl font-bold">{plan.price}</span>
-          <span className="text-lg text-[#6a5f5f] dark:text-[#c7bca9]">{plan.priceDescription}</span>
+          <span className="text-4xl font-bold text-[#3e3535] dark:text-[#f5f1e8]">{plan.price}</span>
+          <span className="text-sm text-[#6a5f5f] dark:text-[#c7bca9] block">{plan.priceDescription}</span>
         </div>
-        <p className="mt-2 text-center text-[#8a7e7e] dark:text-[#a89d8d] h-12">{plan.description}</p>
-        <ul className="mt-6 space-y-4">
+        <p className="mt-4 text-center text-sm text-[#8a7e7e] dark:text-[#a89d8d] min-h-[40px]">{plan.description}</p>
+        
+        <div className="my-6 border-t border-dashed border-[#e6ddcd] dark:border-[#4a4040]"></div>
+
+        <ul className="space-y-3">
           {plan.features.map((feature, index) => (
-            <li key={index} className="flex items-start">
-              <CheckIcon className="w-6 h-6 text-green-500 flex-shrink-0 mr-3" />
+            <li key={index} className="flex items-start text-sm">
+              <CheckIcon className={`w-5 h-5 flex-shrink-0 mr-3 ${isHighlight ? 'text-[#d4ac6e]' : 'text-green-500'}`} />
               <span className="text-[#3e3535] dark:text-[#f5f1e8]">{feature}</span>
             </li>
           ))}
@@ -84,7 +107,7 @@ const PlanCard: React.FC<{ plan: typeof plans[0]; onSelect: () => void; }> = ({ 
       </div>
       <button 
         onClick={onSelect}
-        className={`w-full mt-8 font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 ${isPopular ? 'bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535]' : 'bg-[#e6ddcd] dark:bg-[#4a4040] text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f]'}`}
+        className={`w-full mt-8 font-bold py-3 px-6 rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 ${isHighlight ? 'bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535]' : 'bg-[#e6ddcd] dark:bg-[#4a4040] text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f]'}`}
       >
         {plan.cta}
       </button>
@@ -93,24 +116,24 @@ const PlanCard: React.FC<{ plan: typeof plans[0]; onSelect: () => void; }> = ({ 
 };
 
 const FeatureCard: React.FC<{ icon: React.ReactNode; title: string; children: React.ReactNode }> = ({ icon, title, children }) => (
-    <div className="bg-[#fffefb]/60 dark:bg-[#3e3535]/60 p-6 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040] text-center shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+    <div className="bg-[#fffefb]/60 dark:bg-[#3e3535]/60 p-6 rounded-xl border border-[#e6ddcd] dark:border-[#4a4040] text-center shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 backdrop-blur-sm">
         <div className="inline-block p-4 bg-[#e6ddcd] dark:bg-[#4a4040] rounded-full mb-4 text-[#b99256] dark:text-[#d4ac6e]">
             {icon}
         </div>
         <h3 className="text-xl font-semibold font-serif mb-2 text-[#3e3535] dark:text-[#f5f1e8]">{title}</h3>
-        <p className="text-[#6a5f5f] dark:text-[#c7bca9]">{children}</p>
+        <p className="text-sm text-[#6a5f5f] dark:text-[#c7bca9] leading-relaxed">{children}</p>
     </div>
 );
 
 const TestimonialCard: React.FC<{ quote: string; name: string; role: string; }> = ({ quote, name, role }) => (
-    <div className="bg-[#fffefb] dark:bg-[#3e3535] p-6 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040] shadow-md">
+    <div className="bg-[#fffefb] dark:bg-[#3e3535] p-6 rounded-xl border border-[#e6ddcd] dark:border-[#4a4040] shadow-md">
         <div className="flex text-yellow-500 mb-4">
             <StarIcon isFavorite /> <StarIcon isFavorite /> <StarIcon isFavorite /> <StarIcon isFavorite /> <StarIcon isFavorite />
         </div>
-        <p className="text-[#6a5f5f] dark:text-[#c7bca9] italic mb-4">"{quote}"</p>
+        <p className="text-[#6a5f5f] dark:text-[#c7bca9] italic mb-4 text-sm">"{quote}"</p>
         <div>
             <p className="font-bold text-[#3e3535] dark:text-[#f5f1e8]">{name}</p>
-            <p className="text-sm text-[#8a7e7e] dark:text-[#a89d8d]">{role}</p>
+            <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d]">{role}</p>
         </div>
     </div>
 );
@@ -141,123 +164,142 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
     };
 
     return (
-        <div className="bg-[#f5f1e8] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] animate-fadeIn">
+        <div className="bg-[#f5f1e8] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] animate-fadeIn overflow-x-hidden">
             {/* Header */}
-            <header className="py-4 px-6 md:px-12 flex justify-between items-center bg-[#f5f1e8]/80 dark:bg-[#2d2424]/80 backdrop-blur-sm sticky top-0 z-30 border-b border-[#e6ddcd] dark:border-[#4a4040]">
+            <header className="py-4 px-6 md:px-12 flex justify-between items-center bg-[#f5f1e8]/90 dark:bg-[#2d2424]/90 backdrop-blur-md sticky top-0 z-40 border-b border-[#e6ddcd] dark:border-[#4a4040]">
                 <div className="flex items-center gap-3">
-                    <LogoIcon className="w-8 h-8" />
-                    <h1 className="text-2xl font-semibold tracking-tight">MarcenApp</h1>
+                    <LogoIcon className="w-8 h-8 text-[#3e3535] dark:text-[#d4ac6e]" />
+                    <h1 className="text-2xl font-bold tracking-tight font-serif">MarcenApp</h1>
                 </div>
-                <button
-                    onClick={scrollToLogin}
-                    className="bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-2 px-6 rounded-lg hover:bg-[#2d2424] dark:hover:bg-[#c89f5e] transition"
-                >
-                    Acessar
-                </button>
+                <div className="flex gap-4">
+                    <button onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })} className="hidden md:block text-sm font-bold hover:text-[#d4ac6e] transition">Planos</button>
+                    <button
+                        onClick={scrollToLogin}
+                        className="bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-2 px-6 rounded-lg hover:opacity-90 transition shadow-md"
+                    >
+                        Acessar
+                    </button>
+                </div>
             </header>
 
             <main>
                 {/* Hero Section */}
-                <section className="text-center py-20 md:py-32 px-6" style={{ backgroundImage: 'radial-gradient(circle, rgba(212,172,110,0.08) 0%, rgba(245,241,232,0) 60%)' }}>
-                    <h2 className="text-4xl md:text-6xl font-bold font-serif mb-4 animate-fadeInUp">
-                        Transforme Ideias em Móveis Planejados. <span className="text-[#b99256] dark:text-[#d4ac6e]">Em Minutos.</span>
+                <section className="text-center py-20 md:py-32 px-6 relative overflow-hidden">
+                    {/* Background Decoration */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[1000px] bg-gradient-to-b from-[#d4ac6e]/10 to-transparent rounded-full blur-3xl -z-10 pointer-events-none"></div>
+                    
+                    <h2 className="text-4xl md:text-6xl font-bold font-serif mb-6 animate-fadeInUp leading-tight">
+                        Sua Marcenaria Digital.<br/> 
+                        <span className="text-[#b99256] dark:text-[#d4ac6e]">Inteligente e Lucrativa.</span>
                     </h2>
-                    <p className="text-lg md:text-xl max-w-3xl mx-auto text-[#6a5f5f] dark:text-[#c7bca9] mb-8 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-                        De um simples rascunho à proposta final. Use nossa IA, Iara, para criar projetos 3D, planos de corte e orçamentos que impressionam seus clientes e otimizam sua produção.
+                    <p className="text-lg md:text-xl max-w-3xl mx-auto text-[#6a5f5f] dark:text-[#c7bca9] mb-10 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+                        Do orçamento à entrega. Utilize Inteligência Artificial para criar projetos 3D, otimizar planos de corte e gerenciar sua oficina em uma única plataforma.
                     </p>
-                    <button
-                        onClick={scrollToLogin}
-                        className="bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-8 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg animate-fadeInUp"
-                        style={{ animationDelay: '0.4s' }}
-                    >
-                        Comece a Criar Agora &rarr;
-                    </button>
+                    <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
+                        <button
+                            onClick={scrollToLogin}
+                            className="bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-10 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg flex items-center justify-center gap-2"
+                        >
+                            <CubeIcon /> Testar Grátis
+                        </button>
+                        <button
+                            onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                            className="bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] font-bold py-4 px-10 rounded-xl shadow border border-[#e6ddcd] dark:border-[#4a4040] hover:bg-[#f5f1e8] dark:hover:bg-[#2d2424] transition-all text-lg"
+                        >
+                            Ver Recursos
+                        </button>
+                    </div>
                 </section>
 
                 {/* Features Section */}
-                <section id="features" className="py-20 px-6 bg-[#fffefb] dark:bg-[#3e3535]">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="text-center mb-12">
-                            <h2 className="text-3xl md:text-4xl font-bold font-serif">A Marcenaria do Futuro, Hoje.</h2>
-                            <p className="text-lg text-[#6a5f5f] dark:text-[#c7bca9] mt-2">Ferramentas inteligentes para cada etapa do seu projeto.</p>
+                <section id="features" className="py-20 px-6">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="text-center mb-16">
+                            <h2 className="text-3xl md:text-4xl font-bold font-serif mb-4">Tecnologia que Gera Valor</h2>
+                            <p className="text-lg text-[#6a5f5f] dark:text-[#c7bca9]">Ferramentas integradas para eliminar o desperdício e aumentar suas vendas.</p>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            <FeatureCard icon={<CubeIcon className="w-8 h-8"/>} title="Projetos 3D Fotorrealistas">
-                                Crie visualizações impressionantes a partir de descrições, fotos ou rascunhos. Mostre ao seu cliente exatamente como o móvel ficará.
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <FeatureCard icon={<CubeIcon className="w-8 h-8"/>} title="Projetos com IA">
+                                Crie renders 3D fotorrealistas a partir de fotos ou comandos de voz em segundos.
                             </FeatureCard>
-                            <FeatureCard icon={<BlueprintIcon className="w-8 h-8"/>} title="Plantas Técnicas 2D">
-                                Converta automaticamente seus modelos 3D em plantas baixas e vistas técnicas com dimensionamento, prontas para a oficina.
+                            <FeatureCard icon={<ToolsIcon className="w-8 h-8"/>} title="Plano de Corte">
+                                Otimização automática de chapas que reduz em até 30% o desperdício de material.
                             </FeatureCard>
-                             <FeatureCard icon={<BookIcon className="w-8 h-8"/>} title="Lista de Materiais (BOM)">
-                                Gere uma lista detalhada de todas as chapas, ferragens e acessórios necessários, evitando erros e desperdícios na compra.
+                            <FeatureCard icon={<ChartBarIcon className="w-8 h-8"/>} title="Gestão Completa">
+                                Controle financeiro, estoque, cronograma Kanban e equipe em um só lugar.
                             </FeatureCard>
-                            <FeatureCard icon={<ToolsIcon className="w-8 h-8"/>} title="Plano de Corte Otimizado">
-                                Receba um diagrama visual de como cortar as peças nas chapas, maximizando o aproveitamento do material e reduzindo custos.
-                            </FeatureCard>
-                            <FeatureCard icon={<CurrencyDollarIcon className="w-8 h-8"/>} title="Orçamentos e Propostas">
-                                Estime custos de material e mão de obra com ajuda da IA e gere propostas comerciais profissionais em PDF com um clique.
-                            </FeatureCard>
-                             <FeatureCard icon={<LogoIcon className="w-8 h-8"/>} title="Assistente Iara">
-                                Nossa IA especialista em marcenaria está sempre pronta para ajudar, desde a busca por tendências até a otimização de projetos.
+                             <FeatureCard icon={<StoreIcon className="w-8 h-8"/>} title="Modo Loja">
+                                Transforme seu tablet em um catálogo digital interativo para fechar vendas na hora.
                             </FeatureCard>
                         </div>
                     </div>
                 </section>
 
                 {/* Testimonials Section */}
-                <section id="testimonials" className="py-20 px-6">
+                <section id="testimonials" className="py-20 px-6 bg-[#fffefb] dark:bg-[#3e3535]/50">
                      <div className="max-w-6xl mx-auto">
                         <div className="text-center mb-12">
-                            <h2 className="text-3xl md:text-4xl font-bold font-serif">O que os Marceneiros Dizem</h2>
+                            <h2 className="text-3xl md:text-4xl font-bold font-serif">Quem usa, recomenda</h2>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             <TestimonialCard 
                                 name="Carlos Ferreira"
-                                role="Marceneiro, 15 anos de experiência"
-                                quote="O MarcenApp reduziu o tempo que eu levava para fazer propostas de 2 dias para 30 minutos. Meus clientes ficam impressionados com o 3D."
+                                role="Dono da Marcenaria CF"
+                                quote="O MarcenApp organizou minha oficina. Antes eu perdia horas calculando plano de corte na mão. Agora é automático."
                             />
                              <TestimonialCard 
                                 name="Juliana Andrade"
-                                role="Designer de Móveis"
-                                quote="A geração da lista de materiais e do plano de corte é fantástica. Acabou o erro de cálculo na hora de comprar as chapas. A economia é real."
+                                role="Arquiteta e Designer"
+                                quote="A qualidade dos renders gerados pela IA é impressionante. Meus clientes fecham o projeto muito mais rápido."
                             />
                              <TestimonialCard 
                                 name="Ricardo Martins"
-                                role="Dono de Marcenaria"
-                                quote="Consigo apresentar projetos muito mais profissionais e fechar mais negócios. É como ter um designer e um engenheiro na equipe."
+                                role="Distribuidor Parceiro"
+                                quote="Como parceiro, consigo gerenciar meus clientes marceneiros e oferecer uma solução que realmente ajuda eles a crescerem."
                             />
                         </div>
                      </div>
                 </section>
 
                 {/* Plans Section */}
-                <section id="plans" className="py-20 px-6 bg-[#fffefb] dark:bg-[#3e3535]">
-                    <div className="max-w-6xl mx-auto">
-                        <div className="text-center mb-12">
-                            <h2 className="text-3xl md:text-4xl font-bold font-serif">Planos Flexíveis para o seu Negócio</h2>
-                            <p className="text-lg text-[#6a5f5f] dark:text-[#c7bca9] mt-2">Comece de graça e evolua conforme suas necessidades.</p>
+                <section id="plans" className="py-24 px-6">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="text-center mb-16">
+                            <h2 className="text-3xl md:text-4xl font-bold font-serif mb-4">Escolha o Plano Ideal</h2>
+                            <p className="text-lg text-[#6a5f5f] dark:text-[#c7bca9]">Investimento que se paga no primeiro projeto.</p>
                         </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                        {/* Plan Grid: Adjusted for 4 items */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
                             {plans.map(plan => (
                                 <PlanCard key={plan.name} plan={plan} onSelect={scrollToLogin} />
                             ))}
+                        </div>
+                        
+                        <div className="mt-12 text-center">
+                            <div className="inline-block bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+                                <h4 className="font-bold text-blue-800 dark:text-blue-300 flex items-center justify-center gap-2">
+                                    <HandshakeIcon /> Programa de Parceiros
+                                </h4>
+                                <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                                    Tem uma loja de ferragens ou é influenciador? <button onClick={scrollToLogin} className="underline font-bold hover:text-blue-900">Torne-se um Parceiro Autorizado</button> e ganhe comissões recorrentes.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </section>
                 
                 {/* Login/CTA Section */}
-                <section id="login" ref={loginRef} className="py-20 px-6">
+                <section id="login" ref={loginRef} className="py-20 px-6 bg-[#fffefb] dark:bg-[#3e3535]">
                     <div className="w-full max-w-md mx-auto">
                         <div className="flex flex-col items-center mb-8">
-                            <h2 className="text-3xl font-bold font-serif text-[#3e3535] dark:text-[#f5f1e8] text-center">Pronto para revolucionar sua marcenaria?</h2>
-                            <p className="text-[#6a5f5f] dark:text-[#c7bca9] text-lg mt-2 text-center">Acesse sua conta ou crie um acesso gratuito para começar.</p>
+                            <h2 className="text-3xl font-bold font-serif text-[#3e3535] dark:text-[#f5f1e8] text-center">Comece Agora</h2>
+                            <p className="text-[#6a5f5f] dark:text-[#c7bca9] text-lg mt-2 text-center">Crie sua conta gratuita e explore o futuro.</p>
                         </div>
-                        <div className="bg-[#fffefb]/80 dark:bg-[#4a4040] backdrop-blur-sm p-8 rounded-xl border border-[#e6ddcd] dark:border-[#4a4040] shadow-2xl shadow-stone-300/30 dark:shadow-black/30">
-                            <h3 className="text-2xl font-serif font-semibold text-center text-[#3e3535] dark:text-[#f5f1e8] mb-6">Acesse sua conta</h3>
+                        <div className="bg-[#f5f1e8] dark:bg-[#2d2424] p-8 rounded-2xl border border-[#e6ddcd] dark:border-[#4a4040] shadow-xl">
                             <form onSubmit={handleLogin} className="space-y-6">
                                 <div>
-                                    <label htmlFor="email-landing" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9]">
-                                        Seu melhor e-mail
+                                    <label htmlFor="email-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-2">
+                                        E-mail Profissional
                                     </label>
                                     <input
                                         id="email-landing"
@@ -267,20 +309,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                         required
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="mt-1 block w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#5a4f4f] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
+                                        className="w-full p-4 rounded-xl border border-[#e6ddcd] dark:border-[#5a4f4f] bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] transition"
                                         placeholder="seu@email.com"
                                     />
                                 </div>
-                                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                                {error && <p className="text-red-500 text-sm text-center font-bold bg-red-50 dark:bg-red-900/20 p-2 rounded">{error}</p>}
                                 <div>
                                     <button
                                         type="submit"
                                         disabled={isLoading}
-                                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-[#3e3535] bg-[#d4ac6e] hover:bg-[#c89f5e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4ac6e] transition disabled:opacity-50"
+                                        className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-[#3e3535] bg-[#d4ac6e] hover:bg-[#c89f5e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4ac6e] transition disabled:opacity-70"
                                     >
-                                        {isLoading ? 'Verificando...' : 'Entrar / Cadastrar'}
+                                        {isLoading ? 'Criando conta...' : 'Criar Conta Grátis'}
                                     </button>
                                 </div>
+                                <p className="text-xs text-center text-gray-500">Sem necessidade de cartão de crédito para o plano Hobby.</p>
                             </form>
                         </div>
                     </div>
@@ -288,9 +331,42 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
             </main>
 
             {/* Footer */}
-            <footer className="bg-[#e6ddcd] dark:bg-[#2d2424] text-[#6a5f5f] dark:text-[#a89d8d] py-8 px-6 text-center">
-                <p>&copy; {new Date().getFullYear()} MarcenApp. Todos os direitos reservados.</p>
-                <p className="text-sm mt-2">Feito para marceneiros, por apaixonados por tecnologia e design.</p>
+            <footer className="bg-[#e6ddcd] dark:bg-[#2d2424] border-t border-[#dcd6c8] dark:border-[#4a4040] text-[#6a5f5f] dark:text-[#a89d8d] py-12 px-6">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                    <div>
+                        <div className="flex items-center gap-2 mb-4">
+                            <LogoIcon className="w-6 h-6"/>
+                            <span className="font-bold font-serif text-lg text-[#3e3535] dark:text-[#f5f1e8]">MarcenApp</span>
+                        </div>
+                        <p className="text-sm">A plataforma definitiva para marceneiros modernos.</p>
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-4">Produto</h4>
+                        <ul className="space-y-2 text-sm">
+                            <li><a href="#" className="hover:text-[#d4ac6e]">Funcionalidades</a></li>
+                            <li><a href="#" className="hover:text-[#d4ac6e]">Planos e Preços</a></li>
+                            <li><a href="#" className="hover:text-[#d4ac6e]">Atualizações</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-4">Suporte</h4>
+                        <ul className="space-y-2 text-sm">
+                            <li><a href="#" className="hover:text-[#d4ac6e]">Central de Ajuda</a></li>
+                            <li><a href="#" className="hover:text-[#d4ac6e]">Comunidade</a></li>
+                            <li><a href="#" className="hover:text-[#d4ac6e]">Fale Conosco</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-4">Legal</h4>
+                        <ul className="space-y-2 text-sm">
+                            <li><a href="#" className="hover:text-[#d4ac6e]">Termos de Uso</a></li>
+                            <li><a href="#" className="hover:text-[#d4ac6e]">Privacidade</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div className="text-center pt-8 border-t border-[#dcd6c8] dark:border-[#4a4040]">
+                    <p>&copy; {new Date().getFullYear()} MarcenApp Tecnologia. Todos os direitos reservados.</p>
+                </div>
             </footer>
         </div>
     );

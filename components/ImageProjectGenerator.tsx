@@ -30,7 +30,8 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
     const [dimensions, setDimensions] = useState({ width: 0, depth: 0, height: 0 });
     const [detectedObjects, setDetectedObjects] = useState<string[]>([]);
     
-    // User Selections
+    // User Selections & Intent
+    const [userIntent, setUserIntent] = useState(''); // New Field for precision
     const [selectedFurniture, setSelectedFurniture] = useState<string[]>([]);
     const [selectedLayout, setSelectedLayout] = useState('');
     const [style, setStyle] = useState('Moderno');
@@ -62,7 +63,7 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
         // Save to history
         const projectData = {
             name: `Projeto IA - ${roomType}`,
-            description: `Ambiente: ${roomType}. Layout: ${selectedLayout}. Móveis: ${selectedFurniture.join(', ')}.`,
+            description: `Ambiente: ${roomType}. Objetivo: ${userIntent}. Layout: ${selectedLayout}. Móveis: ${selectedFurniture.join(', ')}.`,
             style: style,
             views3d: [generatedImgUrl],
             image2d: null,
@@ -122,8 +123,19 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                                 <FloorPlanAnalyzer isFloorPlan={roomType === 'Planta Baixa'} detectedFeatures={detectedObjects} />
                             </div>
 
-                            {/* Column 2: Decisions */}
+                            {/* Column 2: Decisions & Intent */}
                             <div className="space-y-4">
+                                <div className="bg-white dark:bg-[#3e3535] p-4 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040]">
+                                    <h3 className="font-bold mb-2 text-[#3e3535] dark:text-[#f5f1e8]">O que você quer fazer? (Precisão)</h3>
+                                    <p className="text-xs text-gray-500 mb-2">Descreva onde e o que quer construir. Ex: "Quero um armário na parede direita, do chão ao teto".</p>
+                                    <textarea 
+                                        value={userIntent}
+                                        onChange={(e) => setUserIntent(e.target.value)}
+                                        placeholder="Seja específico para a IA acertar..."
+                                        className="w-full p-3 rounded border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f] h-24"
+                                    />
+                                </div>
+
                                 <div className="bg-white dark:bg-[#3e3535] p-4 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040]">
                                     <h3 className="font-bold mb-2 text-[#3e3535] dark:text-[#f5f1e8]">Estilo do Projeto</h3>
                                     <select value={style} onChange={e => setStyle(e.target.value)} className="w-full p-2 rounded border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f]">
@@ -142,10 +154,16 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                                         <li><strong>Ambiente:</strong> {roomType}</li>
                                         <li><strong>Estilo:</strong> {style}</li>
                                         <li><strong>Móveis:</strong> {selectedFurniture.length} itens selecionados</li>
-                                        <li><strong>Layout:</strong> {selectedLayout ? 'Definido' : 'Automático'}</li>
+                                        <li><strong>Objetivo:</strong> {userIntent || 'Não especificado (IA decidirá)'}</li>
                                     </ul>
                                     <Project3DGenerator 
-                                        inputData={{ image: image!, roomType, furniture: selectedFurniture, layoutDescription: selectedLayout, style }}
+                                        inputData={{ 
+                                            image: image!, 
+                                            roomType, 
+                                            furniture: selectedFurniture, 
+                                            layoutDescription: `${selectedLayout}. Objetivo específico do usuário: ${userIntent}`, 
+                                            style 
+                                        }}
                                         onGenerate={handleProjectComplete}
                                     />
                                 </div>
