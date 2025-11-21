@@ -145,3 +145,36 @@ export interface InventoryItem {
   supplier?: string;
   lastUpdated: number;
 }
+
+// --- DISTRIBUTOR SYSTEM TYPES ---
+
+export interface DistributorProfile {
+    id?: string;
+    name: string;
+    email: string;
+    region: string;
+    level: 'bronze' | 'prata' | 'ouro' | 'platinum';
+    totalSales: number;
+    commissionRate: number;
+    joinDate: number;
+    status: 'active' | 'pending' | 'suspended';
+}
+
+export interface Notification {
+    id: string;
+    type: 'sale' | 'system' | 'commission' | 'alert';
+    title: string;
+    message: string;
+    date: number;
+    read: boolean;
+}
+
+export interface WalletTransaction {
+    id: string;
+    type: 'credit' | 'debit'; // credit = commission, debit = withdrawal
+    amount: number;
+    description: string;
+    date: number;
+    status: 'completed' | 'pending' | 'processing';
+    referenceId?: string; // ID of sale or withdrawal request
+}

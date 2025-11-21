@@ -1,5 +1,5 @@
 
-import type { ProjectHistoryItem, Client, Finish, Transaction, InventoryItem } from '../types';
+import type { ProjectHistoryItem, Client, Finish, Transaction, InventoryItem, DistributorProfile } from '../types';
 
 const DB_NAME = 'MarcenAppDB';
 const PROJECTS_STORE_NAME = 'projects';
@@ -7,7 +7,8 @@ const CLIENTS_STORE_NAME = 'clients';
 const FAVORITE_FINISHES_STORE_NAME = 'favoriteFinishes';
 const TRANSACTIONS_STORE_NAME = 'transactions';
 const INVENTORY_STORE_NAME = 'inventory';
-const DB_VERSION = 5; // Incremented version
+const DISTRIBUTOR_PROFILE_STORE_NAME = 'distributorProfile';
+const DB_VERSION = 6; // Incremented version
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -33,6 +34,9 @@ function openDb(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(INVENTORY_STORE_NAME)) {
         db.createObjectStore(INVENTORY_STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(DISTRIBUTOR_PROFILE_STORE_NAME)) {
+        db.createObjectStore(DISTRIBUTOR_PROFILE_STORE_NAME, { keyPath: 'id' });
       }
     };
   });
@@ -266,4 +270,34 @@ export const deleteInventoryItem = async (id: string): Promise<InventoryItem[]> 
         tx.onerror = () => reject(tx.error);
     });
     return getInventory();
+};
+
+// --- DISTRIBUTOR PROFILE FUNCTIONS ---
+
+export const getDistributorProfile = async (): Promise<DistributorProfile | undefined> => {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(DISTRIBUTOR_PROFILE_STORE_NAME, 'readonly');
+        const store = tx.objectStore(DISTRIBUTOR_PROFILE_STORE_NAME);
+        const request = store.getAll(); // We assume only one profile per user
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            resolve(request.result[0]);
+        };
+    });
+};
+
+export const createDistributorProfile = async (profile: Omit<DistributorProfile, 'id'>): Promise<DistributorProfile> => {
+    const newProfile: DistributorProfile = {
+        ...profile,
+        id: 'current_user', // Simplify for single user context
+    };
+    const db = await openDb();
+    const tx = db.transaction(DISTRIBUTOR_PROFILE_STORE_NAME, 'readwrite');
+    tx.objectStore(DISTRIBUTOR_PROFILE_STORE_NAME).put(newProfile);
+    await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+    return newProfile;
 };

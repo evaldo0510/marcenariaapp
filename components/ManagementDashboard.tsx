@@ -4,14 +4,28 @@ import { FinanceModule } from './FinanceModule';
 import { InventoryModule } from './InventoryModule';
 import { KanbanBoard } from './KanbanBoard';
 import { PricingCalculator } from './PricingCalculator';
-import { ChartBarIcon, CurrencyDollarIcon, ClipboardListIcon, ViewBoardsIcon, CalculatorIcon, UsersIcon, TruckIcon, CogIcon } from './Shared';
+import { SupplierManagement } from './SupplierManagement';
+import { SystemSettings } from './SystemSettings';
+import { QuotationSystem } from './QuotationSystem';
+import { MaterialsCatalog } from './MaterialsCatalog';
+import { 
+    ChartBarIcon, 
+    CurrencyDollarIcon, 
+    ClipboardListIcon, 
+    ViewBoardsIcon, 
+    CalculatorIcon, 
+    TruckIcon, 
+    CogIcon,
+    CatalogIcon,
+    ReceiptIcon
+} from './Shared';
 
 interface ManagementDashboardProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
-type ModuleTab = 'dashboard' | 'finance' | 'inventory' | 'kanban' | 'pricing' | 'clients' | 'suppliers';
+type ModuleTab = 'dashboard' | 'finance' | 'inventory' | 'kanban' | 'pricing' | 'suppliers' | 'settings' | 'quotations' | 'catalog';
 
 export const ManagementDashboard: React.FC<ManagementDashboardProps> = ({ isOpen, onClose }) => {
     const [activeTab, setActiveTab] = useState<ModuleTab>('dashboard');
@@ -24,6 +38,10 @@ export const ManagementDashboard: React.FC<ManagementDashboardProps> = ({ isOpen
             case 'inventory': return <InventoryModule />;
             case 'kanban': return <KanbanBoard />;
             case 'pricing': return <PricingCalculator />;
+            case 'suppliers': return <SupplierManagement />;
+            case 'settings': return <SystemSettings />;
+            case 'quotations': return <QuotationSystem />;
+            case 'catalog': return <MaterialsCatalog />;
             case 'dashboard':
             default:
                 return (
@@ -32,6 +50,11 @@ export const ManagementDashboard: React.FC<ManagementDashboardProps> = ({ isOpen
                             <ViewBoardsIcon className="w-10 h-10 text-blue-600 mb-3" />
                             <h3 className="text-xl font-bold text-blue-900 dark:text-blue-300">Projetos (Kanban)</h3>
                             <p className="text-sm text-blue-700 dark:text-blue-400 mt-2">Acompanhe o progresso de cada pedido.</p>
+                        </button>
+                        <button onClick={() => setActiveTab('quotations')} className="p-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 hover:shadow-lg transition text-left">
+                            <ReceiptIcon className="w-10 h-10 text-indigo-600 mb-3" />
+                            <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-300">Cotações</h3>
+                            <p className="text-sm text-indigo-700 dark:text-indigo-400 mt-2">Gerencie orçamentos enviados aos clientes.</p>
                         </button>
                         <button onClick={() => setActiveTab('finance')} className="p-6 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800 hover:shadow-lg transition text-left">
                             <CurrencyDollarIcon className="w-10 h-10 text-green-600 mb-3" />
@@ -43,10 +66,25 @@ export const ManagementDashboard: React.FC<ManagementDashboardProps> = ({ isOpen
                             <h3 className="text-xl font-bold text-yellow-900 dark:text-yellow-300">Estoque</h3>
                             <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-2">Materiais, alertas de reposição e inventário.</p>
                         </button>
+                        <button onClick={() => setActiveTab('catalog')} className="p-6 bg-teal-50 dark:bg-teal-900/20 rounded-xl border border-teal-100 dark:border-teal-800 hover:shadow-lg transition text-left">
+                            <CatalogIcon className="w-10 h-10 text-teal-600 mb-3" />
+                            <h3 className="text-xl font-bold text-teal-900 dark:text-teal-300">Catálogo</h3>
+                            <p className="text-sm text-teal-700 dark:text-teal-400 mt-2">Banco de preços e materiais de referência.</p>
+                        </button>
                         <button onClick={() => setActiveTab('pricing')} className="p-6 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800 hover:shadow-lg transition text-left">
                             <CalculatorIcon className="w-10 h-10 text-purple-600 mb-3" />
-                            <h3 className="text-xl font-bold text-purple-900 dark:text-purple-300">Calculadora de Preço</h3>
+                            <h3 className="text-xl font-bold text-purple-900 dark:text-purple-300">Calculadora</h3>
                             <p className="text-sm text-purple-700 dark:text-purple-400 mt-2">Defina preços com margem de lucro correta.</p>
+                        </button>
+                        <button onClick={() => setActiveTab('suppliers')} className="p-6 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-100 dark:border-orange-800 hover:shadow-lg transition text-left">
+                            <TruckIcon className="w-10 h-10 text-orange-600 mb-3" />
+                            <h3 className="text-xl font-bold text-orange-900 dark:text-orange-300">Fornecedores</h3>
+                            <p className="text-sm text-orange-700 dark:text-orange-400 mt-2">Gestão de contatos e avaliações.</p>
+                        </button>
+                        <button onClick={() => setActiveTab('settings')} className="p-6 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-lg transition text-left">
+                            <CogIcon className="w-10 h-10 text-gray-600 mb-3" />
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-300">Configurações</h3>
+                            <p className="text-sm text-gray-700 dark:text-gray-400 mt-2">Ajustes gerais do sistema.</p>
                         </button>
                     </div>
                 );
@@ -75,20 +113,19 @@ export const ManagementDashboard: React.FC<ManagementDashboardProps> = ({ isOpen
                 <nav className="flex-grow p-4 overflow-y-auto">
                     <NavButton tab="dashboard" icon={ChartBarIcon} label="Visão Geral" />
                     <div className="my-2 border-t border-gray-100 dark:border-gray-700"></div>
-                    <p className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Módulos</p>
+                    <p className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Produção</p>
                     <NavButton tab="kanban" icon={ViewBoardsIcon} label="Projetos (Kanban)" />
-                    <NavButton tab="finance" icon={CurrencyDollarIcon} label="Financeiro" />
-                    <NavButton tab="inventory" icon={ClipboardListIcon} label="Estoque" />
+                    <NavButton tab="quotations" icon={ReceiptIcon} label="Cotações" />
                     <NavButton tab="pricing" icon={CalculatorIcon} label="Precificação" />
                     
-                    <div className="my-2 border-t border-gray-100 dark:border-gray-700"></div>
-                    <p className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Em Breve</p>
-                    <button disabled className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 cursor-not-allowed opacity-60">
-                        <TruckIcon className="w-5 h-5" /> Fornecedores
-                    </button>
-                    <button disabled className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 cursor-not-allowed opacity-60">
-                         <CogIcon className="w-5 h-5" /> Configurações
-                    </button>
+                    <p className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider mt-2">Recursos</p>
+                    <NavButton tab="inventory" icon={ClipboardListIcon} label="Estoque" />
+                    <NavButton tab="catalog" icon={CatalogIcon} label="Catálogo" />
+                    <NavButton tab="suppliers" icon={TruckIcon} label="Fornecedores" />
+                    
+                    <p className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider mt-2">Admin</p>
+                    <NavButton tab="finance" icon={CurrencyDollarIcon} label="Financeiro" />
+                    <NavButton tab="settings" icon={CogIcon} label="Configurações" />
                 </nav>
             </aside>
 

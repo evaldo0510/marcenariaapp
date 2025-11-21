@@ -20,6 +20,11 @@ import { ImageEditor } from './components/ImageEditor';
 import { LayoutEditor } from './components/LayoutEditor';
 import { NewViewGenerator } from './components/NewViewGenerator';
 import { ManagementDashboard } from './components/ManagementDashboard';
+import { DistributorPortal } from './components/DistributorPortal'; // Import Partner Portal
+import { DistributorAdmin } from './components/DistributorAdmin'; // Import Admin Panel
+import { NotificationSystem } from './components/NotificationSystem'; // Import Notification
+import { CommissionWallet } from './components/CommissionWallet'; // Import Wallet
+import { ImageProjectGenerator } from './components/ImageProjectGenerator'; // Import New AI Generator
 import { AlertModal, Spinner, ImageModal, ConfirmationModal, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, ToolsIcon, SparklesIcon, RulerIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
@@ -166,7 +171,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       imageEditor: false,
       layoutEditor: false,
       newView: false,
-      management: false, // New modal
+      management: false,
+      partnerPortal: false, // Partner dashboard
+      admin: false, // Distributor Admin
+      wallet: false,
+      notifications: false,
+      projectGenerator: false // New AI Project Generator
   });
   
   const [styleSuggestions, setStyleSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as string[] });
@@ -370,7 +380,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         onOpenLearningHub={() => showAlert("Hub de aprendizado em breve!")}
         onOpenEncontraPro={() => toggleModal('encontraPro', true)}
         onOpenAR={() => toggleModal('ar', true)}
-        onOpenManagement={() => toggleModal('management', true)} // New prop
+        onOpenManagement={() => toggleModal('management', true)}
+        onOpenPartnerPortal={() => toggleModal('partnerPortal', true)}
+        onOpenNotifications={() => toggleModal('notifications', true)}
+        onOpenWallet={() => toggleModal('wallet', true)}
+        onOpenProjectGenerator={() => toggleModal('projectGenerator', true)} // Added prop
         onLogout={onLogout}
         theme={theme}
         setTheme={setTheme}
@@ -571,34 +585,17 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       <EncontraProModal isOpen={modals.encontraPro} onClose={() => toggleModal('encontraPro', false)} showAlert={showAlert} />
       <ARViewer isOpen={modals.ar} onClose={() => toggleModal('ar', false)} imageSrc={currentProject?.views3d[0] || ''} showAlert={showAlert} />
       <ManagementDashboard isOpen={modals.management} onClose={() => toggleModal('management', false)} />
+      <DistributorPortal isOpen={modals.partnerPortal} onClose={() => toggleModal('partnerPortal', false)} />
+      <ImageProjectGenerator isOpen={modals.projectGenerator} onClose={() => toggleModal('projectGenerator', false)} showAlert={showAlert} />
       
-      {currentProject && (
-        <>
-            <ProposalModal 
-                isOpen={modals.proposal} 
-                onClose={() => toggleModal('proposal', false)} 
-                project={currentProject} 
-                client={clients.find(c => c.id === currentProject.clientId)}
-                showAlert={showAlert}
-            />
-            <NewViewGenerator 
-                isOpen={modals.newView} 
-                project={currentProject} 
-                onClose={() => toggleModal('newView', false)} 
-                onSaveComplete={async () => setHistory(await getHistory())} 
-                showAlert={showAlert} 
-            />
-            <LayoutEditor 
-                isOpen={modals.layoutEditor}
-                floorPlanSrc={currentProject.image2d || ''}
-                projectDescription={currentProject.description}
-                onClose={() => toggleModal('layoutEditor', false)}
-                onSave={handleSaveLayout}
-                showAlert={showAlert}
-            />
-        </>
-      )}
-
-    </div>
-  );
-};
+      {/* Notifications & Wallet Modals Wrapper */}
+        {modals.notifications && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => toggleModal('notifications', false)}>
+                <div onClick={e => e.stopPropagation()}>
+                    <NotificationSystem />
+                </div>
+            </div>
+        )}
+        {modals.wallet && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => toggleModal('wallet', false)}>
+                <div className="w-full max-w-4xl bg-[#f5f1e8] dark:bg-[#2d2424] p-6 rounded

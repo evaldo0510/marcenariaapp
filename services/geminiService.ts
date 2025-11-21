@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import type { ProjectHistoryItem, ProjectLead, Finish } from '../types';
 
@@ -520,6 +521,85 @@ export async function generate3Dfrom2D(project: ProjectHistoryItem, style: strin
     `;
     
     return editImage(data, mimeType, renderPrompt);
+}
+
+// 17. Analyze Room Image (Vision API)
+export async function analyzeRoomImage(base64Image: string): Promise<{ roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }> {
+    const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';
+    const data = base64Image.split(',')[1];
+
+    const prompt = `Analise esta imagem de ambiente ou planta baixa.
+    Identifique:
+    1. Tipo de ambiente (Cozinha, Quarto, Sala, Banheiro, Escritório).
+    2. Estime as dimensões aproximadas (Largura, Profundidade, Altura) em metros. Se não tiver certeza, estime um padrão.
+    3. Liste objetos ou móveis já presentes.
+    
+    Retorne JSON: { roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: {
+            parts: [
+                fileToGenerativePart(data, mimeType),
+                { text: prompt }
+            ]
+        },
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    roomType: { type: Type.STRING },
+                    confidence: { type: Type.STRING },
+                    dimensions: {
+                        type: Type.OBJECT,
+                        properties: {
+                            width: { type: Type.NUMBER },
+                            depth: { type: Type.NUMBER },
+                            height: { type: Type.NUMBER }
+                        }
+                    },
+                    detectedObjects: { type: Type.ARRAY, items: { type: Type.STRING } }
+                }
+            }
+        }
+    });
+
+    if (response.text) {
+        return cleanAndParseJson(response.text);
+    }
+    return { roomType: 'Desconhecido', confidence: 'Baixa', dimensions: { width: 3, depth: 3, height: 2.6 }, detectedObjects: [] };
+}
+
+// 18. Generate Layout Suggestions
+export async function generateLayoutSuggestions(roomType: string, dimensions: any): Promise<{ title: string, description: string, pros: string }[]> {
+    const prompt = `Para um ambiente do tipo "${roomType}" com dimensões ${dimensions.width}m x ${dimensions.depth}m.
+    Sugira 3 layouts de móveis planejados eficientes.
+    Retorne JSON Array: [{ title, description, pros }]`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        pros: { type: Type.STRING }
+                    }
+                }
+            }
+        }
+    });
+
+    if (response.text) {
+        return cleanAndParseJson(response.text);
+    }
+    return [];
 }
 
 // Placeholder functions imports fix
