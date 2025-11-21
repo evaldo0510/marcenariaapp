@@ -513,10 +513,17 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                 <button 
                     onClick={handleGenerateProject}
                     disabled={isGenerating}
-                    className="w-full py-4 bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] font-extrabold text-lg rounded-2xl shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full py-4 bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] font-extrabold text-lg rounded-2xl shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed group relative"
                 >
                     {isGenerating ? <Spinner /> : <WandIcon className="w-6 h-6" />}
                     {isGenerating ? 'Criando Projeto...' : 'GERAR PROJETO 3D'}
+                    
+                    {!isGenerating && (
+                        <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max px-3 py-2 text-xs font-medium text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-xl z-10">
+                            A ação pode levar alguns segundos
+                            <span className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></span>
+                        </span>
+                    )}
                 </button>
                 
                 {/* Mobile Spacer */}

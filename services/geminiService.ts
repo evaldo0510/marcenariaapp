@@ -307,19 +307,20 @@ export async function generateGroundedResponse(prompt: string, location: { latit
 
 // 6. Edit Floor Plan (Layout Editor)
 export async function editFloorPlan(base64Data: string, mimeType: string, prompt: string): Promise<string> {
-    // Prompt reforçado para manter estilo técnico AutoCAD
+    // Prompt reforçado para manter estilo técnico AutoCAD com cotas
     const technicalPrompt = `
     ATUE COMO: Um software CAD (AutoCAD).
-    TAREFA: Editar esta planta baixa técnica mantendo rigorosamente o estilo de desenho técnico.
+    TAREFA: Editar esta planta baixa técnica.
     
     INSTRUÇÃO DE EDIÇÃO: ${prompt}
     
     DIRETRIZES DE ESTILO (AUTOCAD 2D):
-    1. Mantenha o fundo BRANCO PURO.
-    2. Use linhas PRETAS de alta precisão e contraste.
+    1. Mantenha o fundo BRANCO PURO ou PRETO CAD (se a original for escura).
+    2. Use linhas de alta precisão e contraste.
     3. Mantenha a vista ORTOGRÁFICA SUPERIOR (Top View) plana. Sem perspectiva.
-    4. Mantenha símbolos técnicos de portas (arcos de abertura) e janelas.
-    5. Não adicione sombras, texturas realistas ou cores. Apenas linhas vetoriais técnicas.
+    4. **COTAS:** É IMPRESCINDÍVEL desenhar linhas de cota (dimension lines) nas laterais da imagem, com setas e números indicando medidas aproximadas, simulando um desenho técnico real.
+    5. **SÍMBOLOS:** Use arcos para abertura de portas.
+    6. Não adicione sombras, texturas realistas ou cores 3D. Mantenha o estilo vetorial técnico.
     `;
     
     return editImage(base64Data, mimeType, technicalPrompt);

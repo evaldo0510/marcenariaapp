@@ -138,6 +138,19 @@ const TestimonialCard: React.FC<{ quote: string; name: string; role: string; }> 
     </div>
 );
 
+const GalleryImage: React.FC<{ src: string; alt: string; title: string }> = ({ src, alt, title }) => (
+    <div className="group relative overflow-hidden rounded-2xl shadow-lg aspect-[4/3] cursor-pointer">
+        <img 
+            src={src} 
+            alt={alt} 
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
+            <h3 className="text-white font-bold text-lg">{title}</h3>
+        </div>
+    </div>
+);
+
 export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
@@ -184,30 +197,51 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
 
             <main>
                 {/* Hero Section */}
-                <section className="text-center py-20 md:py-32 px-6 relative overflow-hidden">
+                <section className="py-16 md:py-24 px-6 relative overflow-hidden">
                     {/* Background Decoration */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[1000px] bg-gradient-to-b from-[#d4ac6e]/10 to-transparent rounded-full blur-3xl -z-10 pointer-events-none"></div>
                     
-                    <h2 className="text-4xl md:text-6xl font-bold font-serif mb-6 animate-fadeInUp leading-tight">
-                        Sua Marcenaria Digital.<br/> 
-                        <span className="text-[#b99256] dark:text-[#d4ac6e]">Inteligente e Lucrativa.</span>
-                    </h2>
-                    <p className="text-lg md:text-xl max-w-3xl mx-auto text-[#6a5f5f] dark:text-[#c7bca9] mb-10 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-                        Do orçamento à entrega. Utilize Inteligência Artificial para criar projetos 3D, otimizar planos de corte e gerenciar sua oficina em uma única plataforma.
-                    </p>
-                    <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
-                        <button
-                            onClick={scrollToLogin}
-                            className="bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-10 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg flex items-center justify-center gap-2"
-                        >
-                            <CubeIcon /> Testar Grátis
-                        </button>
-                        <button
-                            onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-                            className="bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] font-bold py-4 px-10 rounded-xl shadow border border-[#e6ddcd] dark:border-[#4a4040] hover:bg-[#f5f1e8] dark:hover:bg-[#2d2424] transition-all text-lg"
-                        >
-                            Ver Recursos
-                        </button>
+                    <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div className="text-center lg:text-left">
+                            <h2 className="text-4xl md:text-6xl font-bold font-serif mb-6 animate-fadeInUp leading-tight">
+                                Sua Marcenaria Digital.<br/> 
+                                <span className="text-[#b99256] dark:text-[#d4ac6e]">Inteligente e Lucrativa.</span>
+                            </h2>
+                            <p className="text-lg md:text-xl text-[#6a5f5f] dark:text-[#c7bca9] mb-10 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+                                Do orçamento à entrega. Utilize Inteligência Artificial para criar projetos 3D, otimizar planos de corte e gerenciar sua oficina em uma única plataforma.
+                            </p>
+                            <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
+                                <button
+                                    onClick={scrollToLogin}
+                                    className="bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-10 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg flex items-center justify-center gap-2"
+                                >
+                                    <CubeIcon /> Testar Grátis
+                                </button>
+                                <button
+                                    onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                                    className="bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] font-bold py-4 px-10 rounded-xl shadow border border-[#e6ddcd] dark:border-[#4a4040] hover:bg-[#f5f1e8] dark:hover:bg-[#2d2424] transition-all text-lg"
+                                >
+                                    Ver Recursos
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div className="relative animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
+                            <img 
+                                src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80" 
+                                alt="Cozinha Planejada MarcenApp" 
+                                className="rounded-2xl shadow-2xl border-4 border-white dark:border-[#4a4040] w-full object-cover transform rotate-2 hover:rotate-0 transition-transform duration-500"
+                            />
+                            <div className="absolute -bottom-6 -left-6 bg-white dark:bg-[#3e3535] p-4 rounded-xl shadow-xl border border-[#e6ddcd] dark:border-[#4a4040] flex items-center gap-3 animate-scaleIn" style={{ animationDelay: '0.6s' }}>
+                                <div className="bg-green-100 p-2 rounded-full">
+                                    <CheckIcon className="w-6 h-6 text-green-600" />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-sm">Orçamento Aprovado</p>
+                                    <p className="text-xs text-gray-500">R$ 18.500,00</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -235,8 +269,40 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                     </div>
                 </section>
 
+                {/* Project Gallery Section */}
+                <section className="py-20 px-6 bg-[#fffefb] dark:bg-[#2d2424]">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="text-center mb-12">
+                            <h2 className="text-3xl md:text-4xl font-bold font-serif mb-4">Crie Projetos Incríveis</h2>
+                            <p className="text-lg text-[#6a5f5f] dark:text-[#c7bca9]">Veja o que é possível fazer com a inteligência artificial do MarcenApp.</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <GalleryImage 
+                                src="https://images.unsplash.com/photo-1556912173-3db9963f6bee?auto=format&fit=crop&w=600&q=80" 
+                                alt="Cozinha Moderna" 
+                                title="Cozinhas" 
+                            />
+                            <GalleryImage 
+                                src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=600&q=80" 
+                                alt="Sala de Estar" 
+                                title="Salas de Estar" 
+                            />
+                            <GalleryImage 
+                                src="https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=600&q=80" 
+                                alt="Dormitório" 
+                                title="Dormitórios" 
+                            />
+                            <GalleryImage 
+                                src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=600&q=80" 
+                                alt="Escritório" 
+                                title="Escritórios" 
+                            />
+                        </div>
+                    </div>
+                </section>
+
                 {/* Testimonials Section */}
-                <section id="testimonials" className="py-20 px-6 bg-[#fffefb] dark:bg-[#3e3535]/50">
+                <section id="testimonials" className="py-20 px-6 bg-[#f5f1e8] dark:bg-[#3e3535]/50">
                      <div className="max-w-6xl mx-auto">
                         <div className="text-center mb-12">
                             <h2 className="text-3xl md:text-4xl font-bold font-serif">Quem usa, recomenda</h2>
