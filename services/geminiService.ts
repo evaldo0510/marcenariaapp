@@ -133,7 +133,12 @@ export async function suggestAlternativeFinishes(projectDescription: string, sty
     - Estilo de Design: "${style}"
     
     **Tarefa:**
-    Sugira 3 acabamentos específicos, priorizando uma variação entre **Madeira** (MDF madeirado ou lâmina), **Laca** (Pintura sólida fosca ou brilho) e **Metal** (ou detalhes metalizados), disponíveis no mercado brasileiro, que combinem perfeitamente com o estilo "${style}" e valorizem este projeto.
+    Sugira exatamente 3 acabamentos que combinem com o estilo do projeto, sendo OBRIGATORIAMENTE:
+    1. Uma opção de **Madeira** (MDF madeirado ou lâmina natural).
+    2. Uma opção de **Laca** (Pintura sólida fosca, brilho ou MDF unicolor).
+    3. Uma opção de **Metal** (Serralheria, alumínio ou acabamento metalizado).
+    
+    As sugestões devem ser de produtos disponíveis no mercado brasileiro (Duratex, Arauco, Guararapes, Sudati, Sayyerlack, etc).
     
     Para cada sugestão, forneça:
     - id: string única (ex: 'sug_1')

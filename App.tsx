@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Header } from './components/Header';
 import { FinishesSelector } from './components/FinishesSelector';
@@ -18,7 +19,7 @@ import { ProposalModal } from './components/ProposalModal';
 import { ImageEditor } from './components/ImageEditor';
 import { LayoutEditor } from './components/LayoutEditor';
 import { NewViewGenerator } from './components/NewViewGenerator';
-import { AlertModal, Spinner, ImageModal, ConfirmationModal, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, ToolsIcon, SparklesIcon } from './components/Shared';
+import { AlertModal, Spinner, ImageModal, ConfirmationModal, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, ToolsIcon, SparklesIcon, ShareIcon, WhatsappIcon, CopyIcon, DocumentTextIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
 import { generateText, suggestAlternativeStyles, generateImage, suggestAlternativeFinishes } from './services/geminiService';
@@ -170,6 +171,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [finishSuggestions, setFinishSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as Finish[] });
   const [alert, setAlert] = useState({ show: false, title: '', message: '' });
   
+  // Share Menu State
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
+  
   // Refs & Selected Items
   const descriptionTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const [currentProject, setCurrentProject] = useState<ProjectHistoryItem | null>(null);
@@ -192,6 +198,16 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         }
     };
     loadData();
+  }, []);
+
+  useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+          if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
+              setShowShareMenu(false);
+          }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const showAlert = (message: string, title = 'Aviso') => setAlert({ show: true, title, message });
@@ -305,6 +321,36 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           showAlert("Erro ao obter sugestões de acabamento.");
       }
   };
+
+  const handleShareWhatsapp = () => {
+      if (!currentProject) return;
+      const text = `Confira meu projeto no MarcenApp:\n*${currentProject.name}*\n${currentProject.description}`;
+      window.open(`whatsapp://send?text=${encodeURIComponent(text)}`, '_blank');
+      setShowShareMenu(false);
+  };
+
+  const handleCopyImage = async () => {
+      if (!currentProject?.views3d?.[0]) return;
+      try {
+          const res = await fetch(currentProject.views3d[0]);
+          const blob = await res.blob();
+          await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+          setShareFeedback("Imagem copiada!");
+          setTimeout(() => setShareFeedback(null), 2000);
+          setShowShareMenu(false);
+      } catch (e) {
+          console.error(e);
+          showAlert("Erro ao copiar imagem. Tente baixar via 'Nova Vista'.");
+      }
+  };
+  
+  const handleCopyDescription = () => {
+      if (!currentProject) return;
+      navigator.clipboard.writeText(`${currentProject.name}\n\n${currentProject.description}`);
+      setShareFeedback("Texto copiado!");
+      setTimeout(() => setShareFeedback(null), 2000);
+      setShowShareMenu(false);
+  }
 
   return (
     <div className="min-h-screen bg-[#f5f1e8] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] transition-colors duration-300">
@@ -430,9 +476,36 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                     <h3 className="text-2xl font-bold text-[#3e3535] dark:text-[#f5f1e8]">{currentProject.name}</h3>
                                     <p className="text-[#6a5f5f] dark:text-[#c7bca9]">{currentProject.style}</p>
                                 </div>
-                                <button onClick={() => toggleModal('proposal', true)} className="bg-[#d4ac6e] text-[#3e3535] px-4 py-2 rounded-lg font-bold hover:bg-[#c89f5e] transition">
-                                    Gerar Proposta
-                                </button>
+                                <div className="flex gap-2 relative" ref={shareMenuRef}>
+                                    {shareFeedback && (
+                                        <div className="absolute top-full right-0 mt-2 p-2 bg-green-100 text-green-800 text-xs rounded shadow animate-fadeIn whitespace-nowrap z-20">
+                                            {shareFeedback}
+                                        </div>
+                                    )}
+                                    <button 
+                                        onClick={() => setShowShareMenu(!showShareMenu)} 
+                                        className="bg-[#e6ddcd] dark:bg-[#4a4040] text-[#3e3535] dark:text-[#f5f1e8] p-2 rounded-lg hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition"
+                                        title="Compartilhar"
+                                    >
+                                        <ShareIcon />
+                                    </button>
+                                    {showShareMenu && (
+                                        <div className="absolute top-full right-0 mt-2 w-48 bg-[#fffefb] dark:bg-[#3e3535] border border-[#e6ddcd] dark:border-[#4a4040] rounded-lg shadow-xl p-2 z-10 flex flex-col gap-1 animate-fadeIn">
+                                            <button onClick={handleShareWhatsapp} className="w-full flex items-center gap-2 text-left p-2 rounded hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040]/50 transition text-sm text-[#3e3535] dark:text-[#f5f1e8]">
+                                                <WhatsappIcon className="w-4 h-4 text-green-500" /> WhatsApp
+                                            </button>
+                                            <button onClick={handleCopyImage} className="w-full flex items-center gap-2 text-left p-2 rounded hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040]/50 transition text-sm text-[#3e3535] dark:text-[#f5f1e8]">
+                                                <CopyIcon /> Copiar Imagem
+                                            </button>
+                                            <button onClick={handleCopyDescription} className="w-full flex items-center gap-2 text-left p-2 rounded hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040]/50 transition text-sm text-[#3e3535] dark:text-[#f5f1e8]">
+                                                <DocumentTextIcon /> Copiar Texto
+                                            </button>
+                                        </div>
+                                    )}
+                                    <button onClick={() => toggleModal('proposal', true)} className="bg-[#d4ac6e] text-[#3e3535] px-4 py-2 rounded-lg font-bold hover:bg-[#c89f5e] transition">
+                                        Gerar Proposta
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Tools Grid */}
