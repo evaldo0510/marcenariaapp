@@ -1,10 +1,13 @@
-import type { ProjectHistoryItem, Client, Finish } from '../types';
+
+import type { ProjectHistoryItem, Client, Finish, Transaction, InventoryItem } from '../types';
 
 const DB_NAME = 'MarcenAppDB';
 const PROJECTS_STORE_NAME = 'projects';
 const CLIENTS_STORE_NAME = 'clients';
 const FAVORITE_FINISHES_STORE_NAME = 'favoriteFinishes';
-const DB_VERSION = 4; // Incremented version
+const TRANSACTIONS_STORE_NAME = 'transactions';
+const INVENTORY_STORE_NAME = 'inventory';
+const DB_VERSION = 5; // Incremented version
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -25,6 +28,12 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(FAVORITE_FINISHES_STORE_NAME)) {
         db.createObjectStore(FAVORITE_FINISHES_STORE_NAME, { keyPath: 'id' });
       }
+      if (!db.objectStoreNames.contains(TRANSACTIONS_STORE_NAME)) {
+        db.createObjectStore(TRANSACTIONS_STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(INVENTORY_STORE_NAME)) {
+        db.createObjectStore(INVENTORY_STORE_NAME, { keyPath: 'id' });
+      }
     };
   });
 }
@@ -40,7 +49,12 @@ export const getHistory = async (): Promise<ProjectHistoryItem[]> => {
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
       const projects: ProjectHistoryItem[] = request.result;
-      resolve(projects.sort((a, b) => b.timestamp - a.timestamp));
+      // Ensure new fields have defaults if missing
+      const fixedProjects = projects.map(p => ({
+          ...p,
+          status: p.status || 'orcamento'
+      }));
+      resolve(fixedProjects.sort((a, b) => b.timestamp - a.timestamp));
     };
   });
 };
@@ -50,6 +64,7 @@ export const addProjectToHistory = async (project: Omit<ProjectHistoryItem, 'id'
         ...project,
         id: `proj_${Date.now()}`,
         timestamp: Date.now(),
+        status: project.status || 'orcamento'
     };
     const db = await openDb();
     const tx = db.transaction(PROJECTS_STORE_NAME, 'readwrite');
@@ -170,4 +185,85 @@ export const removeFavoriteFinish = async (id: string): Promise<Finish[]> => {
         tx.onerror = () => reject(tx.error);
     });
     return getFavoriteFinishes();
+};
+
+// --- FINANCIAL TRANSACTIONS FUNCTIONS ---
+
+export const getTransactions = async (): Promise<Transaction[]> => {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(TRANSACTIONS_STORE_NAME, 'readonly');
+        const store = tx.objectStore(TRANSACTIONS_STORE_NAME);
+        const request = store.getAll();
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            const transactions: Transaction[] = request.result;
+            resolve(transactions.sort((a, b) => b.date - a.date));
+        };
+    });
+};
+
+export const addTransaction = async (transaction: Omit<Transaction, 'id'>): Promise<Transaction[]> => {
+    const newTx: Transaction = {
+        ...transaction,
+        id: `tx_${Date.now()}`,
+    };
+    const db = await openDb();
+    const tx = db.transaction(TRANSACTIONS_STORE_NAME, 'readwrite');
+    tx.objectStore(TRANSACTIONS_STORE_NAME).put(newTx);
+    await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+    return getTransactions();
+};
+
+export const deleteTransaction = async (id: string): Promise<Transaction[]> => {
+    const db = await openDb();
+    const tx = db.transaction(TRANSACTIONS_STORE_NAME, 'readwrite');
+    tx.objectStore(TRANSACTIONS_STORE_NAME).delete(id);
+    await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+    return getTransactions();
+};
+
+
+// --- INVENTORY FUNCTIONS ---
+
+export const getInventory = async (): Promise<InventoryItem[]> => {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(INVENTORY_STORE_NAME, 'readonly');
+        const store = tx.objectStore(INVENTORY_STORE_NAME);
+        const request = store.getAll();
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            const items: InventoryItem[] = request.result;
+            resolve(items.sort((a, b) => a.name.localeCompare(b.name)));
+        };
+    });
+};
+
+export const saveInventoryItem = async (item: InventoryItem): Promise<InventoryItem[]> => {
+    const db = await openDb();
+    const tx = db.transaction(INVENTORY_STORE_NAME, 'readwrite');
+    tx.objectStore(INVENTORY_STORE_NAME).put({ ...item, lastUpdated: Date.now() });
+    await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+    return getInventory();
+};
+
+export const deleteInventoryItem = async (id: string): Promise<InventoryItem[]> => {
+    const db = await openDb();
+    const tx = db.transaction(INVENTORY_STORE_NAME, 'readwrite');
+    tx.objectStore(INVENTORY_STORE_NAME).delete(id);
+    await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+    return getInventory();
 };

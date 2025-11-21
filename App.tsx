@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Header } from './components/Header';
 import { FinishesSelector } from './components/FinishesSelector';
@@ -18,6 +19,7 @@ import { ProposalModal } from './components/ProposalModal';
 import { ImageEditor } from './components/ImageEditor';
 import { LayoutEditor } from './components/LayoutEditor';
 import { NewViewGenerator } from './components/NewViewGenerator';
+import { ManagementDashboard } from './components/ManagementDashboard';
 import { AlertModal, Spinner, ImageModal, ConfirmationModal, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, ToolsIcon, SparklesIcon, RulerIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
@@ -164,6 +166,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       imageEditor: false,
       layoutEditor: false,
       newView: false,
+      management: false, // New modal
   });
   
   const [styleSuggestions, setStyleSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as string[] });
@@ -367,6 +370,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         onOpenLearningHub={() => showAlert("Hub de aprendizado em breve!")}
         onOpenEncontraPro={() => toggleModal('encontraPro', true)}
         onOpenAR={() => toggleModal('ar', true)}
+        onOpenManagement={() => toggleModal('management', true)} // New prop
         onLogout={onLogout}
         theme={theme}
         setTheme={setTheme}
@@ -566,6 +570,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       <CostEstimatorModal isOpen={modals.cost} onClose={() => toggleModal('cost', false)} showAlert={showAlert} />
       <EncontraProModal isOpen={modals.encontraPro} onClose={() => toggleModal('encontraPro', false)} showAlert={showAlert} />
       <ARViewer isOpen={modals.ar} onClose={() => toggleModal('ar', false)} imageSrc={currentProject?.views3d[0] || ''} showAlert={showAlert} />
+      <ManagementDashboard isOpen={modals.management} onClose={() => toggleModal('management', false)} />
       
       {currentProject && (
         <>

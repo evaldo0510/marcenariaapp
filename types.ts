@@ -1,3 +1,4 @@
+
 export interface Comment {
   id: string;
   user: string;
@@ -37,6 +38,8 @@ export interface Client {
   status: 'lead' | 'active' | 'completed' | 'on-hold';
 }
 
+export type ProjectStatus = 'orcamento' | 'aprovado' | 'producao' | 'montagem' | 'finalizado';
+
 export interface ProjectHistoryItem {
   id:string;
   timestamp: number;
@@ -65,6 +68,8 @@ export interface ProjectHistoryItem {
   projectValue?: number; // Custo para o cliente final
   timeTracked?: number; // Tempo em milissegundos
   comments?: Comment[];
+  status?: ProjectStatus; // New field for Kanban
+  dueDate?: number; // New field for deadline
   // Fields for draft projects
   uploadedReferenceImageUrls?: string[] | null;
   uploadedFloorPlanUrl?: string | null;
@@ -114,4 +119,29 @@ export interface ProjectLead {
   description: string;
   location: string;
   budget: string;
+}
+
+// --- NEW TYPES FOR MANAGEMENT MODULES ---
+
+export interface Transaction {
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  description: string;
+  category: string;
+  date: number;
+  status: 'paid' | 'pending';
+  projectId?: string; // Link to project
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  unit: string; // un, m², m, kg
+  minStock: number;
+  unitPrice: number;
+  supplier?: string;
+  lastUpdated: number;
 }

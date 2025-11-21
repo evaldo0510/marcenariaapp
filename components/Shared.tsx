@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { AlertState, ImageModalState } from '../types';
 
@@ -198,199 +199,132 @@ export const SwitchCameraIcon: React.FC<{className?: string}> = ({className}) =>
     </svg>
 );
 
+// --- NEW MANAGEMENT ICONS ---
 
-// --- TAB ICONS ---
-export const CubeIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9.75l-9-5.25m9 5.25v9.75" />
-    </svg>
+export const ChartBarIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
 );
 
-export const BlueprintIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15M9 12l-1.5 1.5L9 15" />
-       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12l1.5 1.5L15 15" />
-       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9l1.5-1.5L12 6" />
-       <path strokeLinecap="round" strokeLinejoin="round" d="M12 15l-1.5 1.5L12 18" />
-    </svg>
+export const CalculatorIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
 );
 
-export const ToolsIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.83-5.83M11.42 15.17l2.472-2.472a3.75 3.75 0 00-5.303-5.303L6 11.42m5.42 3.75l-2.472 2.472a3.75 3.75 0 01-5.303-5.303L9 6.58m5.42 3.75l-8.47-8.47a.75.75 0 011.06 0l12.373 12.373a.75.75 0 010 1.06l-2.472 2.472" />
-    </svg>
+export const ClipboardListIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
 );
 
-export const MessageIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a8.25 8.25 0 01-16.5 0V7.5a4.5 4.5 0 019 0v8.25a.75.75 0 01-1.5 0V7.5a3 3 0 00-6 0v8.25a6.75 6.75 0 0013.5 0V11.25" />
-    </svg>
+export const ViewBoardsIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /></svg>
 );
 
-export const ARIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.375V6M6.375 9.75h11.25M16.125 6.375L12 2.25 7.875 6.375M16.125 17.625L12 21.75 7.875 17.625" />
-    </svg>
+export const TruckIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
 );
 
-export const VideoIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9A2.25 2.25 0 0013.5 5.25h-9A2.25 2.25 0 002.25 7.5v9A2.25 2.25 0 004.5 18.75z" />
-    </svg>
+export const TrendingUpIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
 );
 
-export const CommunityIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962c.57-1.037 1.253-2.028 2.015-2.962m1.025 6.75A9.01 9.01 0 0112 18c-2.31 0-4.428-.883-6-2.343M12 21a9.01 9.01 0 007.5-12.343M12 3a9.01 9.01 0 00-7.5 12.343" />
-    </svg>
+export const ExclamationCircleIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
 );
 
-export const DollarCircleIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182.553-.44 1.278-.659 2.003-.659s2.343.22 3.182.659m-3.182 8.841a1.5 1.5 0 00-2.343-2.343" />
-    </svg>
+export const CogIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
 );
 
-export const CatalogIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-    </svg>
-);
-
-export const TimerIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
+export const PlusIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
 );
 
 export const ProIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9a9.75 9.75 0 100-13.5h9a9.75 9.75 0 000 13.5z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6.375v11.25" />
-    </svg>
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
 );
 
-// --- PRESET ICONS ---
+export const CubeIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+);
+
+export const BlueprintIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+);
+
+export const ToolsIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" /></svg>
+);
+
 export const KitchenIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-    </svg>
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
 );
+
 export const LivingRoomIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-    </svg>
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
 );
+
 export const BedroomIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 10.5V12h7.5V10.5M7.5 6H3.75a1.5 1.5 0 00-1.5 1.5v10.5a1.5 1.5 0 001.5 1.5h16.5a1.5 1.5 0 001.5-1.5V7.5a1.5 1.5 0 00-1.5-1.5H16.5M7.5 6V3.75a1.5 1.5 0 011.5-1.5h6a1.5 1.5 0 011.5 1.5V6M7.5 6h9" />
-    </svg>
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
 );
+
 export const BathroomIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v16.5a.75.75 0 00.75.75h15a.75.75 0 00.75-.75V3.75M16.5 3.75a.75.75 0 00-.75-.75h-1.5a.75.75 0 00-.75.75v3.75m-3.75-3.75a.75.75 0 00-.75-.75h-1.5a.75.75 0 00-.75.75v3.75m-3.75-3.75a.75.75 0 00-.75-.75H4.5a.75.75 0 00-.75.75v3.75M3 12h18" />
-    </svg>
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
 );
+
 export const ClosetIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l.205.205a2.25 2.25 0 01.621 1.592V18a2.25 2.25 0 002.25 2.25h9.536a2.25 2.25 0 002.25-2.25v-2.318a2.25 2.25 0 01.621-1.592l.205-.205c.422-.422.659-.994.659-1.591V5.25A2.25 2.25 0 0018.75 3H14.432m-4.864 0a4.5 4.5 0 014.864 0m-4.864 0L7.5 7.5M14.432 3L16.5 7.5" />
-    </svg>
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>
 );
+
 export const OfficeIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h.01M15 7.5h.01M18 7.5h.01M3 9.75v6a2.25 2.25 0 002.25 2.25h13.5A2.25 2.25 0 0021 15.75v-6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9.75z" />
-    </svg>
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
 );
+
 export const BalconyIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205l3 1M14.25 3l-1.5.545m0 6.205l3 1M18.75 21V9.75M4.5 21V9.75" />
-    </svg>
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
 );
+
 export const PantryIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6zM7.5 9h9m-9 3h9m-9 3h9" />
-    </svg>
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
 );
+
 export const WineCellarIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12.75 2.25a.75.75 0 00-1.5 0v2.25a.75.75 0 001.5 0V2.25zM12 6a.75.75 0 01.75.75v12.75a.75.75 0 01-.75.75h-.372a9.016 9.016 0 01-8.52-6.953.75.75 0 01.727-.923l2.813.563a.75.75 0 00.86-.34l.325-.65a1.125 1.125 0 011.986 0l.325.65a.75.75 0 00.86.34l2.813-.563a.75.75 0 01.727.923A9.016 9.016 0 0112.372 20.25H12a.75.75 0 01-.75-.75V6.75A.75.75 0 0112 6z" />
-    </svg>
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
 );
 
+// --- MODALS ---
 
-// --- UI Components ---
-export const AlertModal: React.FC<{ state: AlertState, onClose: () => void }> = ({ state, onClose }) => {
-  if (!state.show) return null;
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 animate-fadeIn">
-      <div className="bg-white dark:bg-[#4a4040] rounded-lg shadow-xl w-full max-w-md">
-        <div className="p-6">
-          <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">{state.title}</h3>
-          <p className="text-gray-600 dark:text-gray-300">{state.message}</p>
-        </div>
-        <div className="bg-gray-50 dark:bg-[#3e3535] px-6 py-3 text-right rounded-b-lg">
-          <button onClick={onClose} className="bg-[#d4ac6e] text-[#3e3535] font-bold py-2 px-4 rounded hover:bg-[#c89f5e]">
-            OK
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export const ImageModal: React.FC<{ state: ImageModalState, onClose: () => void }> = ({ state, onClose }) => {
+export const AlertModal: React.FC<{ state: AlertState; onClose: () => void }> = ({ state, onClose }) => {
     if (!state.show) return null;
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
-          <img src={state.src} alt="Visualização ampliada" className="max-w-full max-h-full rounded-lg" />
-          <button onClick={onClose} className="absolute top-4 right-4 text-white text-3xl font-bold">&times;</button>
-      </div>
-    );
-};
-
-export const ConfirmationModal: React.FC<{
-    show: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    onCancel: () => void;
-}> = ({ show, title, message, onConfirm, onCancel }) => {
-    if (!show) return null;
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4 animate-fadeIn">
-            <div className="bg-white dark:bg-[#4a4040] rounded-lg shadow-xl w-full max-w-md">
-                <div className="p-6">
-                    <h3 className="text-lg font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-2">{title}</h3>
-                    <p className="text-gray-600 dark:text-gray-300">{message}</p>
-                </div>
-                <div className="bg-gray-50 dark:bg-[#3e3535] px-6 py-3 flex justify-end gap-3 rounded-b-lg">
-                    <button onClick={onCancel} className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded hover:bg-gray-400 dark:hover:bg-gray-700">
-                        Cancelar
-                    </button>
-                    <button onClick={onConfirm} className="bg-red-600 text-white font-bold py-2 px-4 rounded hover:bg-red-700">
-                        Confirmar
-                    </button>
-                </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
+            <div className="bg-[#fffefb] dark:bg-[#4a4040] rounded-lg p-6 max-w-sm w-full shadow-xl border border-[#e6ddcd] dark:border-[#4a4040]" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] mb-2">{state.title}</h3>
+                <p className="text-[#3e3535] dark:text-[#f5f1e8] mb-4">{state.message}</p>
+                <button onClick={onClose} className="w-full bg-[#d4ac6e] text-[#3e3535] font-bold py-2 rounded-lg hover:bg-[#c89f5e] transition">OK</button>
             </div>
         </div>
     );
 };
 
-export const EarlyAccessModal: React.FC<{isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode}> = ({isOpen, onClose, title, children}) => {
+export const ImageModal: React.FC<ImageModalState & { onClose: () => void }> = ({ show, src, onClose }) => {
+    if (!show) return null;
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-90 z-[60] flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
+            <button onClick={onClose} className="absolute top-4 right-4 text-white text-3xl hover:text-gray-300 transition">&times;</button>
+            <img src={src} alt="Full view" className="max-w-full max-h-[90vh] rounded-lg shadow-2xl" onClick={e => e.stopPropagation()} />
+        </div>
+    );
+};
+
+export const ConfirmationModal: React.FC<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void }> = ({ isOpen, title, message, onConfirm, onCancel }) => {
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
-            <div className="bg-[#fffefb] dark:bg-[#4a4040] rounded-xl max-w-3xl w-full shadow-xl" onClick={e => e.stopPropagation()}>
-                <header className="p-4 border-b border-[#e6ddcd] dark:border-[#4a4040] flex justify-between items-center">
-                    <div>
-                        <h2 className="text-xl font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">{title}</h2>
-                        <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/50 px-2 py-0.5 rounded-full">Acesso Antecipado</span>
-                    </div>
-                    <button onClick={onClose} className="text-[#a89d8d] hover:text-[#3e3535] dark:hover:text-white text-2xl">&times;</button>
-                </header>
-                <main className="p-6 text-center max-h-[60vh] overflow-y-auto">
-                    {children}
-                </main>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex justify-center items-center p-4 animate-fadeIn" onClick={onCancel}>
+             <div className="bg-[#fffefb] dark:bg-[#4a4040] rounded-lg p-6 max-w-sm w-full shadow-xl border border-[#e6ddcd] dark:border-[#4a4040]" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] mb-2">{title}</h3>
+                <p className="text-[#3e3535] dark:text-[#f5f1e8] mb-6">{message}</p>
+                <div className="flex gap-3 justify-end">
+                     <button onClick={onCancel} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 rounded-lg text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-500 transition font-medium">Cancelar</button>
+                     <button onClick={onConfirm} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium">Confirmar</button>
+                </div>
             </div>
         </div>
     );

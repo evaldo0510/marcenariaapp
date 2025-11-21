@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon } from './Shared';
+import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, ChartBarIcon } from './Shared';
 
 interface HeaderProps {
     userEmail: string;
@@ -22,9 +23,10 @@ interface HeaderProps {
     onLogout: () => void;
     theme: 'light' | 'dark';
     setTheme: (theme: 'light' | 'dark') => void;
+    onOpenManagement: () => void; // New prop
 }
 
-export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onLogout, theme, setTheme }) => {
+export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onLogout, theme, setTheme, onOpenManagement }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -58,6 +60,10 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                     <div className="flex items-center gap-2">
                         {/* Action icons hidden on small screens */}
                         <nav className="hidden md:flex items-center gap-2">
+                            <button onClick={onOpenManagement} className="flex items-center gap-2 bg-[#d4ac6e] text-[#3e3535] font-bold py-2 px-4 rounded-lg hover:bg-[#c89f5e] transition shadow-sm">
+                                <ChartBarIcon className="w-5 h-5"/> Gestão
+                            </button>
+                            <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-2"></div>
                             <button onClick={onOpenResearch} className="p-2 rounded-full text-[#6a5f5f] dark:text-[#a89d8d] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] hover:text-[#3e3535] dark:hover:text-[#f5f1e8] transition-colors" title="Pesquisar com Iara">
                                 <SearchIcon />
                             </button>
@@ -79,6 +85,9 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                                         {isAdmin && <p className="text-xs text-green-600 dark:text-green-400 font-bold">Acesso Antecipado Ativo</p>}
                                     </div>
                                     <div className="my-2 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
+                                    
+                                    <button onClick={() => {onOpenManagement(); setIsMenuOpen(false);}} className="w-full flex md:hidden items-center gap-3 px-3 py-2 rounded font-bold text-[#3e3535] dark:text-[#f5f1e8] bg-[#d4ac6e] hover:bg-[#c89f5e] mb-2"><ChartBarIcon /> Dashboard de Gestão</button>
+
                                     <nav className="flex flex-col gap-1 md:hidden">
                                         <button onClick={() => {onOpenResearch(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><SearchIcon /> Pesquisar com Iara</button>
                                         <button onClick={() => {onOpenLive(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><HeadsetIcon /> Conversar com Iara</button>
