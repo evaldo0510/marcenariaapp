@@ -19,7 +19,8 @@ import { ProposalModal } from './components/ProposalModal';
 import { ImageEditor } from './components/ImageEditor';
 import { LayoutEditor } from './components/LayoutEditor';
 import { NewViewGenerator } from './components/NewViewGenerator';
-import { AlertModal, Spinner, ImageModal, ConfirmationModal, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, ToolsIcon, SparklesIcon, ShareIcon, WhatsappIcon, CopyIcon, DocumentTextIcon } from './components/Shared';
+import { AssemblyGuideModal } from './components/AssemblyGuideModal';
+import { AlertModal, Spinner, ImageModal, ConfirmationModal, EarlyAccessModal, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, ToolsIcon, SparklesIcon, ShareIcon, WhatsappIcon, CopyIcon, DocumentTextIcon, CubeIcon, StoreIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
 import { generateText, suggestAlternativeStyles, generateImage, suggestAlternativeFinishes } from './services/geminiService';
@@ -165,6 +166,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       imageEditor: false,
       layoutEditor: false,
       newView: false,
+      assembly: false,
+      whatsapp: false,
+      autoPurchase: false,
+      employees: false,
+      learning: false,
   });
   
   const [styleSuggestions, setStyleSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as string[] });
@@ -366,10 +372,10 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         onOpenBomGenerator={() => toggleModal('bom', true)}
         onOpenCuttingPlanGenerator={() => toggleModal('cutting', true)}
         onOpenCostEstimator={() => toggleModal('cost', true)}
-        onOpenWhatsapp={() => showAlert("Integração WhatsApp em breve!")}
-        onOpenAutoPurchase={() => showAlert("Compra automática em breve!")}
-        onOpenEmployeeManagement={() => showAlert("Gestão de equipe em breve!")}
-        onOpenLearningHub={() => showAlert("Hub de aprendizado em breve!")}
+        onOpenWhatsapp={() => toggleModal('whatsapp', true)}
+        onOpenAutoPurchase={() => toggleModal('autoPurchase', true)}
+        onOpenEmployeeManagement={() => toggleModal('employees', true)}
+        onOpenLearningHub={() => toggleModal('learning', true)}
         onOpenEncontraPro={() => toggleModal('encontraPro', true)}
         onOpenAR={() => toggleModal('ar', true)}
         onLogout={onLogout}
@@ -510,11 +516,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
                             {/* Tools Grid */}
                             <h4 className="font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-3 uppercase text-xs tracking-wider">Ferramentas de Produção</h4>
-                            <div className="grid grid-cols-4 gap-2 mb-6">
+                            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-6">
+                                 <ToolButton icon={<CubeIcon />} label="Render 3D" onClick={() => toggleModal('newView', true)} done={false} />
                                  <ToolButton icon={<BookIcon />} label="BOM" onClick={() => toggleModal('bom', true)} done={!!currentProject.bom} />
                                  <ToolButton icon={<BlueprintIcon />} label="Corte" onClick={() => toggleModal('cutting', true)} done={!!currentProject.cuttingPlan} />
                                  <ToolButton icon={<CurrencyDollarIcon />} label="Custos" onClick={() => toggleModal('cost', true)} done={!!currentProject.materialCost} />
-                                 <ToolButton icon={<ToolsIcon />} label="Montagem" onClick={() => {/* Future feature */}} done={false} />
+                                 <ToolButton icon={<ToolsIcon />} label="Montagem" onClick={() => toggleModal('assembly', true)} done={!!currentProject.assemblyDetails} />
                             </div>
                             
                             {/* Description */}
@@ -593,12 +600,102 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         onViewProject={(p) => { setCurrentProject(p); toggleModal('clients', false); toggleModal('proposal', true); }}
       />
       <AboutModal isOpen={modals.about} onClose={() => toggleModal('about', false)} />
-      <BomGeneratorModal isOpen={modals.bom} onClose={() => toggleModal('bom', false)} showAlert={showAlert} />
+      <BomGeneratorModal 
+        isOpen={modals.bom} 
+        onClose={() => toggleModal('bom', false)} 
+        showAlert={showAlert}
+        initialDescription={currentProject?.description}
+        initialImageUrls={currentProject ? (currentProject.views3d.length > 0 ? currentProject.views3d : currentProject.uploadedReferenceImageUrls || undefined) : undefined}
+      />
       <CuttingPlanGeneratorModal isOpen={modals.cutting} onClose={() => toggleModal('cutting', false)} showAlert={showAlert} />
       <CostEstimatorModal isOpen={modals.cost} onClose={() => toggleModal('cost', false)} showAlert={showAlert} />
       <EncontraProModal isOpen={modals.encontraPro} onClose={() => toggleModal('encontraPro', false)} showAlert={showAlert} />
       <ARViewer isOpen={modals.ar} onClose={() => toggleModal('ar', false)} imageSrc={currentProject?.views3d[0] || ''} showAlert={showAlert} />
       
+      <EarlyAccessModal
+        isOpen={modals.whatsapp}
+        onClose={() => toggleModal('whatsapp', false)}
+        title="Integração WhatsApp Business"
+      >
+        <div className="space-y-4">
+            <p className="text-gray-600 dark:text-gray-300">
+                Envie orçamentos, atualizações de projeto e tire dúvidas dos seus clientes diretamente pelo MarcenApp.
+            </p>
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800 flex items-center gap-3">
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white">
+                    <WhatsappIcon className="w-6 h-6" />
+                </div>
+                <div>
+                    <h4 className="font-bold text-green-800 dark:text-green-300">Status: Beta</h4>
+                    <p className="text-sm text-green-700 dark:text-green-400">Disponível para testes.</p>
+                </div>
+            </div>
+            <button className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3 rounded-lg transition">
+                Conectar Conta WhatsApp
+            </button>
+        </div>
+      </EarlyAccessModal>
+
+      <EarlyAccessModal
+        isOpen={modals.autoPurchase}
+        onClose={() => toggleModal('autoPurchase', false)}
+        title="Compra Automática de Materiais"
+      >
+        <div className="space-y-4">
+             <p className="text-gray-600 dark:text-gray-300">
+                Transforme sua Lista de Materiais (BOM) em um carrinho de compras pronto nos maiores fornecedores do Brasil.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+                {['Leo Madeiras', 'GMAD', 'Gasômetro', 'Madeiras do Brasil'].map(store => (
+                    <div key={store} className="p-3 border rounded-lg text-center hover:border-[#d4ac6e] cursor-pointer transition bg-[#fffefb] dark:bg-[#3e3535]">
+                        <span className="font-semibold text-[#3e3535] dark:text-[#f5f1e8]">{store}</span>
+                    </div>
+                ))}
+            </div>
+            <button className="w-full bg-[#d4ac6e] text-[#3e3535] font-bold py-3 rounded-lg hover:bg-[#c89f5e] transition">
+                Vincular Fornecedor
+            </button>
+        </div>
+      </EarlyAccessModal>
+
+      <EarlyAccessModal
+        isOpen={modals.employees}
+        onClose={() => toggleModal('employees', false)}
+        title="Gestão de Equipe"
+      >
+        <div className="space-y-4">
+            <p className="text-gray-600 dark:text-gray-300">
+                Adicione colaboradores, atribua tarefas de corte e montagem, e controle a produtividade da sua marcenaria.
+            </p>
+            <div className="border-dashed border-2 border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                <div className="mx-auto w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-2">
+                    <span className="text-2xl text-gray-500">+</span>
+                </div>
+                <span className="text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8]">Convidar Colaborador</span>
+            </div>
+        </div>
+      </EarlyAccessModal>
+
+      <EarlyAccessModal
+        isOpen={modals.learning}
+        onClose={() => toggleModal('learning', false)}
+        title="Hub de Aprendizado"
+      >
+        <div className="space-y-4">
+             <p className="text-gray-600 dark:text-gray-300">
+                Acesse cursos, tutoriais de softwares (SketchUp, Cortecloud) e dicas de acabamento.
+            </p>
+            <div className="space-y-2">
+                {['Técnicas de Fita de Borda', 'Iluminação LED em Nichos', 'Uso Avançado da Iara IA'].map(course => (
+                    <div key={course} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <span className="text-[#3e3535] dark:text-[#f5f1e8]">{course}</span>
+                        <button className="text-sm text-[#d4ac6e] font-bold">Assistir</button>
+                    </div>
+                ))}
+            </div>
+        </div>
+      </EarlyAccessModal>
+
       {currentProject && (
         <>
             <ProposalModal 
@@ -614,6 +711,16 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                 onClose={() => toggleModal('newView', false)} 
                 onSaveComplete={async () => setHistory(await getHistory())} 
                 showAlert={showAlert} 
+            />
+             <AssemblyGuideModal 
+                isOpen={modals.assembly}
+                project={currentProject}
+                onClose={() => toggleModal('assembly', false)}
+                onUpdateProject={(updated) => {
+                    setCurrentProject(updated);
+                    setHistory(prev => prev.map(p => p.id === updated.id ? updated : p));
+                }}
+                showAlert={showAlert}
             />
         </>
       )}

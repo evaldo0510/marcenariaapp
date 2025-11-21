@@ -515,7 +515,7 @@ export async function generateAssemblyDetails(project: ProjectHistoryItem): Prom
     
     ## 1. 🧰 Preparação
     *   **Ferramentas Necessárias:** Liste furadeiras, brocas (diâmetros), chaves, martelo, nível, etc.
-    *   **Ferragens:** Liste os parafusos (tamanhos), cavilhas, dobradiças e corrediças que serão usados.
+    *   **Ferragens:** Liste os parafusos (tamanhos), cavilhas, dobradiças e corrediças que serão usados, **ESTIMANDO AS QUANTIDADES** baseadas na descrição visual (ex: 6 portas = ~12-18 dobradiças).
     *   **Segurança:** Itens de EPI recomendados.
     
     ## 2. 🏗️ Sequência de Montagem (Passo a Passo)
@@ -640,6 +640,44 @@ export async function generate3Dfrom2D(project: ProjectHistoryItem, style: strin
     Iluminação: Estúdio suave.`;
     
     return editImage(data, mimeType, prompt);
+}
+
+// 17. Generate Commercial Proposal Text
+export async function generateProposalText(project: ProjectHistoryItem, clientName: string, totalValue: number): Promise<string> {
+    const prompt = `Atue como um **Gerente Comercial de Marcenaria de Alto Padrão**.
+    
+    Escreva o texto de uma **Proposta Comercial Formal** para enviar ao cliente.
+    
+    **Dados:**
+    - Cliente: ${clientName || "Prezado(a) Cliente"}
+    - Projeto: ${project.name}
+    - Descrição do Projeto: ${project.description}
+    - Valor Total: ${totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+    
+    **Estrutura da Proposta (Markdown):**
+    
+    ### 1. Apresentação
+    Uma introdução cordial e profissional, valorizando a escolha da marcenaria.
+    
+    ### 2. Escopo do Projeto
+    Descreva o que será entregue de forma atraente, destacando os benefícios do design escolhido (${project.style}) e a qualidade dos acabamentos.
+    
+    ### 3. Investimento
+    Apresente o valor total de forma clara.
+    
+    ### 4. Condições de Fornecimento
+    - **Prazo de Entrega:** 30 dias úteis após medição final.
+    - **Forma de Pagamento:** 50% de entrada e 50% na entrega (sugestão).
+    - **Validade:** 15 dias.
+    
+    Use uma linguagem elegante, persuasiva e confiante.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-3-pro-preview',
+        contents: prompt
+    });
+
+    return response.text || "Não foi possível gerar o texto da proposta.";
 }
 
 // Placeholder functions for missing exports referenced in App.tsx imports

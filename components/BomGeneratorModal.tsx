@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { generateText } from '../services/geminiService';
 import { Spinner, SparklesIcon, BookIcon, CopyIcon, CheckIcon } from './Shared';
 import { ImageUploader } from './ImageUploader';
@@ -8,14 +8,29 @@ interface BomGeneratorModalProps {
     isOpen: boolean;
     onClose: () => void;
     showAlert: (message: string, title?: string) => void;
+    initialDescription?: string;
+    initialImageUrls?: string[];
 }
 
-export const BomGeneratorModal: React.FC<BomGeneratorModalProps> = ({ isOpen, onClose, showAlert }) => {
+export const BomGeneratorModal: React.FC<BomGeneratorModalProps> = ({ isOpen, onClose, showAlert, initialDescription, initialImageUrls }) => {
     const [projectDescription, setProjectDescription] = useState('');
     const [uploadedImages, setUploadedImages] = useState<{ data: string; mimeType: string }[] | null>(null);
     const [generatedBom, setGeneratedBom] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            if (initialDescription) {
+                setProjectDescription(initialDescription);
+            } else {
+                setProjectDescription('');
+            }
+            // Note: uploadedImages are handled by the ImageUploader component via initialImageUrls prop
+            setGeneratedBom(null);
+            setCopyFeedback(null);
+        }
+    }, [isOpen, initialDescription]);
 
     const handleGenerateBom = async () => {
         if (!projectDescription.trim()) {
@@ -121,7 +136,11 @@ export const BomGeneratorModal: React.FC<BomGeneratorModalProps> = ({ isOpen, on
                             placeholder="Ex: Armário de cozinha em L com 3 portas e 2 gavetas, medidas 2.00x0.80x0.60m, estilo moderno, acabamento em MDF branco fosco."
                             className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
                         />
-                         <ImageUploader onImagesChange={setUploadedImages} showAlert={showAlert} />
+                         <ImageUploader 
+                            onImagesChange={setUploadedImages} 
+                            showAlert={showAlert} 
+                            initialImageUrls={initialImageUrls}
+                        />
                     </div>
 
                     <button
