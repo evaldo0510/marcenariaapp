@@ -1,10 +1,6 @@
 
 import React, { useState } from 'react';
-import { CogIcon, UsersIcon, ShieldIcon, BellIcon, GlobeIcon, SaveIcon, CreditCardIcon } from './Shared';
-
-// Mock Icon for Database if not in Shared (Assuming Shared has basic set)
-const DatabaseIconTemp = ({className}:{className?:string}) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>;
-const CloudIconTemp = ({className}:{className?:string}) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>;
+import { CogIcon, UsersIcon, ShieldIcon, BellIcon, GlobeIcon, SaveIcon, CreditCardIcon, DatabaseIcon, CloudIcon } from './Shared';
 
 type Tab = 'general' | 'users' | 'permissions' | 'notifications' | 'integrations' | 'backup' | 'appearance' | 'billing' | 'localization' | 'advanced';
 
@@ -101,7 +97,7 @@ export const SystemSettings: React.FC = () => {
                         <div className="p-4 bg-gray-50 dark:bg-[#2d2424] rounded">
                             <h4 className="font-bold">Exportar Dados</h4>
                             <p className="text-sm text-gray-500 mb-2">Baixe uma cópia completa dos seus projetos e clientes.</p>
-                            <button className="bg-[#3e3535] text-white px-4 py-2 rounded flex items-center gap-2"><CloudIconTemp className="w-4 h-4"/> Baixar Backup (JSON)</button>
+                            <button className="bg-[#3e3535] text-white px-4 py-2 rounded flex items-center gap-2"><CloudIcon className="w-4 h-4"/> Baixar Backup (JSON)</button>
                         </div>
                         <div className="p-4 bg-gray-50 dark:bg-[#2d2424] rounded">
                             <h4 className="font-bold text-red-600">Zona de Perigo</h4>
@@ -168,8 +164,8 @@ export const SystemSettings: React.FC = () => {
         { id: 'users', label: 'Usuários', icon: UsersIcon },
         { id: 'permissions', label: 'Permissões', icon: ShieldIcon },
         { id: 'notifications', label: 'Notificações', icon: BellIcon },
-        { id: 'integrations', label: 'Integrações', icon: DatabaseIconTemp },
-        { id: 'backup', label: 'Dados & Backup', icon: CloudIconTemp },
+        { id: 'integrations', label: 'Integrações', icon: DatabaseIcon },
+        { id: 'backup', label: 'Dados & Backup', icon: CloudIcon },
         { id: 'appearance', label: 'Aparência', icon: CogIcon },
         { id: 'billing', label: 'Faturamento', icon: CreditCardIcon },
         { id: 'localization', label: 'Localização', icon: GlobeIcon },

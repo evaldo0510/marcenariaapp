@@ -36,7 +36,6 @@ export interface Client {
   address?: string;
   notes?: string;
   status: 'lead' | 'active' | 'completed' | 'on-hold';
-  partnerId?: string; // Link to the partner who brought this client
 }
 
 export type ProjectStatus = 'orcamento' | 'aprovado' | 'producao' | 'montagem' | 'finalizado';
@@ -161,18 +160,6 @@ export interface DistributorProfile {
     status: 'active' | 'pending' | 'suspended';
 }
 
-export interface Partner {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-    status: 'pending' | 'active' | 'suspended';
-    joinDate: number;
-    region?: string;
-    level: 'bronze' | 'prata' | 'ouro' | 'platinum';
-    totalSales?: number; // Computed
-}
-
 export interface Notification {
     id: string;
     type: 'sale' | 'system' | 'commission' | 'alert';
@@ -190,21 +177,4 @@ export interface WalletTransaction {
     date: number;
     status: 'completed' | 'pending' | 'processing';
     referenceId?: string; // ID of sale or withdrawal request
-}
-
-// --- ADMIN & PERMISSIONS TYPES ---
-
-export type Sector = 'Marcenaria' | 'Vendas' | 'Projetos' | 'Parcerias' | 'Financeiro' | 'Admin';
-
-export type AccessStatus = 'pending' | 'approved' | 'rejected';
-
-export interface AdminProfile {
-    id: string;
-    email: string;
-    name: string;
-    sector: Sector;
-    status: AccessStatus;
-    requestDate: number;
-    approvedDate?: number;
-    approvedBy?: string;
 }

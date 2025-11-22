@@ -1,16 +1,17 @@
 
 import React, { useState, useRef, WheelEvent, MouseEvent, TouchEvent, useCallback, useEffect } from 'react';
-import { ZoomInIcon, ZoomOutIcon, ResetZoomIcon, ShareIcon, CopyIcon, EmailIcon, DownloadIcon, CheckIcon, WhatsappIcon } from './Shared';
+import { ZoomInIcon, ZoomOutIcon, ResetZoomIcon, ShareIcon, CopyIcon, EmailIcon, DownloadIcon, CheckIcon, WhatsappIcon, CubeIcon } from './Shared';
 
 interface InteractiveImageViewerProps {
   src: string;
   alt: string;
   projectName: string;
   className?: string;
+  onGenerateNewView?: () => void;
 }
 
 const ZOOM_SPEED = 0.1;
-const MIN_SCALE = 1; // Start at 1 to prevent zooming out smaller than container
+const MIN_SCALE = 1; 
 const MAX_SCALE = 5;
 
 // Helper to calculate distance between two touch points
@@ -21,8 +22,7 @@ const getTouchDistance = (touches: React.TouchList) => {
     );
 };
 
-
-export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ src, alt, projectName, className }) => {
+export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ src, alt, projectName, className, onGenerateNewView }) => {
   const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
   const [isInteracting, setIsInteracting] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -32,6 +32,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
   const imageRef = useRef<HTMLImageElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
   const interactionStartRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0, initialDistance: 0 });
+  const lastTapRef = useRef<number>(0);
 
   // Use a ref to hold the latest transform state to avoid stale closures in window event listeners
   const transformRef = useRef(transform);
@@ -42,49 +43,45 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
 
   const applyTransform = useCallback(({ scale, x, y }: { scale: number, x: number, y: number }) => {
     const container = containerRef.current;
-    if (!container) {
+    const image = imageRef.current;
+    if (!container || !image) {
       setTransform({ scale, x, y });
       return;
     }
     
-    const rect = container.getBoundingClientRect();
     const clampedScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
-
-    const imageWidth = rect.width * clampedScale;
-    const imageHeight = rect.height * clampedScale;
-
-    // Center if smaller than container, otherwise clamp to boundaries
-    const clampedX = imageWidth > rect.width ? Math.max(rect.width - imageWidth, Math.min(0, x)) : (rect.width - imageWidth) / 2;
-    const clampedY = imageHeight > rect.height ? Math.max(rect.height - imageHeight, Math.min(0, y)) : (rect.height - imageHeight) / 2;
     
-    setTransform({ scale: clampedScale, x: clampedX, y: clampedY });
+    setTransform({ scale: clampedScale, x, y });
   }, []);
+
+  const resetTransform = useCallback(() => {
+    applyTransform({ scale: 1, x: 0, y: 0 });
+  }, [applyTransform]);
   
-  // --- MOUSE EVENT LISTENERS (ATTACHED TO WINDOW FOR ROBUST DRAGGING) ---
+  // --- MOUSE EVENT LISTENERS ---
   const handleWindowMouseMove = useCallback((e: globalThis.MouseEvent) => {
       e.preventDefault();
       const newX = interactionStartRef.current.initialX + (e.clientX - interactionStartRef.current.startX);
       const newY = interactionStartRef.current.initialY + (e.clientY - interactionStartRef.current.startY);
-      // Use the ref to get the latest scale, preventing stale state in the callback
       applyTransform({ scale: transformRef.current.scale, x: newX, y: newY });
   }, [applyTransform]);
 
   const handleWindowMouseUp = useCallback(() => {
       setIsInteracting(false);
-      if (imageRef.current) imageRef.current.style.transition = 'transform 0.1s ease-out';
+      if (imageRef.current) imageRef.current.style.transition = 'transform 0.2s ease-out';
       window.removeEventListener('mousemove', handleWindowMouseMove);
       window.removeEventListener('mouseup', handleWindowMouseUp);
   }, [handleWindowMouseMove]);
 
-  const handleMouseDown = useCallback((e: MouseEvent<HTMLImageElement>) => {
+  const handleMouseDown = useCallback((e: MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (e.button !== 0) return; // Only process left-click
+    if (e.button !== 0) return; 
     
     setIsInteracting(true);
     interactionStartRef.current = { 
       startX: e.clientX, 
       startY: e.clientY, 
-      initialX: transformRef.current.x, 
+      initialX: transformRef.current.x,
       initialY: transformRef.current.y,
       initialDistance: 0
     };
@@ -94,7 +91,6 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     window.addEventListener('mouseup', handleWindowMouseUp);
   }, [handleWindowMouseMove, handleWindowMouseUp]);
   
-  // Effect to clean up window listeners if the component unmounts while dragging
   useEffect(() => {
       return () => {
           window.removeEventListener('mousemove', handleWindowMouseMove);
@@ -106,26 +102,36 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    
     const scaleDelta = e.deltaY > 0 ? 1 - ZOOM_SPEED : 1 + ZOOM_SPEED;
     const newScale = transform.scale * scaleDelta;
-
-    const newX = mouseX - (mouseX - transform.x) * (newScale / transform.scale);
-    const newY = mouseY - (mouseY - transform.y) * (newScale / transform.scale);
-
-    applyTransform({ scale: newScale, x: newX, y: newY });
+    
+    applyTransform({ ...transform, scale: newScale });
   }, [transform, applyTransform]);
 
   // --- TOUCH EVENTS ---
   const handleInteractionEnd = useCallback(() => {
     setIsInteracting(false);
-    if(imageRef.current) imageRef.current.style.transition = 'transform 0.1s ease-out';
+    if(imageRef.current) imageRef.current.style.transition = 'transform 0.2s ease-out';
   }, []);
 
-  const handleTouchStart = useCallback((e: TouchEvent<HTMLImageElement>) => {
-    e.preventDefault();
+  const handleTouchStart = useCallback((e: TouchEvent<HTMLDivElement>) => {
+    // Double tap detection
+    const now = Date.now();
+    if (now - lastTapRef.current < 300 && e.touches.length === 1) {
+        e.preventDefault();
+        if (transform.scale > 1.1) {
+            resetTransform();
+        } else {
+            applyTransform({ scale: 2.5, x: 0, y: 0 });
+        }
+        lastTapRef.current = 0;
+        return;
+    }
+    lastTapRef.current = now;
+
+    if (e.cancelable) e.preventDefault();
+    
     setIsInteracting(true);
     if(imageRef.current) imageRef.current.style.transition = 'none';
     const touches = e.touches;
@@ -143,11 +149,11 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
         initialDistance: getTouchDistance(touches),
       };
     }
-  }, [transform]);
+  }, [transform, applyTransform, resetTransform]);
 
-  const handleTouchMove = useCallback((e: TouchEvent<HTMLImageElement>) => {
+  const handleTouchMove = useCallback((e: TouchEvent<HTMLDivElement>) => {
     if (!isInteracting) return;
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
     const touches = e.touches;
      if (touches.length === 1) { // Pan
         const newX = interactionStartRef.current.initialX + (touches[0].clientX - interactionStartRef.current.startX);
@@ -159,38 +165,19 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
         const scaleDelta = newDistance / interactionStartRef.current.initialDistance;
         const newScale = transform.scale * scaleDelta;
         
-        const rect = containerRef.current.getBoundingClientRect();
-        const centerX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
-        const centerY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
-        
-        const newX = centerX - (centerX - transform.x) * scaleDelta;
-        const newY = centerY - (centerY - transform.y) * scaleDelta;
-
-        applyTransform({ scale: newScale, x: newX, y: newY });
-        interactionStartRef.current.initialDistance = newDistance; // Update for next move
+        applyTransform({ ...transform, scale: newScale });
+        interactionStartRef.current.initialDistance = newDistance;
     }
   }, [isInteracting, transform, applyTransform]);
 
 
   // --- CONTROLS ---
   const manualZoom = (direction: 'in' | 'out') => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const scaleDelta = direction === 'in' ? 1 + ZOOM_SPEED * 2 : 1 - ZOOM_SPEED * 2;
+    const scaleDelta = direction === 'in' ? 1 + ZOOM_SPEED * 3 : 1 - ZOOM_SPEED * 3;
     const newScale = transform.scale * scaleDelta;
-    
-    const newX = centerX - (centerX - transform.x) * (newScale / transform.scale);
-    const newY = centerY - (centerY - transform.y) * (newScale / transform.scale);
-    
-    applyTransform({ scale: newScale, x: newX, y: newY });
+    applyTransform({ ...transform, scale: newScale });
   };
 
-  const resetTransform = useCallback(() => {
-    // A scale of 1 will be centered by applyTransform
-    applyTransform({ scale: 1, x: 0, y: 0 });
-  }, [applyTransform]);
 
   // --- SHARE & FEEDBACK ---
   const showFeedback = (message: string) => {
@@ -261,68 +248,90 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     };
   }, []);
   
-  // Recalculate centering when the image src changes
   useEffect(() => {
     resetTransform();
   }, [src, resetTransform]);
   
-  const containerClass = className || "relative w-full h-auto bg-[#fffefb] dark:bg-[#3e3535] p-2 rounded-lg overflow-hidden select-none touch-manipulation border border-[#e6ddcd] dark:border-[#4a4040]";
+  const containerClass = className || "relative w-full h-auto bg-[#fffefb] dark:bg-[#3e3535] p-2 rounded-lg overflow-hidden select-none border border-[#e6ddcd] dark:border-[#4a4040]";
 
   return (
     <div 
         ref={containerRef} 
         className={`${containerClass} flex items-center justify-center`}
         onWheel={handleWheel}
-        aria-label="Visualizador de imagem interativo. Use a roda do mouse/gesto de pinça para zoom e arraste para mover."
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleInteractionEnd}
+        style={{ touchAction: 'none' }} // CRITICAL: Prevents browser scrolling on mobile
+        aria-label="Visualizador interativo. Use dois dedos para zoom/pan ou duplo toque para resetar."
     >
       <img
           ref={imageRef}
           src={src}
           alt={alt}
           draggable="false"
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleInteractionEnd}
+          className="select-none"
           style={{
               maxWidth: '100%',
               maxHeight: '100%',
               width: 'auto',
               height: 'auto',
-              objectFit: 'contain', // Ensure whole object is visible
+              objectFit: 'contain',
               display: 'block',
               cursor: isInteracting ? 'grabbing' : 'grab',
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-              transition: 'transform 0.1s ease-out',
-              transformOrigin: 'center center'
+              transition: isInteracting ? 'none' : 'transform 0.2s ease-out',
+              transformOrigin: 'center center',
+              pointerEvents: 'none' // Allow events to bubble to container for robust gesture handling
           }}
       />
-      <div ref={controlsRef} className="absolute bottom-2 right-2 flex gap-1 bg-[#3e3535]/80 dark:bg-black/70 p-1.5 rounded-lg backdrop-blur-sm z-10">
+      
+      {/* 3D Gizmo / HUD */}
+      <div className="absolute top-4 right-4 pointer-events-none opacity-70">
+          <div className="w-10 h-10 relative">
+              <div className="absolute bottom-0 left-0 w-8 h-0.5 bg-red-500 origin-left transform rotate-0"></div> {/* X */}
+              <div className="absolute bottom-0 left-0 w-8 h-0.5 bg-green-500 origin-left transform -rotate-90"></div> {/* Y */}
+              <div className="absolute bottom-0 left-0 w-6 h-0.5 bg-blue-500 origin-left transform rotate-[135deg] opacity-80"></div> {/* Z */}
+              <span className="absolute bottom-[-15px] right-0 text-[8px] font-bold text-white">X</span>
+              <span className="absolute top-[-5px] left-[2px] text-[8px] font-bold text-white">Y</span>
+          </div>
+      </div>
+
+      {/* Mobile Friendly Controls */}
+      <div ref={controlsRef} className="absolute bottom-6 right-4 flex gap-2 bg-[#3e3535]/90 dark:bg-black/80 p-2 rounded-xl backdrop-blur-sm z-20 shadow-lg border border-white/10" onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
         {shareFeedback ? (
-            <div className="flex items-center gap-2 px-3 py-2 text-white text-sm animate-fadeIn">
+            <div className="flex items-center gap-2 px-3 py-1 text-white text-sm animate-fadeIn">
               <div className="text-green-400"><CheckIcon /></div>
               <span>{shareFeedback}</span>
             </div>
         ) : (
           <>
-            <button onClick={() => manualZoom('in')} className="p-3 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Aproximar"><ZoomInIcon /></button>
-            <button onClick={() => manualZoom('out')} className="p-3 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Afastar"><ZoomOutIcon /></button>
-            <button onClick={resetTransform} className="p-3 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Resetar Zoom"><ResetZoomIcon /></button>
+            {onGenerateNewView && (
+                <button onClick={onGenerateNewView} className="w-12 h-12 flex items-center justify-center text-[#d4ac6e] hover:bg-white/20 rounded-lg transition active:scale-95 border border-[#d4ac6e]/30" title="Girar Câmera / Nova Vista">
+                    <CubeIcon className="w-6 h-6" />
+                </button>
+            )}
+            <div className="w-px h-8 bg-white/20 self-center mx-1"></div>
+            <button onClick={() => manualZoom('in')} className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95" title="Aproximar"><ZoomInIcon /></button>
+            <button onClick={() => manualZoom('out')} className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95" title="Afastar"><ZoomOutIcon /></button>
+            <button onClick={resetTransform} className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95" title="Resetar Zoom"><ResetZoomIcon /></button>
+            <div className="w-px h-8 bg-white/20 self-center mx-1"></div>
             <div className="relative">
-                <button onClick={() => setShowShareMenu(prev => !prev)} className="p-3 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Compartilhar"><ShareIcon /></button>
+                <button onClick={() => setShowShareMenu(prev => !prev)} className={`w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95 ${showShareMenu ? 'bg-white/20' : ''}`} title="Compartilhar"><ShareIcon /></button>
                 {showShareMenu && (
-                    <div className="absolute bottom-full right-0 mb-2 w-48 bg-[#2d2424] border border-[#4a4040] rounded-lg shadow-lg p-2 flex flex-col gap-1 animate-fadeInUp" style={{ animationDuration: '0.2s'}}>
-                        <button onClick={handleWhatsappShare} className="w-full flex items-center gap-3 text-left p-2 rounded text-green-400 hover:bg-[#3e3535] transition">
+                    <div className="absolute bottom-full right-0 mb-3 w-52 bg-[#2d2424] border border-[#4a4040] rounded-xl shadow-2xl p-2 flex flex-col gap-1 animate-fadeInUp z-30" style={{ animationDuration: '0.2s'}}>
+                        <button onClick={handleWhatsappShare} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-green-400 hover:bg-[#3e3535] transition font-medium">
                            <WhatsappIcon className="w-5 h-5" /> <span>WhatsApp</span>
                         </button>
-                        <button onClick={handleCopyImage} className="w-full flex items-center gap-3 text-left p-2 rounded text-[#c7bca9] hover:bg-[#3e3535] transition">
-                            <CopyIcon /> <span>Copiar Imagem</span>
+                        <button onClick={handleCopyImage} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-[#c7bca9] hover:bg-[#3e3535] transition font-medium">
+                            <CopyIcon className="w-5 h-5" /> <span>Copiar Imagem</span>
                         </button>
-                        <button onClick={handleEmailShare} className="w-full flex items-center gap-3 text-left p-2 rounded text-[#c7bca9] hover:bg-[#3e3535] transition">
-                            <EmailIcon /> <span>Enviar por E-mail</span>
+                        <button onClick={handleEmailShare} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-[#c7bca9] hover:bg-[#3e3535] transition font-medium">
+                            <EmailIcon className="w-5 h-5" /> <span>Enviar por E-mail</span>
                         </button>
-                        <button onClick={handleDownload} className="w-full flex items-center gap-3 text-left p-2 rounded text-[#c7bca9] hover:bg-[#3e3535] transition">
-                            <DownloadIcon /> <span>Baixar PNG</span>
+                        <button onClick={handleDownload} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-[#c7bca9] hover:bg-[#3e3535] transition font-medium">
+                            <DownloadIcon className="w-5 h-5" /> <span>Baixar PNG</span>
                         </button>
                     </div>
                 )}

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { editFloorPlan } from '../services/geminiService';
-import { Spinner, WandIcon, CheckIcon, RulerIcon, SaveIcon } from './Shared';
+import { Spinner, WandIcon, RulerIcon, SaveIcon } from './Shared';
 
 interface LayoutEditorProps {
     isOpen: boolean;
@@ -45,7 +45,8 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ isOpen, floorPlanSrc
             const base64Data = floorPlanSrc.split(',')[1];
             const mimeType = floorPlanSrc.match(/data:(.*);/)?.[1] || 'image/png';
             
-            const fullPrompt = `Contexto: "${projectDescription}".\nTarefa: ${prompt}`;
+            // Enhanced prompt to maintain technical style
+            const fullPrompt = `Contexto: "${projectDescription}".\nTarefa: ${prompt}\nIMPORTANTE: Mantenha o estilo de desenho técnico AutoCAD (linhas pretas, fundo branco, vista superior).`;
 
             const newImageBase64 = await editFloorPlan(base64Data, mimeType, fullPrompt);
             setEditedImageSrc(`data:image/png;base64,${newImageBase64}`);
@@ -67,38 +68,61 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ isOpen, floorPlanSrc
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fadeIn">
             <div className="bg-white dark:bg-[#2d2424] rounded-2xl w-full max-w-6xl h-[90vh] shadow-2xl border border-gray-200 dark:border-[#4a4040] flex flex-col md:flex-row overflow-hidden">
                 
-                {/* Left: Canvas Area */}
-                <div className="flex-grow relative bg-gray-50 dark:bg-[#1a1a1a] overflow-hidden flex items-center justify-center p-8">
-                    {/* Grid Background */}
-                    <div className="absolute inset-0 opacity-10 pointer-events-none" 
+                {/* Left: Canvas Area - Technical CAD Style */}
+                <div className="flex-grow relative bg-[#2a2a2a] overflow-hidden flex items-center justify-center p-12">
+                    {/* CAD Grid Background */}
+                    <div className="absolute inset-0 pointer-events-none opacity-20" 
                          style={{
-                             backgroundImage: 'radial-gradient(#000 1px, transparent 1px)',
+                             backgroundImage: 'linear-gradient(#444 1px, transparent 1px), linear-gradient(90deg, #444 1px, transparent 1px)',
                              backgroundSize: '20px 20px'
                          }}>
                     </div>
 
-                    <div className="relative shadow-2xl rounded-lg overflow-hidden border-4 border-white dark:border-[#3e3535]">
-                        <img 
-                            src={editedImageSrc || floorPlanSrc} 
-                            alt="Planta Baixa" 
-                            className="max-w-full max-h-[80vh] object-contain bg-white" 
-                        />
+                    {/* Paper/Drawing Area with Dimensions */}
+                    <div className="relative bg-white p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] max-w-full max-h-full flex items-center justify-center">
                         
-                        {isEditing && (
-                            <div className="absolute inset-0 bg-white/80 dark:bg-black/60 flex flex-col items-center justify-center backdrop-blur-sm">
-                                <Spinner size="lg" />
-                                <p className="mt-4 font-bold text-[#d4ac6e] animate-pulse">A Iara está redesenhando a planta...</p>
+                        {/* Top Dimension Line */}
+                        <div className="absolute -top-6 left-8 right-8 h-4 flex items-end justify-center">
+                            <div className="w-full border-b border-[#00ffff] relative flex items-center justify-center">
+                                <div className="absolute left-0 bottom-[-2px] w-px h-2 bg-[#00ffff]"></div>
+                                <div className="absolute right-0 bottom-[-2px] w-px h-2 bg-[#00ffff]"></div>
+                                <span className="mb-2 bg-[#2a2a2a] text-[#00ffff] px-1 text-[10px] font-mono rounded">LARGURA</span>
                             </div>
-                        )}
+                        </div>
+
+                        {/* Left Dimension Line */}
+                        <div className="absolute -left-6 top-8 bottom-8 w-4 flex items-center justify-end">
+                            <div className="h-full border-r border-[#00ffff] relative flex items-center justify-center">
+                                <div className="absolute top-0 right-[-2px] h-px w-2 bg-[#00ffff]"></div>
+                                <div className="absolute bottom-0 right-[-2px] h-px w-2 bg-[#00ffff]"></div>
+                                <span className="-rotate-90 mr-2 bg-[#2a2a2a] text-[#00ffff] px-1 text-[10px] font-mono whitespace-nowrap rounded">PROFUNDIDADE</span>
+                            </div>
+                        </div>
+
+                        {/* Image Container */}
+                        <div className="border border-black relative">
+                            <img 
+                                src={editedImageSrc || floorPlanSrc} 
+                                alt="Planta Baixa" 
+                                className="max-w-full max-h-[70vh] object-contain bg-white block" 
+                            />
+                            
+                            {isEditing && (
+                                <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center backdrop-blur-sm z-10">
+                                    <Spinner size="lg" />
+                                    <p className="mt-4 font-bold text-[#d4ac6e] animate-pulse font-mono">RECALCULANDO GEOMETRIA...</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Simple Header Overlay */}
-                    <div className="absolute top-4 left-4 bg-white/90 dark:bg-[#3e3535]/90 backdrop-blur px-4 py-2 rounded-full shadow-sm border border-gray-200 dark:border-[#5a4f4f] flex items-center gap-2">
-                        <RulerIcon className="w-4 h-4 text-[#d4ac6e]" />
-                        <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Editor de Planta</span>
+                    {/* Header Overlay */}
+                    <div className="absolute top-4 left-4 bg-[#3e3535] text-white px-4 py-2 rounded-md shadow-lg border border-[#5a4f4f] flex items-center gap-2 z-20">
+                        <RulerIcon className="w-4 h-4 text-[#00ffff]" />
+                        <span className="text-sm font-bold font-mono">VIEWPORT: TOP [WIRE]</span>
                     </div>
                 </div>
 
@@ -129,7 +153,7 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ isOpen, floorPlanSrc
                         </div>
 
                         <div>
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">Sugestões Rápidas</span>
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">Comandos Rápidos</span>
                             <div className="flex flex-wrap gap-2">
                                 {editSuggestions.map((suggestion, idx) => (
                                     <button

@@ -155,10 +155,14 @@ const GalleryImage: React.FC<{ src: string; alt: string; title: string }> = ({ s
 );
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
+    const [name, setName] = useState('');
+    const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [accountType, setAccountType] = useState<'user' | 'partner'>('user');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoginMode, setIsLoginMode] = useState(false); // State to toggle between Login/Signup
+    
     const loginRef = useRef<HTMLDivElement>(null);
 
     const handleLogin = (e: React.FormEvent) => {
@@ -167,16 +171,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         setIsLoading(true);
 
         setTimeout(() => {
-            if (email.trim() && email.includes('@')) {
-                onLoginSuccess(email, accountType);
+            if (isLoginMode) {
+                // Login Mode: Just needs email (passwordless demo)
+                if (email.trim() && email.includes('@')) {
+                    onLoginSuccess(email, 'user'); // Default role for login unless we have a backend
+                } else {
+                    setError('Por favor, insira um e-mail válido.');
+                }
             } else {
-                setError('Por favor, insira um e-mail válido.');
+                // Signup Mode: Needs full details
+                if (email.trim() && email.includes('@') && name.trim()) {
+                    onLoginSuccess(email, accountType);
+                } else {
+                    setError('Por favor, preencha todos os campos obrigatórios para o cadastro.');
+                }
             }
             setIsLoading(false);
         }, 1000);
     };
 
-    const scrollToLogin = () => {
+    const scrollToSection = (mode: 'login' | 'signup') => {
+        setIsLoginMode(mode === 'login');
         loginRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
@@ -191,10 +206,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                 <div className="flex gap-4">
                     <button onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })} className="hidden md:block text-sm font-bold hover:text-[#d4ac6e] transition">Planos</button>
                     <button
-                        onClick={scrollToLogin}
+                        onClick={() => scrollToSection('login')}
+                        className="text-[#3e3535] dark:text-[#f5f1e8] hover:text-[#d4ac6e] dark:hover:text-[#d4ac6e] font-bold py-2 px-4 transition"
+                    >
+                        Entrar
+                    </button>
+                    <button
+                        onClick={() => scrollToSection('signup')}
                         className="bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-2 px-6 rounded-lg hover:opacity-90 transition shadow-md"
                     >
-                        Acessar
+                        Criar Conta
                     </button>
                 </div>
             </header>
@@ -216,7 +237,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                             </p>
                             <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
                                 <button
-                                    onClick={scrollToLogin}
+                                    onClick={() => scrollToSection('signup')}
                                     className="bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-10 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg flex items-center justify-center gap-2"
                                 >
                                     <CubeIcon /> Testar Grátis
@@ -345,7 +366,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         {/* Plan Grid: Adjusted for 4 items */}
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
                             {plans.map(plan => (
-                                <PlanCard key={plan.name} plan={plan} onSelect={scrollToLogin} />
+                                <PlanCard key={plan.name} plan={plan} onSelect={() => scrollToSection('signup')} />
                             ))}
                         </div>
                         
@@ -355,48 +376,106 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                     <HandshakeIcon /> Programa de Parceiros
                                 </h4>
                                 <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                                    Tem uma loja de ferragens ou é influenciador? <button onClick={scrollToLogin} className="underline font-bold hover:text-blue-900">Torne-se um Parceiro Autorizado</button> e ganhe comissões recorrentes.
+                                    Tem uma loja de ferragens ou é influenciador? <button onClick={() => scrollToSection('signup')} className="underline font-bold hover:text-blue-900">Torne-se um Parceiro Autorizado</button> e ganhe comissões recorrentes.
                                 </p>
                             </div>
                         </div>
                     </div>
                 </section>
                 
-                {/* Login/CTA Section - UPDATED WITH USER TYPE SELECTOR */}
+                {/* Login/CTA Section - UPDATED WITH TABS */}
                 <section id="login" ref={loginRef} className="py-20 px-6 bg-[#fffefb] dark:bg-[#3e3535]">
                     <div className="w-full max-w-md mx-auto">
                         <div className="flex flex-col items-center mb-8">
-                            <h2 className="text-3xl font-bold font-serif text-[#3e3535] dark:text-[#f5f1e8] text-center">Comece Agora</h2>
-                            <p className="text-[#6a5f5f] dark:text-[#c7bca9] text-lg mt-2 text-center">Crie sua conta gratuita e explore o futuro.</p>
+                            <h2 className="text-3xl font-bold font-serif text-[#3e3535] dark:text-[#f5f1e8] text-center">
+                                {isLoginMode ? 'Acesse sua conta' : 'Comece Agora'}
+                            </h2>
+                            <p className="text-[#6a5f5f] dark:text-[#c7bca9] text-lg mt-2 text-center">
+                                {isLoginMode ? 'Bem-vindo de volta!' : 'Crie sua conta gratuita e explore o futuro.'}
+                            </p>
                         </div>
                         <div className="bg-[#f5f1e8] dark:bg-[#2d2424] p-8 rounded-2xl border border-[#e6ddcd] dark:border-[#4a4040] shadow-xl">
-                            <form onSubmit={handleLogin} className="space-y-6">
-                                {/* Account Type Selector */}
-                                <div>
-                                    <label className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-2">
-                                        Quero ser:
-                                    </label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => setAccountType('user')}
-                                            className={`py-2 px-3 rounded-lg text-sm font-bold transition ${accountType === 'user' ? 'bg-[#d4ac6e] text-[#3e3535] shadow-md' : 'bg-white dark:bg-[#3e3535] text-gray-500 border border-[#e6ddcd] dark:border-[#4a4040]'}`}
-                                        >
-                                            Marceneiro
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setAccountType('partner')}
-                                            className={`py-2 px-3 rounded-lg text-sm font-bold transition ${accountType === 'partner' ? 'bg-[#3e3535] text-white shadow-md' : 'bg-white dark:bg-[#3e3535] text-gray-500 border border-[#e6ddcd] dark:border-[#4a4040]'}`}
-                                        >
-                                            Parceiro
-                                        </button>
-                                    </div>
-                                </div>
+                            
+                            {/* Toggle Switch */}
+                            <div className="flex justify-center mb-6 border-b border-[#e6ddcd] dark:border-[#4a4040]">
+                                <button
+                                    type="button"
+                                    className={`flex-1 pb-3 text-sm font-bold transition-colors border-b-2 ${!isLoginMode ? 'border-[#d4ac6e] text-[#d4ac6e]' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-[#3e3535] dark:hover:text-[#f5f1e8]'}`}
+                                    onClick={() => setIsLoginMode(false)}
+                                >
+                                    Criar Conta
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`flex-1 pb-3 text-sm font-bold transition-colors border-b-2 ${isLoginMode ? 'border-[#d4ac6e] text-[#d4ac6e]' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-[#3e3535] dark:hover:text-[#f5f1e8]'}`}
+                                    onClick={() => setIsLoginMode(true)}
+                                >
+                                    Já tenho conta
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleLogin} className="space-y-5">
+                                {/* Only show extra fields if signing up */}
+                                {!isLoginMode && (
+                                    <>
+                                        <div className="animate-fadeIn">
+                                            <label className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-2">
+                                                Quero ser:
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setAccountType('user')}
+                                                    className={`py-2 px-3 rounded-lg text-sm font-bold transition ${accountType === 'user' ? 'bg-[#d4ac6e] text-[#3e3535] shadow-md' : 'bg-white dark:bg-[#3e3535] text-gray-500 border border-[#e6ddcd] dark:border-[#4a4040]'}`}
+                                                >
+                                                    Marceneiro
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setAccountType('partner')}
+                                                    className={`py-2 px-3 rounded-lg text-sm font-bold transition ${accountType === 'partner' ? 'bg-[#3e3535] text-white shadow-md' : 'bg-white dark:bg-[#3e3535] text-gray-500 border border-[#e6ddcd] dark:border-[#4a4040]'}`}
+                                                >
+                                                    Parceiro
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="animate-fadeIn">
+                                            <label htmlFor="name-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-1">
+                                                Nome Completo
+                                            </label>
+                                            <input
+                                                id="name-landing"
+                                                name="name"
+                                                type="text"
+                                                required={!isLoginMode}
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                className="w-full p-3 rounded-xl border border-[#e6ddcd] dark:border-[#5a4f4f] bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] transition"
+                                                placeholder="Seu nome"
+                                            />
+                                        </div>
+
+                                        <div className="animate-fadeIn">
+                                            <label htmlFor="phone-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-1">
+                                                Telefone / WhatsApp
+                                            </label>
+                                            <input
+                                                id="phone-landing"
+                                                name="phone"
+                                                type="tel"
+                                                value={phone}
+                                                onChange={(e) => setPhone(e.target.value)}
+                                                className="w-full p-3 rounded-xl border border-[#e6ddcd] dark:border-[#5a4f4f] bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] transition"
+                                                placeholder="(XX) XXXXX-XXXX"
+                                            />
+                                        </div>
+                                    </>
+                                )}
 
                                 <div>
-                                    <label htmlFor="email-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-2">
-                                        E-mail Profissional
+                                    <label htmlFor="email-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-1">
+                                        E-mail {isLoginMode ? '' : 'Profissional'}
                                     </label>
                                     <input
                                         id="email-landing"
@@ -406,21 +485,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                         required
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full p-4 rounded-xl border border-[#e6ddcd] dark:border-[#5a4f4f] bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] transition"
+                                        className="w-full p-3 rounded-xl border border-[#e6ddcd] dark:border-[#5a4f4f] bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] transition"
                                         placeholder="seu@email.com"
                                     />
                                 </div>
-                                {error && <p className="text-red-500 text-sm text-center font-bold bg-red-50 dark:bg-red-900/20 p-2 rounded">{error}</p>}
+                                {error && <p className="text-red-500 text-sm text-center font-bold bg-red-50 dark:bg-red-900/20 p-2 rounded animate-fadeIn">{error}</p>}
                                 <div>
                                     <button
                                         type="submit"
                                         disabled={isLoading}
                                         className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-[#3e3535] bg-[#d4ac6e] hover:bg-[#c89f5e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4ac6e] transition disabled:opacity-70"
                                     >
-                                        {isLoading ? 'Criando conta...' : accountType === 'partner' ? 'Criar Conta de Parceiro' : 'Criar Conta Grátis'}
+                                        {isLoading ? (isLoginMode ? 'Entrando...' : 'Criando conta...') : (isLoginMode ? 'Acessar Sistema' : (accountType === 'partner' ? 'Criar Conta de Parceiro' : 'Criar Conta Grátis'))}
                                     </button>
                                 </div>
-                                <p className="text-xs text-center text-gray-500">Sem necessidade de cartão de crédito para o plano Hobby.</p>
+                                <p className="text-xs text-center text-gray-500">
+                                    {isLoginMode ? 'Não tem senha. O acesso é via e-mail para este demo.' : 'Sem necessidade de cartão de crédito para o plano Hobby.'}
+                                </p>
                             </form>
                         </div>
                     </div>
