@@ -23,16 +23,8 @@ const getTouchDistance = (touches: React.TouchList) => {
     );
 };
 
-// Helper to calculate angle between two touch points
-const getTouchAngle = (touches: React.TouchList) => {
-    return Math.atan2(
-        touches[0].clientY - touches[1].clientY,
-        touches[0].clientX - touches[1].clientX
-    ) * 180 / Math.PI;
-};
-
 export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ src, alt, projectName, className, onGenerateNewView, shareUrl }) => {
-  const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0, rotation: 0 });
+  const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
   const [isInteracting, setIsInteracting] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
@@ -40,16 +32,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
-  const interactionStartRef = useRef({ 
-      startX: 0, 
-      startY: 0, 
-      initialX: 0, 
-      initialY: 0, 
-      initialDistance: 0,
-      initialAngle: 0,
-      initialScale: 1,
-      initialRotation: 0
-  });
+  const interactionStartRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0, initialDistance: 0 });
   const lastTapRef = useRef<number>(0);
 
   // Use a ref to hold the latest transform state to avoid stale closures in window event listeners
@@ -59,13 +42,21 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
   }, [transform]);
 
 
-  const applyTransform = useCallback(({ scale, x, y, rotation }: { scale: number, x: number, y: number, rotation: number }) => {
+  const applyTransform = useCallback(({ scale, x, y }: { scale: number, x: number, y: number }) => {
+    const container = containerRef.current;
+    const image = imageRef.current;
+    if (!container || !image) {
+      setTransform({ scale, x, y });
+      return;
+    }
+    
     const clampedScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
-    setTransform({ scale: clampedScale, x, y, rotation });
+    
+    setTransform({ scale: clampedScale, x, y });
   }, []);
 
   const resetTransform = useCallback(() => {
-    applyTransform({ scale: 1, x: 0, y: 0, rotation: 0 });
+    applyTransform({ scale: 1, x: 0, y: 0 });
   }, [applyTransform]);
   
   // --- MOUSE EVENT LISTENERS ---
@@ -73,12 +64,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
       e.preventDefault();
       const newX = interactionStartRef.current.initialX + (e.clientX - interactionStartRef.current.startX);
       const newY = interactionStartRef.current.initialY + (e.clientY - interactionStartRef.current.startY);
-      applyTransform({ 
-          scale: transformRef.current.scale, 
-          x: newX, 
-          y: newY,
-          rotation: transformRef.current.rotation 
-      });
+      applyTransform({ scale: transformRef.current.scale, x: newX, y: newY });
   }, [applyTransform]);
 
   const handleWindowMouseUp = useCallback(() => {
@@ -96,12 +82,9 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     interactionStartRef.current = { 
       startX: e.clientX, 
       startY: e.clientY, 
-      initialX: transformRef.current.x,
+      initialX: transformRef.current.x, 
       initialY: transformRef.current.y,
-      initialDistance: 0,
-      initialAngle: 0,
-      initialScale: transformRef.current.scale,
-      initialRotation: transformRef.current.rotation
+      initialDistance: 0
     };
     if (imageRef.current) imageRef.current.style.transition = 'none';
 
@@ -141,7 +124,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
         if (transform.scale > 1.1) {
             resetTransform();
         } else {
-            applyTransform({ scale: 2.5, x: 0, y: 0, rotation: 0 });
+            applyTransform({ scale: 2.5, x: 0, y: 0 });
         }
         lastTapRef.current = 0;
         return;
@@ -153,21 +136,19 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     setIsInteracting(true);
     if(imageRef.current) imageRef.current.style.transition = 'none';
     const touches = e.touches;
-    
-    interactionStartRef.current = { 
+    if (touches.length === 1) { // Pan
+      interactionStartRef.current = { 
         startX: touches[0].clientX, 
         startY: touches[0].clientY, 
         initialX: transform.x, 
-        initialY: transform.y,
-        initialScale: transform.scale,
-        initialRotation: transform.rotation,
-        initialDistance: 0,
-        initialAngle: 0
-    };
-
-    if (touches.length === 2) { // Pinch & Rotate
-      interactionStartRef.current.initialDistance = getTouchDistance(touches);
-      interactionStartRef.current.initialAngle = getTouchAngle(touches);
+        initialY: transform.y, 
+        initialDistance: 0
+      };
+    } else if (touches.length === 2) { // Pinch
+      interactionStartRef.current = {
+        ...interactionStartRef.current,
+        initialDistance: getTouchDistance(touches),
+      };
     }
   }, [transform, applyTransform, resetTransform]);
 
@@ -175,22 +156,18 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     if (!isInteracting) return;
     if (e.cancelable) e.preventDefault();
     const touches = e.touches;
-    
      if (touches.length === 1) { // Pan
         const newX = interactionStartRef.current.initialX + (touches[0].clientX - interactionStartRef.current.startX);
         const newY = interactionStartRef.current.initialY + (touches[0].clientY - interactionStartRef.current.startY);
         applyTransform({ ...transform, x: newX, y: newY });
-    } else if (touches.length === 2 && interactionStartRef.current.initialDistance > 0) { // Pinch & Rotate
+    } else if (touches.length === 2 && interactionStartRef.current.initialDistance > 0) { // Pinch
+        if (!containerRef.current) return;
         const newDistance = getTouchDistance(touches);
-        const newAngle = getTouchAngle(touches);
-        
         const scaleDelta = newDistance / interactionStartRef.current.initialDistance;
-        const newScale = interactionStartRef.current.initialScale * scaleDelta;
+        const newScale = transform.scale * scaleDelta;
         
-        const angleDelta = newAngle - interactionStartRef.current.initialAngle;
-        const newRotation = interactionStartRef.current.initialRotation + angleDelta;
-        
-        applyTransform({ ...transform, scale: newScale, rotation: newRotation });
+        applyTransform({ ...transform, scale: newScale });
+        interactionStartRef.current.initialDistance = newDistance;
     }
   }, [isInteracting, transform, applyTransform]);
 
@@ -230,43 +207,36 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     }
   };
 
+  const handleWhatsappShare = () => {
+    if (!projectName) return;
+    const url = shareUrl ? ` ${shareUrl}` : '';
+    const text = encodeURIComponent(`Confira esta visualização do projeto "${projectName}" gerada com o MarcenApp!${url}`);
+    window.open(`whatsapp://send?text=${text}`);
+    setShowShareMenu(false);
+  };
+
   const handleEmailShare = () => {
     const subject = encodeURIComponent(`Visualização do Projeto: ${projectName} - MarcenApp`);
-    const link = shareUrl || window.location.href;
-    const body = encodeURIComponent(`Olá,\n\nVeja esta visualização do projeto "${projectName}" que gerei com o MarcenApp.\n\nConfira aqui: ${link}\n\n(Você também pode baixar a imagem em anexo se disponível).`);
+    const body = encodeURIComponent(`Olá,\n\nVeja esta visualização do projeto "${projectName}" que gerei com o MarcenApp. O que acha?\n\n(Para compartilhar a imagem, você pode baixá-la e anexar a este e-mail).`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
     setShowShareMenu(false);
   };
 
-  const handleWhatsappShare = () => {
-    if (!projectName) return;
-    const url = shareUrl || window.location.href;
-    const text = encodeURIComponent(`Confira esta visualização do projeto "${projectName}" gerada com o MarcenApp! ${url}`);
-    window.open(`whatsapp://send?text=${text}`, '_blank');
-    setShowShareMenu(false);
-  };
-
   const handleCopyLink = () => {
-    const link = shareUrl || window.location.href;
+    const link = shareUrl || `https://marcenapp.com/p/${Math.random().toString(36).substring(2, 10)}`;
     navigator.clipboard.writeText(link).then(() => {
         showFeedback('Link do projeto copiado!');
     });
   };
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     try {
-        // Se for base64, podemos criar link direto. Se for URL, melhor fazer fetch para garantir blob.
-        const response = await fetch(src);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        
         const link = document.createElement('a');
-        link.href = url;
+        link.href = src;
         link.download = `${projectName.replace(/\s+/g, '_').toLowerCase()}_marcenapp.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
         showFeedback('Download iniciado!');
     } catch (err) {
         console.error('Failed to download image: ', err);
@@ -303,14 +273,14 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
         onTouchMove={handleTouchMove}
         onTouchEnd={handleInteractionEnd}
         style={{ touchAction: 'none', overscrollBehavior: 'contain' }} // CRITICAL: Prevents browser scrolling and pull-to-refresh on mobile
-        aria-label="Visualizador interativo. Use dois dedos para zoom/pan/rotação ou duplo toque para resetar."
+        aria-label="Visualizador interativo. Use dois dedos para zoom/pan ou duplo toque para resetar."
     >
       <img
           ref={imageRef}
           src={src}
           alt={alt}
           draggable="false"
-          className="select-none"
+          className="select-none animate-fadeIn duration-500 ease-out"
           style={{
               maxWidth: '100%',
               maxHeight: '100%',
@@ -319,7 +289,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
               objectFit: 'contain', // STRICTLY PREVENT CROPPING
               display: 'block',
               cursor: isInteracting ? 'grabbing' : 'grab',
-              transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale}) rotate(${transform.rotation}deg)`,
+              transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
               transition: isInteracting ? 'none' : 'transform 0.2s ease-out',
               transformOrigin: 'center center',
               pointerEvents: 'none' // Allow events to bubble to container for robust gesture handling
@@ -352,18 +322,12 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
                 </button>
             )}
             <div className="w-px h-8 bg-white/20 self-center mx-1"></div>
-            <button onClick={() => manualZoom('in')} className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95" title="Aproximar (+)">
-                <ZoomInIcon />
-            </button>
-            <button onClick={() => manualZoom('out')} className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95" title="Afastar (-)">
-                <ZoomOutIcon />
-            </button>
-            <button onClick={resetTransform} className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95" title="Resetar Visualização">
-                <ResetZoomIcon />
-            </button>
+            <button onClick={() => manualZoom('in')} className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95" title="Aproximar"><ZoomInIcon /></button>
+            <button onClick={() => manualZoom('out')} className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95" title="Afastar"><ZoomOutIcon /></button>
+            <button onClick={resetTransform} className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95" title="Resetar Zoom"><ResetZoomIcon /></button>
             <div className="w-px h-8 bg-white/20 self-center mx-1"></div>
             <div className="relative">
-                <button onClick={() => setShowShareMenu(prev => !prev)} className={`w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95 ${showShareMenu ? 'bg-white/20' : ''}`} title="Compartilhar e Baixar"><ShareIcon /></button>
+                <button onClick={() => setShowShareMenu(prev => !prev)} className={`w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95 ${showShareMenu ? 'bg-white/20' : ''}`} title="Compartilhar"><ShareIcon /></button>
                 {showShareMenu && (
                     <div className="absolute bottom-full right-0 mb-3 w-56 bg-[#2d2424] border border-[#4a4040] rounded-xl shadow-2xl p-2 flex flex-col gap-1 animate-fadeInUp z-30" style={{ animationDuration: '0.2s'}}>
                         <button onClick={handleWhatsappShare} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-green-400 hover:bg-[#3e3535] transition font-medium">
@@ -378,8 +342,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
                         <button onClick={handleEmailShare} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-[#c7bca9] hover:bg-[#3e3535] transition font-medium">
                             <EmailIcon className="w-5 h-5" /> <span>Enviar por E-mail</span>
                         </button>
-                        <div className="h-px bg-[#4a4040] my-1"></div>
-                        <button onClick={handleDownload} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-[#d4ac6e] hover:bg-[#3e3535] transition font-medium">
+                        <button onClick={handleDownload} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-[#c7bca9] hover:bg-[#3e3535] transition font-medium">
                             <DownloadIcon className="w-5 h-5" /> <span>Baixar PNG</span>
                         </button>
                     </div>

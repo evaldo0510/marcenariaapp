@@ -254,7 +254,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         <div className="relative animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
                             {/* REPLACED WITH HIGH RELIABILITY URL */}
                             <img 
-                                src="https://images.unsplash.com/photo-1631679706909-1844bbd07221?q=80&w=1000&auto=format&fit=crop" 
+                                src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1000&auto=format&fit=crop" 
                                 alt="Cozinha Planejada MarcenApp" 
                                 className="rounded-2xl shadow-2xl border-4 border-white dark:border-[#4a4040] w-full object-cover transform rotate-2 hover:rotate-0 transition-transform duration-500"
                             />
@@ -304,17 +304,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1556910103-1c02745a30bf?q=80&w=600&auto=format&fit=crop" 
+                                src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=600&auto=format&fit=crop" 
                                 alt="Cozinha Moderna" 
                                 title="Cozinhas" 
                             />
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=600&auto=format&fit=crop" 
+                                src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=600&auto=format&fit=crop" 
                                 alt="Sala de Estar" 
                                 title="Salas de Estar" 
                             />
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?q=80&w=600&auto=format&fit=crop" 
+                                src="https://images.unsplash.com/photo-1616594039964-40891a909a72?q=80&w=600&auto=format&fit=crop" 
                                 alt="Dormitório" 
                                 title="Dormitórios" 
                             />

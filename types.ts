@@ -20,6 +20,7 @@ export interface AlertState {
   show: boolean;
   title: string;
   message: string;
+  type?: 'success' | 'error' | 'info' | 'warning';
 }
 
 export interface ImageModalState {

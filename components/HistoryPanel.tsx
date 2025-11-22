@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { ProjectHistoryItem } from '../types';
-import { Spinner, BookIcon, WandIcon, TrashIcon, CheckIcon, SearchIcon, DocumentTextIcon, ToolsIcon, ConfirmationModal } from './Shared';
+import { Spinner, BookIcon, WandIcon, TrashIcon, CheckIcon, SearchIcon, DocumentTextIcon, ToolsIcon } from './Shared';
 
 interface HistoryPanelProps {
     isOpen: boolean;
@@ -11,6 +11,8 @@ interface HistoryPanelProps {
     onAddNewView: (projectId: string) => void;
     onDeleteProject: (id: string) => void;
 }
+
+const ITEMS_PER_PAGE = 10;
 
 export const HistoryPanel: React.FC<HistoryPanelProps> = ({
     isOpen,
@@ -22,9 +24,17 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 }) => {
     const [sortOrder, setSortOrder] = useState<'date-desc' | 'date-asc' | 'alpha-asc'>('date-desc');
     const [searchTerm, setSearchTerm] = useState('');
-    const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+    const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-    const displayedHistory = useMemo(() => {
+    // Reset visible count when modal opens or search/sort changes
+    useEffect(() => {
+        if (isOpen) {
+            setVisibleCount(ITEMS_PER_PAGE);
+        }
+    }, [isOpen, searchTerm, sortOrder]);
+
+    const filteredAndSortedHistory = useMemo(() => {
         return history
             .filter(project =>
                 project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -42,6 +52,22 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 }
             });
     }, [history, searchTerm, sortOrder]);
+
+    const displayedHistory = useMemo(() => {
+        return filteredAndSortedHistory.slice(0, visibleCount);
+    }, [filteredAndSortedHistory, visibleCount]);
+
+    const handleScroll = () => {
+        if (scrollContainerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+            // Load more when user is near the bottom (within 100px)
+            if (scrollTop + clientHeight >= scrollHeight - 100) {
+                if (visibleCount < filteredAndSortedHistory.length) {
+                    setVisibleCount(prev => prev + ITEMS_PER_PAGE);
+                }
+            }
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -102,13 +128,17 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                         </div>
                     </div>
 
-                    <main className="flex-grow overflow-y-auto p-4">
+                    <main 
+                        className="flex-grow overflow-y-auto p-4 custom-scrollbar" 
+                        ref={scrollContainerRef}
+                        onScroll={handleScroll}
+                    >
                         {history.length === 0 ? (
                             <div className="text-center text-[#8a7e7e] dark:text-[#a89d8d] py-10 h-full flex flex-col justify-center items-center">
                                 <p className="font-semibold text-lg">Nenhum projeto no histórico.</p>
                                 <p className="text-sm">Comece a criar para ver seus projetos aqui.</p>
                             </div>
-                        ) : displayedHistory.length === 0 ? (
+                        ) : filteredAndSortedHistory.length === 0 ? (
                              <div className="text-center text-[#8a7e7e] dark:text-[#a89d8d] py-10 h-full flex flex-col justify-center items-center">
                                 <p className="font-semibold text-lg">Nenhum resultado encontrado.</p>
                                 <p className="text-sm">Tente ajustar seus filtros de busca.</p>
@@ -119,7 +149,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                                     const isDraft = project.views3d.length === 0 && !project.image2d;
 
                                     return (
-                                    <div key={project.id} className="bg-[#fffefb] dark:bg-[#4a4040]/50 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040] overflow-hidden flex flex-col animate-fadeInUp" style={{animationDelay: `${index * 50}ms`}}>
+                                    <div key={project.id} className="bg-[#fffefb] dark:bg-[#4a4040]/50 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040] overflow-hidden flex flex-col animate-fadeInUp" style={{animationDelay: `${(index % ITEMS_PER_PAGE) * 50}ms`}}>
                                         {/* Image Area */}
                                         <div onClick={() => onViewProject(project)} className="relative cursor-pointer group">
                                             {isDraft ? (
@@ -172,7 +202,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                                                 </ActionButton>
 
                                                 <ActionButton
-                                                    onClick={(e) => { e.stopPropagation(); setProjectToDelete(project.id); }}
+                                                    onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }}
                                                     className="bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900"
                                                 >
                                                     <TrashIcon /> Excluir
@@ -183,17 +213,13 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                                 )})}
                             </div>
                         )}
+                        {visibleCount < filteredAndSortedHistory.length && (
+                            <div className="text-center py-4">
+                                <Spinner size="sm" />
+                            </div>
+                        )}
                     </main>
                 </div>
-                <ConfirmationModal
-                    isOpen={!!projectToDelete}
-                    onClose={() => setProjectToDelete(null)}
-                    onConfirm={() => { if (projectToDelete) onDeleteProject(projectToDelete); }}
-                    title="Excluir Projeto"
-                    message="Tem certeza que deseja excluir este projeto? Esta ação não pode ser desfeita."
-                    confirmText="Excluir"
-                    isDangerous={true}
-                />
             </div>
         </div>
     );
