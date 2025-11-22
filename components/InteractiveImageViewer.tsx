@@ -42,20 +42,31 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
 
   const applyTransform = useCallback(({ scale, x, y }: { scale: number, x: number, y: number }) => {
     const container = containerRef.current;
-    if (!container) {
+    const image = imageRef.current;
+    if (!container || !image) {
       setTransform({ scale, x, y });
       return;
     }
     
-    const rect = container.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    // Use the actual rendered dimensions of the image element (which fits within container)
+    const imageWidth = image.offsetWidth;
+    const imageHeight = image.offsetHeight;
+
     const clampedScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
 
-    const imageWidth = rect.width * clampedScale;
-    const imageHeight = rect.height * clampedScale;
+    const scaledImageWidth = imageWidth * clampedScale;
+    const scaledImageHeight = imageHeight * clampedScale;
 
-    // Center if smaller than container, otherwise clamp to boundaries
-    const clampedX = imageWidth > rect.width ? Math.max(rect.width - imageWidth, Math.min(0, x)) : (rect.width - imageWidth) / 2;
-    const clampedY = imageHeight > rect.height ? Math.max(rect.height - imageHeight, Math.min(0, y)) : (rect.height - imageHeight) / 2;
+    // Calculate limits based on centered origin (transform-origin: center center)
+    // The maximum absolute translation allowed in either direction from center (0,0)
+    // If scaled image is smaller than container, limit is 0 (keep centered).
+    // If larger, limit is half the difference.
+    const xLimit = Math.max(0, (scaledImageWidth - containerRect.width) / 2);
+    const yLimit = Math.max(0, (scaledImageHeight - containerRect.height) / 2);
+
+    const clampedX = Math.max(-xLimit, Math.min(xLimit, x));
+    const clampedY = Math.max(-yLimit, Math.min(yLimit, y));
     
     setTransform({ scale: clampedScale, x: clampedX, y: clampedY });
   }, []);
@@ -106,14 +117,14 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    
+    // Simple zoom centered on container for simplicity and robustness
     const scaleDelta = e.deltaY > 0 ? 1 - ZOOM_SPEED : 1 + ZOOM_SPEED;
     const newScale = transform.scale * scaleDelta;
 
-    const newX = mouseX - (mouseX - transform.x) * (newScale / transform.scale);
-    const newY = mouseY - (mouseY - transform.y) * (newScale / transform.scale);
+    // Keep relative position roughly stable (simplified for center zoom)
+    const newX = transform.x * scaleDelta; 
+    const newY = transform.y * scaleDelta;
 
     applyTransform({ scale: newScale, x: newX, y: newY });
   }, [transform, applyTransform]);
@@ -159,14 +170,11 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
         const scaleDelta = newDistance / interactionStartRef.current.initialDistance;
         const newScale = transform.scale * scaleDelta;
         
-        const rect = containerRef.current.getBoundingClientRect();
-        const centerX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
-        const centerY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
+        // Pinch zoom usually centers on the midpoint of touches, 
+        // but clamping logic handles the bounds. 
+        // Simplified to center zoom for stability.
         
-        const newX = centerX - (centerX - transform.x) * scaleDelta;
-        const newY = centerY - (centerY - transform.y) * scaleDelta;
-
-        applyTransform({ scale: newScale, x: newX, y: newY });
+        applyTransform({ ...transform, scale: newScale });
         interactionStartRef.current.initialDistance = newDistance; // Update for next move
     }
   }, [isInteracting, transform, applyTransform]);
@@ -174,21 +182,12 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
 
   // --- CONTROLS ---
   const manualZoom = (direction: 'in' | 'out') => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
     const scaleDelta = direction === 'in' ? 1 + ZOOM_SPEED * 2 : 1 - ZOOM_SPEED * 2;
     const newScale = transform.scale * scaleDelta;
-    
-    const newX = centerX - (centerX - transform.x) * (newScale / transform.scale);
-    const newY = centerY - (centerY - transform.y) * (newScale / transform.scale);
-    
-    applyTransform({ scale: newScale, x: newX, y: newY });
+    applyTransform({ ...transform, scale: newScale });
   };
 
   const resetTransform = useCallback(() => {
-    // A scale of 1 will be centered by applyTransform
     applyTransform({ scale: 1, x: 0, y: 0 });
   }, [applyTransform]);
 
@@ -293,7 +292,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
               display: 'block',
               cursor: isInteracting ? 'grabbing' : 'grab',
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-              transition: 'transform 0.1s ease-out',
+              transition: isInteracting ? 'none' : 'transform 0.1s ease-out',
               transformOrigin: 'center center'
           }}
       />

@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import type { ProjectHistoryItem, ProjectLead, Finish } from '../types';
 
@@ -68,7 +67,7 @@ export async function generateImage(
 
     // --- BLOCO DE ENQUADRAMENTO E CÂMERA (CRÍTICO PARA EVITAR CORTES) ---
     technicalPrompt += `
-    \n**DIRETRIZES OBRIGATÓRIAS DE CÂMERA E ENQUADRAMENTO (MOBILE-FIRST):**
+    \n**DIRETRIZES OBRIGATÓRIAS DE CÂMERA E ENQUADRAMENTO:**
     `;
 
     // Injeta a estratégia específica escolhida pelo usuário, se houver
@@ -78,8 +77,8 @@ export async function generateImage(
 
     technicalPrompt += `
     1. **LENTE:** Use uma lente **Grande Angular (Wide Angle - 24mm ou 28mm)**. Isso é CRUCIAL para garantir que o objeto inteiro caiba na cena, especialmente em ambientes pequenos.
-    2. **DISTÂNCIA (ZOOM OUT):** Afaste a câmera virtual. O objeto NÃO deve tocar as bordas da imagem. O objeto deve ocupar no máximo 70-80% do frame.
-    3. **MARGINS (SAFETY PADDING):** Deixe uma **margem de segurança (espaço vazio/respiro)** de pelo menos 15% em TODAS as bordas (topo, base, esquerda, direita). O móvel deve flutuar no centro, totalmente visível. Isso garante que a imagem seja responsiva em telas de celulares.
+    2. **DISTÂNCIA (ZOOM OUT):** Afaste a câmera virtual. O objeto NÃO deve tocar as bordas da imagem.
+    3. **MARGINS (SAFETY PADDING):** Deixe uma **margem de segurança (espaço vazio/respiro)** de pelo menos 15% em TODAS as bordas (topo, base, esquerda, direita). O móvel deve flutuar no centro, totalmente visível.
     4. **COMPOSIÇÃO:** Centralize o objeto principal. Se for um móvel alto, mostre do chão ao teto com folga. Se for comprido, mostre as duas laterais.
     5. **NUNCA CORTE:** É estritamente proibido cortar partes do móvel (pés, topo, laterais). A imagem deve ser um "Full Shot" (Plano Inteiro).
     6. **VISUALIZAÇÃO VOLUMÉTRICA:** Salvo especificado em contrário, use uma perspectiva levemente rotacionada (3/4 view) para mostrar a profundidade e as laterais do móvel, não apenas a frente chapada.

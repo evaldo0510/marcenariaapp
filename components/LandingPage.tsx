@@ -155,6 +155,8 @@ const GalleryImage: React.FC<{ src: string; alt: string; title: string }> = ({ s
 );
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
+    const [name, setName] = useState('');
+    const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [accountType, setAccountType] = useState<'user' | 'partner'>('user');
     const [error, setError] = useState('');
@@ -167,10 +169,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         setIsLoading(true);
 
         setTimeout(() => {
-            if (email.trim() && email.includes('@')) {
+            if (email.trim() && email.includes('@') && name.trim()) {
                 onLoginSuccess(email, accountType);
             } else {
-                setError('Por favor, insira um e-mail válido.');
+                setError('Por favor, preencha todos os campos obrigatórios.');
             }
             setIsLoading(false);
         }, 1000);
@@ -395,7 +397,38 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                 </div>
 
                                 <div>
-                                    <label htmlFor="email-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-2">
+                                    <label htmlFor="name-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-1">
+                                        Nome Completo
+                                    </label>
+                                    <input
+                                        id="name-landing"
+                                        name="name"
+                                        type="text"
+                                        required
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="w-full p-3 rounded-xl border border-[#e6ddcd] dark:border-[#5a4f4f] bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] transition"
+                                        placeholder="Seu nome"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="phone-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-1">
+                                        Telefone / WhatsApp
+                                    </label>
+                                    <input
+                                        id="phone-landing"
+                                        name="phone"
+                                        type="tel"
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        className="w-full p-3 rounded-xl border border-[#e6ddcd] dark:border-[#5a4f4f] bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] transition"
+                                        placeholder="(XX) XXXXX-XXXX"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="email-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-1">
                                         E-mail Profissional
                                     </label>
                                     <input
@@ -406,7 +439,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                         required
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full p-4 rounded-xl border border-[#e6ddcd] dark:border-[#5a4f4f] bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] transition"
+                                        className="w-full p-3 rounded-xl border border-[#e6ddcd] dark:border-[#5a4f4f] bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] transition"
                                         placeholder="seu@email.com"
                                     />
                                 </div>
