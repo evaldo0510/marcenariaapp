@@ -138,7 +138,7 @@ const ToolButton: React.FC<{ icon: React.ReactNode; label: string; onClick: () =
 );
 
 const framingOptions = [
-    { label: 'Padrão (Sem Cortes)', value: 'ATENÇÃO CRÍTICA AO ENQUADRAMENTO: Renderize o projeto 3D centralizado, aplicando um ZOOM OUT (afastamento da câmera) para garantir margens de segurança (padding) generosas em todas as 4 bordas. O objeto deve "flutuar" no centro da imagem. É ESTRITAMENTE PROIBIDO cortar qualquer extremidade do móvel ou do ambiente. O foco é a totalidade do projeto.' },
+    { label: 'Padrão (Sem Cortes)', value: 'OTIMIZAÇÃO PARA CELULAR/TABLET: Renderize o objeto centralizado com um "Zoom Out" estratégico. Deixe margens de segurança (padding) de pelo menos 15% em todas as laterais para garantir que nada seja cortado em telas verticais ou horizontais. O móvel deve estar flutuando no centro, totalmente visível do topo à base.' },
     { label: 'Grande Angular (Tudo Visível)', value: 'Gere uma imagem 3D do projeto, ajustando o enquadramento para que todo o espaço fique visível, inclusive as paredes, teto e piso.' },
     { label: 'Horizontal (Panorâmico)', value: 'Mostre o móvel ou ambiente completamente, em formato horizontal, detalhando todas as laterais e evitando cortes nos extremos.' },
     { label: 'Social Media (Proporção)', value: 'Crie uma visualização 3D centralizada e com proporção adequada ao quadro, pronta para compartilhamento nas redes sociais.' },
