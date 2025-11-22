@@ -27,11 +27,12 @@ import { ImageProjectGenerator } from './components/ImageProjectGenerator';
 import { StoreDashboard } from './components/StoreDashboard';
 import { InteractiveImageViewer } from './components/InteractiveImageViewer';
 import { DecorationListModal } from './components/DecorationListModal';
-import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, HighQualityIcon, PlantIcon, ShoppingBagIcon, ShareIcon } from './components/Shared';
+import { PixPayment } from './components/PixPayment';
+import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, HighQualityIcon, PlantIcon, ShoppingBagIcon, ShareIcon, Toast, ToastProps } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
 import { suggestAlternativeStyles, generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D, describeImageFor3D } from './services/geminiService';
-import type { ProjectHistoryItem, Client, Finish, AlertState } from './types';
+import type { ProjectHistoryItem, Client, Finish } from './types';
 import { initialStylePresets } from './services/presetService';
 import { createDemoFloorPlanBase64 } from './utils/helpers';
 
@@ -190,6 +191,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [favoriteFinishes, setFavoriteFinishes] = useState<Finish[]>([]);
 
+  // Toast State
+  const [toasts, setToasts] = useState<ToastProps[]>([]);
+
   // Modal States
   const [modals, setModals] = useState({
       research: false,
@@ -214,12 +218,13 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       notifications: false,
       projectGenerator: false,
       storeMode: false,
-      decorationList: false
+      decorationList: false,
+      subscription: false
   });
   
   const [styleSuggestions, setStyleSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as string[] });
   const [finishSuggestions, setFinishSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as Finish[] });
-  const [alert, setAlert] = useState<AlertState>({ show: false, title: '', message: '' });
+  const [alert, setAlert] = useState({ show: false, title: '', message: '' });
   
   const descriptionTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const [currentProject, setCurrentProject] = useState<ProjectHistoryItem | null>(null);
@@ -244,22 +249,37 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     loadData();
   }, []);
 
-  const showAlert = (message: string, title = 'Aviso', type: AlertState['type'] = 'info') => setAlert({ show: true, title, message, type });
+  const showAlert = (message: string, title = 'Aviso') => setAlert({ show: true, title, message });
   const closeAlert = () => setAlert({ ...alert, show: false });
   const toggleModal = (key: keyof typeof modals, value: boolean) => setModals(prev => ({ ...prev, [key]: value }));
 
+  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+        const id = Math.random().toString(36).substr(2, 9);
+        setToasts(prev => [...prev, { id, message, type, onClose: removeToast }]);
+        setTimeout(() => removeToast(id), 3000); // Auto-dismiss after 3s
+  };
+
+  const removeToast = (id: string) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
   const loadDemoProject = () => {
-      // Set specific wardrobe project as requested
-      setDescription("Móvel com 3 portas verticais em madeira clara, 2 gavetas centrais com puxadores metálicos, acabamento fosco, pés retos e estilo moderno minimalista. Inclua nichos abertos na lateral e prateleiras internas.");
+      // Generate a demo floor plan image
+      const demoFloorPlan = createDemoFloorPlanBase64();
+      const base64Data = demoFloorPlan.split(',')[1];
+      const mimeType = 'image/png';
+
+      setUploadedImages([{ data: base64Data, mimeType }]);
+      
+      setDescription("Utilize a IA Gemini Vision para analisar esta planta baixa. Identifique as paredes, a porta e a janela. Em seguida, levante as paredes e decore a sala de estar com um sofá confortável, rack para TV na parede oposta à janela, tapete central e plantas. Estilo moderno e aconchegante.");
       setStylePreset("Moderno");
       setWithLedLighting(true);
       setFramingStrategy(framingOptions[0].value);
       setSelectedFinish(null);
       setQualityMode('standard');
       setDecorationLevel('standard');
-      setUploadedImages(null); // Clear images for text-based generation demo
       
-      showAlert("Exemplo carregado! Descrição de armário moderno preenchida.", "Demo de Armário", "success");
+      addToast("Exemplo com planta baixa carregado!", "success");
   };
 
   const handleDescribeImage = async () => {
@@ -268,9 +288,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       try {
           const desc = await describeImageFor3D(uploadedImages[0].data, uploadedImages[0].mimeType);
           setDescription(prev => (prev ? prev + "\n\n" : "") + desc);
-          showAlert("Descrição sugerida adicionada ao campo de texto!", "Sucesso", "success");
+          addToast("Descrição sugerida adicionada!", "success");
       } catch(e) {
-          showAlert("Não foi possível descrever a imagem. Verifique sua conexão.", "Erro", "error");
+          addToast("Não foi possível descrever a imagem.", "error");
       } finally {
           setIsAnalyzingImage(false);
       }
@@ -278,7 +298,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
   // Handlers
   const handleGenerateProject = async () => {
-      if (!description.trim()) return showAlert("Por favor, descreva seu projeto.", "Falta Descrição", "warning");
+      if (!description.trim()) return showAlert("Por favor, descreva seu projeto.", "Falta Descrição");
       setIsGenerating(true);
       try {
           // Simplify prompt construction - User description is the single source of truth
@@ -296,19 +316,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
               fullPrompt += `\n- Iluminação: Incluir iluminação LED para valorizar o móvel.`;
           }
 
-          // Use Pro Model if selected, forcing 2K resolution and Rich decoration
+          // Use Pro Model if selected, passing resolution
           const usePro = qualityMode === 'pro';
-          const effectiveResolution = usePro ? '2K' : imageResolution;
-          const effectiveDecoration = usePro ? 'rich' : decorationLevel;
-
-          const imageBase64 = await generateImage(
-              fullPrompt, 
-              uploadedImages, 
-              framingStrategy, 
-              usePro, 
-              effectiveResolution, 
-              effectiveDecoration
-          );
+          const imageBase64 = await generateImage(fullPrompt, uploadedImages, framingStrategy, usePro, imageResolution, decorationLevel);
           
           const projectData: Omit<ProjectHistoryItem, 'id' | 'timestamp'> = {
               name: `Projeto ${stylePreset} - ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
@@ -328,6 +338,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           
           // Switch to result tab on mobile
           setMobileTab('result');
+          addToast("Projeto gerado com sucesso!", "success");
           
       } catch (e: any) {
           console.error(e);
@@ -335,42 +346,16 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           if (errorMsg.includes('403') || errorMsg.includes('PERMISSION_DENIED') || errorMsg.includes('The caller does not have permission')) {
                if ((window as any).aistudio?.openSelectKey) {
                    await (window as any).aistudio.openSelectKey();
-                   showAlert("Permissão atualizada. Por favor, tente gerar o projeto novamente.", "Acesso", "warning");
+                   showAlert("Permissão atualizada. Por favor, tente gerar o projeto novamente.", "Acesso");
                    return;
                }
           }
           // Better error message handling for 500s
           if (errorMsg.includes('500') || errorMsg.includes('xhr')) {
-              showAlert("Erro de conexão com o servidor de IA (500). Tente reduzir o tamanho da imagem ou tente novamente em instantes.", "Erro de Rede", "error");
+              showAlert("Erro de conexão com o servidor de IA (500). Tente reduzir o tamanho da imagem ou tente novamente em instantes.", "Erro de Rede");
           } else {
-              showAlert("Erro ao gerar projeto: " + (e instanceof Error ? e.message : "Erro desconhecido"), "Erro", "error");
+              showAlert("Erro ao gerar projeto: " + (e instanceof Error ? e.message : "Erro desconhecido"));
           }
-      } finally {
-          setIsGenerating(false);
-      }
-  };
-
-  const handleGenerateFloorPlan = async () => {
-      if (!currentProject) return;
-      if (!currentProject.views3d || currentProject.views3d.length === 0) return showAlert("Nenhuma imagem 3D disponível para gerar planta.", "Aviso", "warning");
-
-      setIsGenerating(true);
-      try {
-          const floorPlanBase64 = await generateFloorPlanFrom3D(currentProject);
-          const newImage2d = `data:image/png;base64,${floorPlanBase64}`;
-          
-          // Update project in history with new 2D image
-          const updatedProject = await updateProjectInHistory(currentProject.id, { image2d: newImage2d });
-          
-          if (updatedProject) {
-              setHistory(await getHistory());
-              setCurrentProject(updatedProject);
-              showAlert("Planta Baixa 2D gerada com sucesso!", "Sucesso", "success");
-              toggleModal('layoutEditor', true); // Open editor to view
-          }
-      } catch (e) {
-          console.error(e);
-          showAlert("Erro ao gerar planta baixa: " + (e instanceof Error ? e.message : "Erro desconhecido"), "Erro", "error");
       } finally {
           setIsGenerating(false);
       }
@@ -399,9 +384,10 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           
           setHistory(await getHistory());
           setCurrentProject(updatedProject);
+          addToast(`Ambiente transformado em ${newRoomType}!`, "success");
           
       } catch (e: any) {
-          showAlert("Erro ao trocar ambiente: " + e.message, "Erro", "error");
+          showAlert("Erro ao trocar ambiente: " + e.message);
       } finally {
           setIsGenerating(false);
       }
@@ -446,31 +432,31 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           }
       } else {
           navigator.clipboard.writeText(link);
-          showAlert("Link do projeto copiado para a área de transferência!", "Link Copiado", "success");
+          addToast("Link copiado para a área de transferência!", "success");
       }
   };
 
   const handleGetStyleSuggestions = async () => {
-      if (!description.trim()) return showAlert("Descreva o projeto primeiro.", "Aviso", "warning");
+      if (!description.trim()) return showAlert("Descreva o projeto primeiro.");
       setStyleSuggestions({ isOpen: true, isLoading: true, suggestions: [] });
       try {
           const suggestions = await suggestAlternativeStyles(description, stylePreset);
           setStyleSuggestions({ isOpen: true, isLoading: false, suggestions });
       } catch (e) {
           setStyleSuggestions({ isOpen: false, isLoading: false, suggestions: [] });
-          showAlert("Erro ao obter sugestões.", "Erro", "error");
+          addToast("Erro ao obter sugestões.", "error");
       }
   };
 
   const handleGetFinishSuggestions = async () => {
-      if (!description.trim()) return showAlert("Descreva o projeto primeiro.", "Aviso", "warning");
+      if (!description.trim()) return showAlert("Descreva o projeto primeiro.");
       setFinishSuggestions({ isOpen: true, isLoading: true, suggestions: [] });
       try {
           const suggestions = await suggestAlternativeFinishes(description, stylePreset);
           setFinishSuggestions({ isOpen: true, isLoading: false, suggestions });
       } catch (e) {
           setFinishSuggestions({ isOpen: false, isLoading: false, suggestions: [] });
-          showAlert("Erro ao obter sugestões.", "Erro", "error");
+          addToast("Erro ao obter sugestões.", "error");
       }
   };
 
@@ -479,7 +465,21 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
     if (!currentProject.image2d) {
         if (!confirm("Gerar planta baixa agora?")) return;
-        handleGenerateFloorPlan();
+        setIsGenerating(true);
+        try {
+            const floorPlanBase64 = await generateFloorPlanFrom3D(currentProject);
+            const newImage2d = `data:image/png;base64,${floorPlanBase64}`;
+            const updatedProject = await updateProjectInHistory(currentProject.id, { image2d: newImage2d });
+            if (updatedProject) {
+                setHistory(await getHistory());
+                setCurrentProject(updatedProject);
+                toggleModal('layoutEditor', true);
+            }
+        } catch (e) {
+            addToast("Erro ao gerar planta baixa.", "error");
+        } finally {
+            setIsGenerating(false);
+        }
     } else {
         toggleModal('layoutEditor', true);
     }
@@ -493,66 +493,73 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           setHistory(await getHistory());
           setCurrentProject(updatedProject);
           toggleModal('layoutEditor', false);
-          showAlert("Planta atualizada!", "Sucesso", "success");
+          addToast("Planta atualizada!", "success");
       }
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#f5f1e8] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] transition-colors duration-300 pb-safe flex flex-col">
-      <div className="sticky top-0 z-50 w-full">
-          <Header 
-            userEmail={userEmail} 
-            isAdmin={isSuperAdmin || effectivePlan === 'business'}
-            isPartner={isPartner}
-            isCarpenter={isCarpenter}
-            isStoreOwner={isStoreOwner}
-            currentProject={currentProject}
-            
-            onOpenResearch={() => toggleModal('research', true)}
-            onOpenLive={() => toggleModal('live', true)}
-            onOpenDistributors={() => toggleModal('distributors', true)}
-            onOpenClients={() => toggleModal('clients', true)}
-            onOpenHistory={() => toggleModal('history', true)}
-            onOpenAbout={() => toggleModal('about', true)}
-            onOpenBomGenerator={() => toggleModal('bom', true)}
-            onOpenCuttingPlanGenerator={() => toggleModal('cutting', true)}
-            onOpenCostEstimator={() => toggleModal('cost', true)}
-            onOpenWhatsapp={() => showAlert("Em breve!", "Novidade")}
-            onOpenAutoPurchase={() => showAlert("Em breve!", "Novidade")}
-            onOpenEmployeeManagement={() => showAlert("Em breve!", "Novidade")}
-            onOpenLearningHub={() => showAlert("Em breve!", "Novidade")}
-            onOpenEncontraPro={() => toggleModal('encontraPro', true)}
-            onOpenAR={() => toggleModal('ar', true)}
-            onOpenManagement={() => toggleModal('management', true)}
-            onOpenPartnerPortal={() => toggleModal('partnerPortal', true)}
-            onOpenNotifications={() => toggleModal('notifications', true)}
-            onOpenWallet={() => toggleModal('wallet', true)}
-            onOpenProjectGenerator={() => toggleModal('projectGenerator', true)}
-            onOpenStoreMode={() => toggleModal('storeMode', true)}
-            onLogout={onLogout}
-            theme={theme}
-            setTheme={setTheme}
-          />
+    <div className="min-h-screen bg-[#f5f1e8] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] transition-colors duration-300 pb-24 lg:pb-0">
+        {/* Toast Container */}
+        <div className="fixed bottom-4 right-4 z-[70] flex flex-col items-end pointer-events-none">
+            <div className="pointer-events-auto">
+                {toasts.map(t => (
+                    <Toast key={t.id} {...t} />
+                ))}
+            </div>
+        </div>
 
-          {/* Mobile Tab Switcher - Optimized positioning */}
-          <div className="lg:hidden flex bg-[#f5f1e8] dark:bg-[#2d2424] border-b border-[#e6ddcd] dark:border-[#4a4040] shadow-sm z-40 relative">
-              <button 
-                onClick={() => setMobileTab('create')} 
-                className={`flex-1 py-3 font-bold text-sm border-b-4 transition-colors duration-200 ${mobileTab === 'create' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e] bg-[#d4ac6e]/5' : 'border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-[#3e3535]'}`}
-              >
-                1. Criar Projeto
-              </button>
-              <button 
-                onClick={() => setMobileTab('result')} 
-                className={`flex-1 py-3 font-bold text-sm border-b-4 transition-colors duration-200 ${mobileTab === 'result' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e] bg-[#d4ac6e]/5' : 'border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-[#3e3535]'}`}
-              >
-                2. Resultado 3D
-              </button>
-          </div>
+      <Header 
+        userEmail={userEmail} 
+        isAdmin={isSuperAdmin || effectivePlan === 'business'}
+        // Permission Logic for Header Buttons
+        isPartner={isPartner}
+        isCarpenter={isCarpenter}
+        isStoreOwner={isStoreOwner}
+        
+        onOpenResearch={() => toggleModal('research', true)}
+        onOpenLive={() => toggleModal('live', true)}
+        onOpenDistributors={() => toggleModal('distributors', true)}
+        onOpenClients={() => toggleModal('clients', true)}
+        onOpenHistory={() => toggleModal('history', true)}
+        onOpenAbout={() => toggleModal('about', true)}
+        onOpenBomGenerator={() => toggleModal('bom', true)}
+        onOpenCuttingPlanGenerator={() => toggleModal('cutting', true)}
+        onOpenCostEstimator={() => toggleModal('cost', true)}
+        onOpenWhatsapp={() => showAlert("Em breve!")}
+        onOpenAutoPurchase={() => showAlert("Em breve!")}
+        onOpenEmployeeManagement={() => showAlert("Em breve!")}
+        onOpenLearningHub={() => showAlert("Em breve!")}
+        onOpenEncontraPro={() => toggleModal('encontraPro', true)}
+        onOpenAR={() => toggleModal('ar', true)}
+        onOpenManagement={() => toggleModal('management', true)}
+        onOpenPartnerPortal={() => toggleModal('partnerPortal', true)}
+        onOpenNotifications={() => toggleModal('notifications', true)}
+        onOpenWallet={() => toggleModal('wallet', true)}
+        onOpenProjectGenerator={() => toggleModal('projectGenerator', true)}
+        onOpenStoreMode={() => toggleModal('storeMode', true)}
+        onLogout={onLogout}
+        theme={theme}
+        setTheme={setTheme}
+      />
+
+      {/* Mobile Tab Switcher - Improved Styling and Positioning */}
+      <div className="lg:hidden flex sticky top-16 z-20 bg-[#f5f1e8] dark:bg-[#2d2424] border-b border-[#e6ddcd] dark:border-[#4a4040] shadow-sm">
+          <button 
+            onClick={() => setMobileTab('create')} 
+            className={`flex-1 py-3 font-bold text-sm border-b-4 transition-colors duration-200 ${mobileTab === 'create' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e] bg-[#d4ac6e]/5' : 'border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-[#3e3535]'}`}
+          >
+            1. Criar Projeto
+          </button>
+          <button 
+            onClick={() => setMobileTab('result')} 
+            className={`flex-1 py-3 font-bold text-sm border-b-4 transition-colors duration-200 ${mobileTab === 'result' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e] bg-[#d4ac6e]/5' : 'border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-[#3e3535]'}`}
+          >
+            2. Resultado 3D
+          </button>
       </div>
 
-      <main className="flex-1 max-w-7xl mx-auto p-3 sm:p-6 lg:px-8 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+      <main className="max-w-7xl mx-auto p-3 sm:p-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
             {/* Left Column: Inputs (Creation) */}
             <div className={`${mobileTab === 'create' ? 'block' : 'hidden'} lg:block space-y-6 animate-fadeIn`}>
@@ -567,7 +574,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                             onClick={loadDemoProject}
                             className="text-xs font-bold text-[#d4ac6e] hover:text-[#c89f5e] bg-[#f0e9dc] dark:bg-[#4a4040] px-3 py-1 rounded-full transition"
                         >
-                            Exemplo Armário
+                            Exemplo c/ Planta
                         </button>
                     </div>
                     <div className="relative">
@@ -738,8 +745,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                     )}
                 </button>
                 
-                {/* Mobile Spacer for bottom safe area */}
-                <div className="h-10 lg:hidden"></div>
+                {/* Mobile Spacer */}
+                <div className="h-20 lg:hidden"></div>
             </div>
 
             {/* Right Column: Result */}
@@ -766,16 +773,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                             {/* Overlays */}
                             <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold pointer-events-none">
                                 {currentProject.style}
-                            </div>
-                            
-                            <div className="absolute top-4 right-4 pointer-events-auto">
-                                <button 
-                                    onClick={handleGenerateFloorPlan}
-                                    className="bg-white/90 text-[#3e3535] px-3 py-1.5 rounded-lg shadow-lg hover:bg-white transition flex items-center gap-2 text-xs font-bold border border-[#d4ac6e]/50"
-                                    title="Gerar Planta Baixa 2D"
-                                >
-                                    <RulerIcon className="w-4 h-4" /> Gerar Planta Baixa
-                                </button>
                             </div>
                             
                             <div className="absolute bottom-4 left-4 flex gap-2 pointer-events-auto">
@@ -863,7 +860,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             setAvailableStyles(prev => prev.includes(style) ? prev : [style, ...prev]);
             setStylePreset(style);
             setStyleSuggestions({ ...styleSuggestions, isOpen: false });
-            showAlert(`Estilo "${style}" aplicado!`, "Estilo Definido", "success");
+            addToast(`Estilo "${style}" aplicado!`, "success");
         }}
       />
 
@@ -875,7 +872,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         onSelectFinish={(finish) => {
             setSelectedFinish({ manufacturer: finish.manufacturer, finish, handleDetails: finish.type === 'solid' ? 'Puxador Cava' : undefined });
             setFinishSuggestions({ ...finishSuggestions, isOpen: false });
-            showAlert(`Acabamento "${finish.name}" aplicado!`, "Acabamento Definido", "success");
+            addToast(`Acabamento "${finish.name}" aplicado!`, "success");
         }}
       />
 
@@ -893,16 +890,25 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         }}
         onDeleteProject={async (id) => {
             setHistory(await removeProjectFromHistory(id));
+            addToast("Projeto excluído com sucesso.", "success");
         }}
+        showToast={addToast}
       />
       <ClientPanel 
         isOpen={modals.clients} 
         onClose={() => toggleModal('clients', false)} 
         clients={clients}
         projects={history}
-        onSaveClient={async (c) => setClients(await saveClient(c))}
-        onDeleteClient={async (id) => setClients(await removeClient(id))}
+        onSaveClient={async (c) => {
+            setClients(await saveClient(c));
+            addToast("Cliente salvo com sucesso!", "success");
+        }}
+        onDeleteClient={async (id) => {
+            setClients(await removeClient(id));
+            addToast("Cliente removido.", "success");
+        }}
         onViewProject={(p) => { setCurrentProject(p); toggleModal('clients', false); toggleModal('proposal', true); }}
+        showToast={addToast}
       />
       <AboutModal isOpen={modals.about} onClose={() => toggleModal('about', false)} />
       <BomGeneratorModal isOpen={modals.bom} onClose={() => toggleModal('bom', false)} showAlert={showAlert} />
@@ -931,7 +937,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           await updateProjectInHistory(currentProject.id, { views3d: updatedViews });
           setHistory(await getHistory());
           toggleModal('imageEditor', false);
-          showAlert("Edição salva como nova vista!", "Sucesso", "success");
+          addToast("Edição salva como nova vista!", "success");
       }} showAlert={showAlert} />}
       
       {/* Notifications & Wallet Modals Wrapper */}
@@ -954,6 +960,15 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             </div>
         )}
 
+        {/* Subscription Modal */}
+        {modals.subscription && (
+            <div className="fixed inset-0 bg-black/75 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => toggleModal('subscription', false)}>
+                <div className="bg-[#fffefb] dark:bg-[#3e3535] rounded-lg w-full max-w-md p-6 shadow-xl border border-[#e6ddcd] dark:border-[#4a4040] relative" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => toggleModal('subscription', false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl">&times;</button>
+                    <PixPayment value={5.00} email={userEmail} description="Assinatura MarcenApp Premium" />
+                </div>
+            </div>
+        )}
       
       {currentProject && (
         <>

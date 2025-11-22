@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useCallback, ChangeEvent, useEffect } from 'react';
 import { fileToBase64 } from '../utils/helpers';
-import { CameraIcon, SwitchCameraIcon, TrashIcon, CloudIcon, PlusIcon } from './Shared';
+import { CameraIcon, SwitchCameraIcon } from './Shared';
 
 interface ImageUploaderProps {
   onImagesChange: (images: { data: string, mimeType: string }[] | null) => void;
@@ -11,7 +11,7 @@ interface ImageUploaderProps {
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, showAlert, initialImageUrls }) => {
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<{ preview: string; data: string; mimeType: string; name?: string }[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<{ preview: string; data: string; mimeType: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -23,19 +23,19 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
 
   useEffect(() => {
     if (initialImageUrls) {
-        const initialFiles = initialImageUrls.map((url, index) => {
+        const initialFiles = initialImageUrls.map(url => {
             const parts = url.split(',');
             const data = parts[1];
             const mimePart = parts[0].match(/:(.*?);/);
             const mimeType = mimePart ? mimePart[1] : 'image/png';
-            return { preview: url, data, mimeType, name: `Imagem ${index + 1}` };
+            return { preview: url, data, mimeType };
         });
         setUploadedFiles(initialFiles);
-        // Avoid triggering parent update immediately on load to prevent loops, unless necessary
+        onImagesChange(initialFiles.map(f => ({ data: f.data, mimeType: f.mimeType })));
     } else {
         setUploadedFiles([]);
     }
-  }, [initialImageUrls]);
+  }, [initialImageUrls, onImagesChange]);
 
   useEffect(() => {
     if (isCameraOpen && cameraDevices.length > 0) {
@@ -87,13 +87,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
       const totalFiles = uploadedFiles.length + validFiles.length;
       if (totalFiles > 3) {
           showAlert("Você pode adicionar no máximo 3 imagens.", "Limite Atingido");
-          // Allow adding up to the limit
-          const slotsLeft = 3 - uploadedFiles.length;
-          if (slotsLeft <= 0) {
-             if (fileInputRef.current) fileInputRef.current.value = "";
-             return;
-          }
-          validFiles.splice(slotsLeft); 
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          return;
       }
       
       setIsUploading(true);
@@ -102,18 +97,10 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
         const imagePromises = validFiles.map(file => fileToBase64(file));
         const results = await Promise.all(imagePromises);
         
-        // Combine new files with existing ones
-        const newFiles = results.map((r, i) => ({ 
-            preview: r.full, 
-            data: r.data, 
-            mimeType: r.mimeType, 
-            name: validFiles[i].name 
-        }));
+        const newUploadedFiles = [...uploadedFiles, ...results.map(r => ({ preview: r.full, data: r.data, mimeType: r.mimeType }))];
+        setUploadedFiles(newUploadedFiles);
         
-        const updatedUploadedFiles = [...uploadedFiles, ...newFiles];
-        setUploadedFiles(updatedUploadedFiles);
-        
-        const base64Data = updatedUploadedFiles.map(f => ({ data: f.data, mimeType: f.mimeType }));
+        const base64Data = newUploadedFiles.map(f => ({ data: f.data, mimeType: f.mimeType }));
         onImagesChange(base64Data);
 
       } catch (error) {
@@ -207,7 +194,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
             const dataUrl = await blobToDataUrl(blob);
             const data = dataUrl.split(',')[1];
             const mimeType = blob.type;
-            const newFile = { preview: dataUrl, data, mimeType, name: `Foto ${new Date().toLocaleTimeString()}` };
+            const newFile = { preview: dataUrl, data, mimeType };
             
             const newUploadedFiles = [...uploadedFiles, newFile];
             setUploadedFiles(newUploadedFiles);
@@ -223,93 +210,49 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
   };
 
   return (
-    <div className="mt-4 animate-fadeIn">
-      <label className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Imagens de Referência (Máx. 3)</label>
-      
-      <div className="flex gap-3 mb-3">
-          {uploadedFiles.length < 3 && (
-            <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="flex-1 border-2 border-dashed border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition text-gray-500 dark:text-gray-400 min-h-[100px]"
-            >
-                {isUploading ? (
-                    <div className="animate-pulse">Carregando...</div>
-                ) : (
-                    <>
-                        <CloudIcon className="w-8 h-8 mb-1 text-[#d4ac6e]" />
-                        <span className="text-xs font-bold">Carregar Imagens</span>
-                        <span className="text-[10px]">JPG, PNG (Max 5MB)</span>
-                    </>
-                )}
-            </div>
-          )}
-          
-          {uploadedFiles.length < 3 && (
-            <div 
-                onClick={handleOpenCamera}
-                className="flex-1 border-2 border-dashed border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition text-gray-500 dark:text-gray-400 min-h-[100px]"
-            >
-                <CameraIcon className="w-8 h-8 mb-1 text-[#d4ac6e]" />
-                <span className="text-xs font-bold">Tirar Foto</span>
-                <span className="text-[10px]">Usar Câmera</span>
-            </div>
-          )}
+    <div className="mt-4">
+      <label className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Adicione imagens de referência ou rascunhos (até 3):</label>
+      <div className="flex items-center gap-2">
+        <button onClick={() => fileInputRef.current?.click()}
+          className="bg-[#e6ddcd] dark:bg-[#4a4040] hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] text-[#3e3535] dark:text-[#f5f1e8] font-bold py-2 px-4 rounded-lg transition">
+          {isUploading ? 'Enviando...' : 'Escolher Arquivos'}
+        </button>
+        <button onClick={handleOpenCamera} className="bg-[#e6ddcd] dark:bg-[#4a4040] hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] text-[#3e3535] dark:text-[#f5f1e8] font-bold py-2 px-4 rounded-lg transition flex items-center gap-2">
+          <CameraIcon /> Tirar Foto
+        </button>
+        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/png, image/jpeg, image/webp" multiple className="hidden" />
       </div>
-
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/png, image/jpeg, image/webp" multiple className="hidden" />
-
+      <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] mt-1">Formatos: JPG, PNG, WebP. Máx: 5MB.</p>
       {uploadedFiles.length > 0 && (
-        <div className="space-y-2">
+        <div className="mt-4 grid grid-cols-3 gap-2">
           {uploadedFiles.map((img, index) => (
-            <div key={index} className="flex items-center gap-3 bg-white dark:bg-[#2d2424] p-2 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040] shadow-sm animate-fadeIn">
-                <img src={img.preview} alt={`preview ${index}`} className="w-12 h-12 object-cover rounded-md flex-shrink-0 bg-gray-100" />
-                <div className="flex-grow min-w-0">
-                    <p className="text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8] truncate">{img.name || `Imagem ${index + 1}`}</p>
-                    <p className="text-xs text-green-600 dark:text-green-400">Carregado</p>
-                </div>
-                <button 
-                    onClick={() => handleRemoveImage(index)}
-                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition"
-                    title="Remover imagem"
-                >
-                    <TrashIcon className="w-4 h-4" />
-                </button>
+            <div key={index} className="relative group">
+              <img src={img.preview} alt={`preview ${index}`} className="w-full h-24 object-cover rounded-md" />
+              <button onClick={() => handleRemoveImage(index)}
+                className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">&times;</button>
             </div>
           ))}
         </div>
       )}
 
       {isCameraOpen && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4 animate-fadeIn">
-          <div className="relative w-full max-w-lg aspect-[3/4] bg-black rounded-xl overflow-hidden shadow-2xl">
-              <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover"></video>
-              
-              {/* Camera Overlay Guides */}
-              <div className="absolute inset-0 border border-white/20 pointer-events-none">
-                  <div className="absolute top-1/3 w-full h-px bg-white/20"></div>
-                  <div className="absolute top-2/3 w-full h-px bg-white/20"></div>
-                  <div className="absolute left-1/3 h-full w-px bg-white/20"></div>
-                  <div className="absolute left-2/3 h-full w-px bg-white/20"></div>
-              </div>
-
-              <canvas ref={canvasRef} className="hidden"></canvas>
-              
-              <div className="absolute bottom-0 w-full p-6 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent">
-                 <button onClick={handleCloseCamera} className="text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition">
-                    Cancelar
-                 </button>
-                 
-                 <button onClick={handleCapturePhoto} className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center p-1 hover:scale-105 transition">
-                    <div className="w-full h-full bg-white rounded-full"></div>
-                 </button>
-                 
-                 {cameraDevices.length > 1 ? (
-                    <button onClick={handleSwitchCamera} className="text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition">
-                        <SwitchCameraIcon className="w-6 h-6" />
-                    </button>
-                 ) : <div className="w-10"></div>}
-              </div>
+        <div className="fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center p-4 animate-fadeIn">
+          <video ref={videoRef} autoPlay playsInline className="max-w-full max-h-[80%] w-auto h-auto rounded-lg"></video>
+          <canvas ref={canvasRef} className="hidden"></canvas>
+          <div className="absolute bottom-10 flex items-center justify-center w-full gap-20">
+             {cameraDevices.length > 1 && (
+                <button onClick={handleSwitchCamera} className="text-white bg-black/30 rounded-full w-14 h-14 flex items-center justify-center hover:bg-black/50 transition" aria-label="Trocar câmera">
+                    <SwitchCameraIcon />
+                </button>
+            )}
+            <button onClick={handleCapturePhoto} className="w-20 h-20 rounded-full bg-white flex items-center justify-center p-1" aria-label="Tirar foto">
+                <div className="w-full h-full rounded-full bg-white border-4 border-black/50"></div>
+            </button>
+             {cameraDevices.length > 1 && (
+                <div className="w-14 h-14"></div> // Spacer to center capture button
+            )}
           </div>
+          <button onClick={handleCloseCamera} className="absolute top-5 right-5 text-white text-4xl font-light" aria-label="Fechar câmera">&times;</button>
         </div>
       )}
     </div>

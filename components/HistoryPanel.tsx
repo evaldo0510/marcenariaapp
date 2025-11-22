@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { ProjectHistoryItem } from '../types';
-import { Spinner, BookIcon, WandIcon, TrashIcon, CheckIcon, SearchIcon, DocumentTextIcon, ToolsIcon } from './Shared';
+import { Spinner, BookIcon, WandIcon, TrashIcon, CheckIcon, SearchIcon, DocumentTextIcon, ToolsIcon, ConfirmationModal, Button } from './Shared';
 
 interface HistoryPanelProps {
     isOpen: boolean;
@@ -10,9 +10,10 @@ interface HistoryPanelProps {
     onViewProject: (project: ProjectHistoryItem) => void;
     onAddNewView: (projectId: string) => void;
     onDeleteProject: (id: string) => void;
+    showToast?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 6;
 
 export const HistoryPanel: React.FC<HistoryPanelProps> = ({
     isOpen,
@@ -21,20 +22,19 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
     onViewProject,
     onAddNewView,
     onDeleteProject,
+    showToast
 }) => {
     const [sortOrder, setSortOrder] = useState<'date-desc' | 'date-asc' | 'alpha-asc'>('date-desc');
     const [searchTerm, setSearchTerm] = useState('');
-    const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
-    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
 
-    // Reset visible count when modal opens or search/sort changes
+    // Reset to page 1 when search or filter changes
     useEffect(() => {
-        if (isOpen) {
-            setVisibleCount(ITEMS_PER_PAGE);
-        }
-    }, [isOpen, searchTerm, sortOrder]);
+        setCurrentPage(1);
+    }, [searchTerm, sortOrder, history.length]);
 
-    const filteredAndSortedHistory = useMemo(() => {
+    const filteredSortedHistory = useMemo(() => {
         return history
             .filter(project =>
                 project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -53,40 +53,22 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
             });
     }, [history, searchTerm, sortOrder]);
 
-    const displayedHistory = useMemo(() => {
-        return filteredAndSortedHistory.slice(0, visibleCount);
-    }, [filteredAndSortedHistory, visibleCount]);
+    const totalPages = Math.ceil(filteredSortedHistory.length / ITEMS_PER_PAGE);
+    
+    const currentItems = useMemo(() => {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredSortedHistory.slice(start, start + ITEMS_PER_PAGE);
+    }, [currentPage, filteredSortedHistory]);
 
-    const handleScroll = () => {
-        if (scrollContainerRef.current) {
-            const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-            // Load more when user is near the bottom (within 100px)
-            if (scrollTop + clientHeight >= scrollHeight - 100) {
-                if (visibleCount < filteredAndSortedHistory.length) {
-                    setVisibleCount(prev => prev + ITEMS_PER_PAGE);
-                }
-            }
+    const goToPage = (page: number) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+            // Optional: Scroll to top of list
+            document.getElementById('history-list-top')?.scrollIntoView({ behavior: 'smooth' });
         }
     };
 
     if (!isOpen) return null;
-
-    const ActionButton: React.FC<{
-        onClick: (e: React.MouseEvent) => void;
-        disabled?: boolean;
-        children: React.ReactNode;
-        className?: string;
-        title?: string;
-    }> = ({ onClick, disabled, children, className, title }) => (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            title={title}
-            className={`flex items-center justify-center flex-1 text-center px-3 py-2 text-xs font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
-        >
-            {children}
-        </button>
-    );
 
     return (
         <div className={`fixed inset-0 z-40 transition-opacity duration-300 ${isOpen ? 'bg-black bg-opacity-60' : 'pointer-events-none'}`} onClick={onClose}>
@@ -128,98 +110,127 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                         </div>
                     </div>
 
-                    <main 
-                        className="flex-grow overflow-y-auto p-4 custom-scrollbar" 
-                        ref={scrollContainerRef}
-                        onScroll={handleScroll}
-                    >
+                    <main className="flex-grow overflow-y-auto p-4">
+                        <div id="history-list-top"></div>
                         {history.length === 0 ? (
                             <div className="text-center text-[#8a7e7e] dark:text-[#a89d8d] py-10 h-full flex flex-col justify-center items-center">
                                 <p className="font-semibold text-lg">Nenhum projeto no histórico.</p>
                                 <p className="text-sm">Comece a criar para ver seus projetos aqui.</p>
                             </div>
-                        ) : filteredAndSortedHistory.length === 0 ? (
+                        ) : filteredSortedHistory.length === 0 ? (
                              <div className="text-center text-[#8a7e7e] dark:text-[#a89d8d] py-10 h-full flex flex-col justify-center items-center">
                                 <p className="font-semibold text-lg">Nenhum resultado encontrado.</p>
                                 <p className="text-sm">Tente ajustar seus filtros de busca.</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {displayedHistory.map((project, index) => {
-                                    const isDraft = project.views3d.length === 0 && !project.image2d;
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {currentItems.map((project, index) => {
+                                        const isDraft = project.views3d.length === 0 && !project.image2d;
 
-                                    return (
-                                    <div key={project.id} className="bg-[#fffefb] dark:bg-[#4a4040]/50 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040] overflow-hidden flex flex-col animate-fadeInUp" style={{animationDelay: `${(index % ITEMS_PER_PAGE) * 50}ms`}}>
-                                        {/* Image Area */}
-                                        <div onClick={() => onViewProject(project)} className="relative cursor-pointer group">
-                                            {isDraft ? (
-                                                <div className="w-full h-48 bg-[#e6ddcd] dark:bg-[#2d2424] flex flex-col items-center justify-center text-[#8a7e7e] dark:text-[#a89d8d]">
-                                                    <DocumentTextIcon />
-                                                    <span className="text-sm mt-2 font-semibold">RASCUNHO</span>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <img 
-                                                        src={project.views3d[0]} 
-                                                        alt="Thumbnail 3D" 
-                                                        className="w-full h-48 object-cover bg-[#e6ddcd] dark:bg-[#2d2424] group-hover:scale-105 transition-transform duration-300" 
-                                                    />
-                                                    {project.image2d && (
+                                        return (
+                                        <div key={project.id} className="bg-[#fffefb] dark:bg-[#4a4040]/50 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040] overflow-hidden flex flex-col animate-fadeInUp" style={{animationDelay: `${index * 50}ms`}}>
+                                            {/* Image Area */}
+                                            <div onClick={() => onViewProject(project)} className="relative cursor-pointer group">
+                                                {isDraft ? (
+                                                    <div className="w-full h-48 bg-[#e6ddcd] dark:bg-[#2d2424] flex flex-col items-center justify-center text-[#8a7e7e] dark:text-[#a89d8d]">
+                                                        <DocumentTextIcon />
+                                                        <span className="text-sm mt-2 font-semibold">RASCUNHO</span>
+                                                    </div>
+                                                ) : (
+                                                    <>
                                                         <img 
-                                                            src={project.image2d} 
-                                                            alt="Thumbnail 2D" 
-                                                            className="absolute bottom-2 right-2 w-20 h-20 object-cover bg-white rounded-md border-2 border-[#dcd6c8] dark:border-[#4a4040] shadow-lg group-hover:scale-110 transition-transform duration-300"
+                                                            src={project.views3d[0]} 
+                                                            alt="Thumbnail 3D" 
+                                                            loading="lazy"
+                                                            className="w-full h-48 object-cover bg-[#e6ddcd] dark:bg-[#2d2424] group-hover:scale-105 transition-transform duration-300" 
                                                         />
-                                                    )}
-                                                </>
-                                            )}
-                                        </div>
-                                        
-                                        {/* Content Area */}
-                                        <div className="p-3 flex-grow flex flex-col">
-                                            <h3 onClick={() => onViewProject(project)} className="cursor-pointer font-semibold text-[#3e3535] dark:text-[#f5f1e8] hover:text-[#b99256] dark:hover:text-[#d4ac6e] transition line-clamp-2" title={project.name}>
-                                                {project.name}
-                                            </h3>
-                                            <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] mt-1 line-clamp-2 flex-grow">{project.description}</p>
-                                            <p className="text-xs text-[#a89d8d] dark:text-[#8a7e7e] mt-2">{new Date(project.timestamp).toLocaleDateString()}</p>
-                                        </div>
-                                        {/* Actions Area */}
-                                        <div className="p-3 bg-[#f0e9dc] dark:bg-[#2d2424] border-t border-[#e6ddcd] dark:border-[#4a4040] space-y-2">
-                                            <ActionButton
-                                                onClick={() => onViewProject(project)}
-                                                className="bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] w-full"
-                                            >
-                                                Visualizar / Editar Projeto
-                                            </ActionButton>
-                                            <div className="flex gap-2">
-                                                 <ActionButton
-                                                    onClick={(e) => { e.stopPropagation(); onAddNewView(project.id); }}
-                                                    disabled={isDraft}
-                                                    title={isDraft ? "Gere o projeto primeiro" : "Gerar nova vista 3D do projeto"}
-                                                    className="bg-[#e6ddcd] dark:bg-[#4a4040] text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f]"
-                                                >
-                                                    <><WandIcon /> Nova Vista</>
-                                                </ActionButton>
-
-                                                <ActionButton
-                                                    onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }}
-                                                    className="bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900"
-                                                >
-                                                    <TrashIcon /> Excluir
-                                                </ActionButton>
+                                                        {project.image2d && (
+                                                            <img 
+                                                                src={project.image2d} 
+                                                                alt="Thumbnail 2D"
+                                                                loading="lazy"
+                                                                className="absolute bottom-2 right-2 w-20 h-20 object-cover bg-white rounded-md border-2 border-[#dcd6c8] dark:border-[#4a4040] shadow-lg group-hover:scale-110 transition-transform duration-300"
+                                                            />
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                            
+                                            {/* Content Area */}
+                                            <div className="p-3 flex-grow flex flex-col">
+                                                <h3 onClick={() => onViewProject(project)} className="cursor-pointer font-semibold text-[#3e3535] dark:text-[#f5f1e8] hover:text-[#b99256] dark:hover:text-[#d4ac6e] transition line-clamp-2" title={project.name}>
+                                                    {project.name}
+                                                </h3>
+                                                <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] mt-1 line-clamp-2 flex-grow">{project.description}</p>
+                                                <p className="text-xs text-[#a89d8d] dark:text-[#8a7e7e] mt-2">{new Date(project.timestamp).toLocaleDateString()}</p>
+                                            </div>
+                                            {/* Actions Area */}
+                                            <div className="p-3 bg-[#f0e9dc] dark:bg-[#2d2424] border-t border-[#e6ddcd] dark:border-[#4a4040] space-y-2">
+                                                <Button 
+                                                    onClick={() => onViewProject(project)} 
+                                                    label="Visualizar / Editar" 
+                                                    variant="primary" 
+                                                    className="w-full text-xs"
+                                                />
+                                                <div className="flex gap-2">
+                                                     <Button 
+                                                        onClick={(e) => { e.stopPropagation(); onAddNewView(project.id); }}
+                                                        disabled={isDraft}
+                                                        title={isDraft ? "Gere o projeto primeiro" : "Gerar nova vista 3D do projeto"}
+                                                        variant="secondary"
+                                                        label="Nova Vista"
+                                                        icon={<WandIcon />}
+                                                        className="flex-1 text-xs"
+                                                     />
+                                                    <Button 
+                                                        onClick={(e) => { e.stopPropagation(); setProjectToDelete(project.id); }}
+                                                        variant="danger"
+                                                        label="Excluir"
+                                                        icon={<TrashIcon />}
+                                                        className="flex-1 text-xs"
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
+                                    )})}
+                                </div>
+                                
+                                {/* Pagination Controls */}
+                                {totalPages > 1 && (
+                                    <div className="flex justify-center items-center gap-2 mt-6 py-2">
+                                        <button 
+                                            onClick={() => goToPage(currentPage - 1)} 
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-1 rounded bg-[#e6ddcd] dark:bg-[#4a4040] text-[#3e3535] dark:text-[#f5f1e8] disabled:opacity-50 hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition"
+                                        >
+                                            &lt;
+                                        </button>
+                                        <span className="text-sm text-[#3e3535] dark:text-[#f5f1e8] font-medium">
+                                            Página {currentPage} de {totalPages}
+                                        </span>
+                                        <button 
+                                            onClick={() => goToPage(currentPage + 1)} 
+                                            disabled={currentPage === totalPages}
+                                            className="px-3 py-1 rounded bg-[#e6ddcd] dark:bg-[#4a4040] text-[#3e3535] dark:text-[#f5f1e8] disabled:opacity-50 hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition"
+                                        >
+                                            &gt;
+                                        </button>
                                     </div>
-                                )})}
-                            </div>
-                        )}
-                        {visibleCount < filteredAndSortedHistory.length && (
-                            <div className="text-center py-4">
-                                <Spinner size="sm" />
-                            </div>
+                                )}
+                            </>
                         )}
                     </main>
                 </div>
+                <ConfirmationModal
+                    isOpen={!!projectToDelete}
+                    onClose={() => setProjectToDelete(null)}
+                    onConfirm={() => { if (projectToDelete) onDeleteProject(projectToDelete); }}
+                    title="Excluir Projeto"
+                    message="Tem certeza que deseja excluir este projeto? Esta ação não pode ser desfeita."
+                    confirmText="Excluir"
+                    isDangerous={true}
+                />
             </div>
         </div>
     );

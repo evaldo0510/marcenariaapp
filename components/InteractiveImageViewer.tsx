@@ -82,7 +82,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     interactionStartRef.current = { 
       startX: e.clientX, 
       startY: e.clientY, 
-      initialX: transformRef.current.x, 
+      initialX: transformRef.current.x,
       initialY: transformRef.current.y,
       initialDistance: 0
     };
@@ -207,18 +207,18 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     }
   };
 
+  const handleEmailShare = () => {
+    const subject = encodeURIComponent(`Visualização do Projeto: ${projectName} - MarcenApp`);
+    const body = encodeURIComponent(`Olá,\n\nVeja esta visualização do projeto "${projectName}" que gerei com o MarcenApp. O que acha?\n\n(Para compartilhar a imagem, você pode baixá-la e anexar a este e-mail).`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    setShowShareMenu(false);
+  };
+
   const handleWhatsappShare = () => {
     if (!projectName) return;
     const url = shareUrl ? ` ${shareUrl}` : '';
     const text = encodeURIComponent(`Confira esta visualização do projeto "${projectName}" gerada com o MarcenApp!${url}`);
     window.open(`whatsapp://send?text=${text}`);
-    setShowShareMenu(false);
-  };
-
-  const handleEmailShare = () => {
-    const subject = encodeURIComponent(`Visualização do Projeto: ${projectName} - MarcenApp`);
-    const body = encodeURIComponent(`Olá,\n\nVeja esta visualização do projeto "${projectName}" que gerei com o MarcenApp. O que acha?\n\n(Para compartilhar a imagem, você pode baixá-la e anexar a este e-mail).`);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
     setShowShareMenu(false);
   };
 
@@ -280,7 +280,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
           src={src}
           alt={alt}
           draggable="false"
-          className="select-none animate-fadeIn duration-500 ease-out"
+          className="select-none"
           style={{
               maxWidth: '100%',
               maxHeight: '100%',
