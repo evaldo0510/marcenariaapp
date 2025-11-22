@@ -39,8 +39,8 @@ export async function generateImage(
     prompt: string, 
     referenceImages?: { data: string, mimeType: string }[] | null, 
     framingStrategy?: string,
-    useProModel: boolean = false,
-    imageResolution: '1K' | '2K' | '4K' = '1K',
+    useProModel: boolean = true, // Changed default to true
+    imageResolution: '1K' | '2K' | '4K' = '2K', // Changed default to 2K
     decorationLevel: 'minimal' | 'standard' | 'rich' = 'standard',
     isMirrored: boolean = false
 ): Promise<string> {

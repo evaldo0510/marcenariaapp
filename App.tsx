@@ -27,7 +27,7 @@ import { ImageProjectGenerator } from './components/ImageProjectGenerator';
 import { StoreDashboard } from './components/StoreDashboard';
 import { InteractiveImageViewer } from './components/InteractiveImageViewer';
 import { DecorationListModal } from './components/DecorationListModal';
-import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, HighQualityIcon, PlantIcon, ShoppingBagIcon, ShareIcon } from './components/Shared';
+import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, HighQualityIcon, PlantIcon, ShoppingBagIcon, ShareIcon, ConfirmationModal } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
 import { suggestAlternativeStyles, generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D } from './services/geminiService';
@@ -175,11 +175,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [selectedFinish, setSelectedFinish] = useState<{ manufacturer: string; finish: Finish; handleDetails?: string } | null>(null);
   const [withLedLighting, setWithLedLighting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingLabel, setGeneratingLabel] = useState('Gerando...');
   const [decorationLevel, setDecorationLevel] = useState<'minimal' | 'standard' | 'rich'>('standard');
   
-  // Quality & Resolution States
-  const [qualityMode, setQualityMode] = useState<'standard' | 'pro'>('standard');
-  const [imageResolution, setImageResolution] = useState<'1K' | '2K' | '4K'>('1K');
+  // Quality & Resolution States - UPDATED DEFAULTS FOR 2K PRO
+  const [qualityMode, setQualityMode] = useState<'standard' | 'pro'>('pro');
+  const [imageResolution, setImageResolution] = useState<'1K' | '2K' | '4K'>('2K');
 
   // Mobile Tab State
   const [mobileTab, setMobileTab] = useState<'create' | 'result'>('create');
@@ -219,6 +220,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [styleSuggestions, setStyleSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as string[] });
   const [finishSuggestions, setFinishSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as Finish[] });
   const [alert, setAlert] = useState({ show: false, title: '', message: '' });
+  const [confirmFloorPlanGen, setConfirmFloorPlanGen] = useState(false);
   
   const descriptionTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const [currentProject, setCurrentProject] = useState<ProjectHistoryItem | null>(null);
@@ -260,7 +262,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       setWithLedLighting(true);
       setFramingStrategy(framingOptions[0].value);
       setSelectedFinish(null);
-      setQualityMode('standard');
+      setQualityMode('pro');
+      setImageResolution('2K');
       setDecorationLevel('standard');
       
       showAlert("Exemplo carregado! A planta baixa foi anexada. Ao clicar em 'GERAR PROJETO 3D', a IA analisará o desenho (medidas, portas, janelas) e criará o ambiente 3D sobre ele.", "Demo com Análise de Visão");
@@ -270,6 +273,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const handleGenerateProject = async () => {
       if (!description.trim()) return showAlert("Por favor, descreva seu projeto.", "Falta Descrição");
       setIsGenerating(true);
+      setGeneratingLabel('Criando Projeto...');
       try {
           // Simplify prompt construction - User description is the single source of truth
           let fullPrompt = `PROJETO SOLICITADO: ${description}`;
@@ -283,7 +287,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           }
           
           if (withLedLighting) {
-              fullPrompt += `\n- Iluminação: Incluir iluminação LED para valorizar o móvel.`;
+              fullPrompt += `\n- Iluminação: Adicione iluminação LED embutida (fitas de LED) em nichos, prateleiras e painéis. Foque em realçar os detalhes da marcenaria e a textura dos materiais com uma luz suave e sofisticada (3000K), criando profundidade e valorizando o projeto.`;
           }
 
           // Use Pro Model if selected, passing resolution
@@ -328,6 +332,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const handleQuickRoomSwap = async (newRoomType: string) => {
       if (!currentProject) return;
       setIsGenerating(true);
+      setGeneratingLabel('Transformando Ambiente...');
       try {
           // Use original project description but update the room function
           let fullPrompt = `TRANSFORMAÇÃO DE AMBIENTE: Mantenha a mesma geometria básica da sala (paredes, janelas), mas altere a função do ambiente para: ${newRoomType}.`;
@@ -423,29 +428,35 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       }
   };
 
-  const handleOpenLayoutEditor = async () => {
+  const handleOpenLayoutEditor = () => {
     if (!currentProject) return;
-
     if (!currentProject.image2d) {
-        if (!confirm("Gerar planta baixa agora?")) return;
-        setIsGenerating(true);
-        try {
-            const floorPlanBase64 = await generateFloorPlanFrom3D(currentProject);
-            const newImage2d = `data:image/png;base64,${floorPlanBase64}`;
-            const updatedProject = await updateProjectInHistory(currentProject.id, { image2d: newImage2d });
-            if (updatedProject) {
-                setHistory(await getHistory());
-                setCurrentProject(updatedProject);
-                toggleModal('layoutEditor', true);
-            }
-        } catch (e) {
-            showAlert("Erro ao gerar planta baixa.");
-        } finally {
-            setIsGenerating(false);
-        }
+        setConfirmFloorPlanGen(true);
     } else {
         toggleModal('layoutEditor', true);
     }
+  };
+
+  const handleGenerateFloorPlan = async () => {
+      setConfirmFloorPlanGen(false);
+      if (!currentProject) return;
+      
+      setGeneratingLabel('Gerando Planta Baixa Técnica...');
+      setIsGenerating(true);
+      try {
+          const floorPlanBase64 = await generateFloorPlanFrom3D(currentProject);
+          const newImage2d = `data:image/png;base64,${floorPlanBase64}`;
+          const updatedProject = await updateProjectInHistory(currentProject.id, { image2d: newImage2d });
+          if (updatedProject) {
+              setHistory(await getHistory());
+              setCurrentProject(updatedProject);
+              toggleModal('layoutEditor', true);
+          }
+      } catch (e) {
+          showAlert("Erro ao gerar planta baixa.");
+      } finally {
+          setIsGenerating(false);
+      }
   };
 
   const handleSaveLayout = async (newImageBase64: string) => {
@@ -668,7 +679,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" checked={withLedLighting} onChange={(e) => setWithLedLighting(e.target.checked)} className="sr-only peer" />
                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#d4ac6e]"></div>
-                            <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Adicionar LEDs</span>
+                            <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Adicionar LEDs (Realçar Detalhes)</span>
                         </label>
                     </div>
                 </section>
@@ -702,7 +713,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                             {isGenerating && (
                                 <div className="absolute inset-0 bg-black/50 z-20 flex flex-col items-center justify-center text-white backdrop-blur-sm">
                                     <Spinner size="lg" />
-                                    <p className="mt-4 font-bold">Gerando Variação...</p>
+                                    <p className="mt-4 font-bold">{generatingLabel}</p>
                                 </div>
                             )}
                             <InteractiveImageViewer 
@@ -795,6 +806,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       {/* Modals */}
       <AlertModal state={alert} onClose={closeAlert} />
       
+      <ConfirmationModal 
+        isOpen={confirmFloorPlanGen}
+        title="Gerar Planta Baixa?"
+        message="Este projeto ainda não possui uma planta técnica. Deseja que a Iara gere uma planta baixa 2D baseada na visualização 3D?"
+        onConfirm={handleGenerateFloorPlan}
+        onCancel={() => setConfirmFloorPlanGen(false)}
+      />
+
       <StyleSuggestionsModal
         isOpen={styleSuggestions.isOpen}
         isLoading={styleSuggestions.isLoading}

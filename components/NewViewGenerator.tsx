@@ -17,6 +17,7 @@ interface NewViewGeneratorProps {
 export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, project, onSaveComplete, onClose, showAlert }) => {
     const [style, setStyle] = useState(project.style);
     const [finish, setFinish] = useState('');
+    const [withLed, setWithLed] = useState(false); // New state for LED
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedImageSrc, setGeneratedImageSrc] = useState<string | null>(null);
 
@@ -29,6 +30,7 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
         if (isOpen) {
             setStyle(project.style);
             setFinish('');
+            setWithLed(!!project.withLedLighting); // Initialize with project setting
             setGeneratedImageSrc(null);
             setSuggestions([]);
         }
@@ -51,8 +53,8 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
     };
 
     const handleGenerate = async () => {
-        if (!style.trim() || !finish.trim()) {
-            showAlert('Por favor, selecione um estilo e descreva um acabamento.');
+        if (!style.trim() && !finish.trim() && !withLed) {
+            showAlert('Por favor, altere algum parâmetro (estilo, acabamento ou LED) para gerar uma nova vista.');
             return;
         }
         setIsGenerating(true);
@@ -77,6 +79,7 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
 3.  **Contextualização (Estilo - ${style}):**
     *   Adapte o ambiente e a iluminação para refletir o estilo "${style}".
     *   **Se Industrial Moderno:** Use iluminação de contraste (chiaroscuro), fundo de cimento queimado ou tijolinho suave, e detalhes metálicos em preto fosco.
+    ${withLed ? '*   **ILUMINAÇÃO LED DESTAQUE:** Adicione fitas de LED embutidas em nichos e prateleiras. Use luz quente (3000K) para criar profundidade e realçar os detalhes e acabamentos da marcenaria.' : ''}
 4.  **Qualidade:** A saída deve ser uma imagem de alta resolução (4k), fotorrealista, parecendo uma fotografia de estúdio.`;
 
             const newImageBase64 = await editImage(base64Data, mimeType, fullPrompt);
@@ -171,8 +174,19 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
                             )}
                         </div>
                         <div>
-                            <label htmlFor="finish-input-new-view" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Novo Acabamento Principal</label>
+                            <label htmlFor="finish-input-new-view" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Novo Acabamento</label>
                             <input id="finish-input-new-view" type="text" value={finish} onChange={(e) => setFinish(e.target.value)} placeholder="Ex: Madeira escura, MDF branco" className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition" />
+                            <div className="mt-3">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={withLed} 
+                                        onChange={(e) => setWithLed(e.target.checked)}
+                                        className="rounded text-[#d4ac6e] focus:ring-[#d4ac6e]"
+                                    />
+                                    <span className="text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8]">Adicionar Iluminação LED (Detalhes)</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                      <div className="flex justify-end gap-4 mt-2">

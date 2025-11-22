@@ -41,8 +41,8 @@ export const Project3DGenerator: React.FC<Project3DGeneratorProps> = ({ inputDat
 
             setProgress('Renderizando com IA...');
             // Pass isMirrored logic is handled in the prompt above, but we can also pass it to service if needed for further logic
-            // Currently passing null for framingStrategy to use default
-            const resultImage = await generateImage(prompt, [{ data: imageBase64, mimeType }], undefined, false, '1K', 'standard', isMirrored);
+            // Use Pro model and 2K resolution as default for AI Generator
+            const resultImage = await generateImage(prompt, [{ data: imageBase64, mimeType }], undefined, true, '2K', 'standard', isMirrored);
             
             onGenerate(`data:image/png;base64,${resultImage}`);
         } catch (e) {
