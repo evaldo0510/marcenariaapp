@@ -136,7 +136,7 @@ const ToolButton: React.FC<{ icon: React.ReactNode; label: string; onClick: () =
 );
 
 const framingOptions = [
-    { label: 'Padrão (Sem Cortes)', value: 'ATENÇÃO CRÍTICA AO ENQUADRAMENTO: Renderize o projeto 3D centralizado, aplicando um ZOOM OUT (afastamento da câmera) para garantir margens de segurança (padding) generosas em todas as 4 bordas. O objeto deve "flutuar" no centro da imagem. É ESTRITAMENTE PROIBIDO cortar qualquer extremidade do móvel ou do ambiente. O foco é a totalidade do projeto.' },
+    { label: 'Padrão (Margem Segura)', value: 'PRIORIDADE MÁXIMA DE ENQUADRAMENTO: Centralize o objeto ou ambiente. Ajuste o zoom (Zoom Out) para garantir que NADA seja cortado. Deve haver uma margem de segurança (espaço vazio) visível em todas as laterais (topo, fundo, esquerda, direita). O projeto deve estar 100% visível dentro do quadro.' },
     { label: 'Grande Angular (Tudo Visível)', value: 'Gere uma imagem 3D do projeto, ajustando o enquadramento para que todo o espaço fique visível, inclusive as paredes, teto e piso.' },
     { label: 'Horizontal (Panorâmico)', value: 'Mostre o móvel ou ambiente completamente, em formato horizontal, detalhando todas as laterais e evitando cortes nos extremos.' },
     { label: 'Social Media (Proporção)', value: 'Crie uma visualização 3D centralizada e com proporção adequada ao quadro, pronta para compartilhamento nas redes sociais.' },
@@ -514,7 +514,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                     <option key={option.label} value={option.value}>{option.label}</option>
                                 ))}
                             </select>
-                            <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 px-1">✅ O modo padrão centraliza o objeto e aplica margens para evitar cortes.</p>
+                            <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 px-1">
+                                ✅ <strong>Modo Padrão Ativo:</strong> A IA ajustará automaticamente o zoom para garantir que o projeto apareça inteiro, com margens de segurança e sem cortes nas bordas.
+                            </p>
                         </div>
                     </div>
 
