@@ -1,5 +1,5 @@
 
-import type { ProjectHistoryItem, Client, Finish, Transaction, InventoryItem, DistributorProfile } from '../types';
+import type { ProjectHistoryItem, Client, Finish, Transaction, InventoryItem, DistributorProfile, Partner, AdminProfile, AccessStatus, Sector } from '../types';
 
 const DB_NAME = 'MarcenAppDB';
 const PROJECTS_STORE_NAME = 'projects';
@@ -8,7 +8,9 @@ const FAVORITE_FINISHES_STORE_NAME = 'favoriteFinishes';
 const TRANSACTIONS_STORE_NAME = 'transactions';
 const INVENTORY_STORE_NAME = 'inventory';
 const DISTRIBUTOR_PROFILE_STORE_NAME = 'distributorProfile';
-const DB_VERSION = 6; // Incremented version
+const PARTNERS_STORE_NAME = 'partners';
+const ADMIN_PROFILES_STORE_NAME = 'adminProfiles';
+const DB_VERSION = 9; // Incremented version for new stores
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -38,6 +40,12 @@ function openDb(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(DISTRIBUTOR_PROFILE_STORE_NAME)) {
         db.createObjectStore(DISTRIBUTOR_PROFILE_STORE_NAME, { keyPath: 'id' });
       }
+      if (!db.objectStoreNames.contains(PARTNERS_STORE_NAME)) {
+        db.createObjectStore(PARTNERS_STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(ADMIN_PROFILES_STORE_NAME)) {
+        db.createObjectStore(ADMIN_PROFILES_STORE_NAME, { keyPath: 'id' });
+      }
     };
   });
 }
@@ -53,7 +61,6 @@ export const getHistory = async (): Promise<ProjectHistoryItem[]> => {
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
       const projects: ProjectHistoryItem[] = request.result;
-      // Ensure new fields have defaults if missing
       const fixedProjects = projects.map(p => ({
           ...p,
           status: p.status || 'orcamento'
@@ -272,14 +279,14 @@ export const deleteInventoryItem = async (id: string): Promise<InventoryItem[]> 
     return getInventory();
 };
 
-// --- DISTRIBUTOR PROFILE FUNCTIONS ---
+// --- DISTRIBUTOR PROFILE FUNCTIONS (Legacy / Current User) ---
 
 export const getDistributorProfile = async (): Promise<DistributorProfile | undefined> => {
     const db = await openDb();
     return new Promise((resolve, reject) => {
         const tx = db.transaction(DISTRIBUTOR_PROFILE_STORE_NAME, 'readonly');
         const store = tx.objectStore(DISTRIBUTOR_PROFILE_STORE_NAME);
-        const request = store.getAll(); // We assume only one profile per user
+        const request = store.getAll();
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
             resolve(request.result[0]);
@@ -290,7 +297,7 @@ export const getDistributorProfile = async (): Promise<DistributorProfile | unde
 export const createDistributorProfile = async (profile: Omit<DistributorProfile, 'id'>): Promise<DistributorProfile> => {
     const newProfile: DistributorProfile = {
         ...profile,
-        id: 'current_user', // Simplify for single user context
+        id: 'current_user',
     };
     const db = await openDb();
     const tx = db.transaction(DISTRIBUTOR_PROFILE_STORE_NAME, 'readwrite');
@@ -301,3 +308,144 @@ export const createDistributorProfile = async (profile: Omit<DistributorProfile,
     });
     return newProfile;
 };
+
+// --- PARTNER MANAGEMENT FUNCTIONS (Super Admin: Evaldo) ---
+
+export const getPartners = async (): Promise<Partner[]> => {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(PARTNERS_STORE_NAME, 'readonly');
+        const store = tx.objectStore(PARTNERS_STORE_NAME);
+        const request = store.getAll();
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+            resolve(request.result);
+        };
+    });
+};
+
+export const savePartner = async (partner: Omit<Partner, 'id' | 'joinDate'> & { id?: string }): Promise<Partner[]> => {
+    const newPartner: Partner = {
+        ...partner,
+        id: partner.id || `partner_${Date.now()}`,
+        joinDate: Date.now(),
+        status: partner.status || 'pending',
+        level: partner.level || 'bronze'
+    };
+    const db = await openDb();
+    const tx = db.transaction(PARTNERS_STORE_NAME, 'readwrite');
+    tx.objectStore(PARTNERS_STORE_NAME).put(newPartner);
+    await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+    return getPartners();
+};
+
+export const updatePartnerStatus = async (id: string, status: 'active' | 'suspended' | 'pending'): Promise<Partner[]> => {
+    const db = await openDb();
+    const tx = db.transaction(PARTNERS_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(PARTNERS_STORE_NAME);
+    
+    const partner = await new Promise<Partner>((resolve, reject) => {
+        const req = store.get(id);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+
+    if (partner) {
+        partner.status = status;
+        store.put(partner);
+        await new Promise<void>((resolve, reject) => {
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+    return getPartners();
+};
+
+export const deletePartner = async (id: string): Promise<Partner[]> => {
+    const db = await openDb();
+    const tx = db.transaction(PARTNERS_STORE_NAME, 'readwrite');
+    tx.objectStore(PARTNERS_STORE_NAME).delete(id);
+    await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+    return getPartners();
+};
+
+// --- ADMIN ACCESS REQUESTS ---
+
+export const getAdminRequests = async (): Promise<AdminProfile[]> => {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(ADMIN_PROFILES_STORE_NAME, 'readonly');
+        const store = tx.objectStore(ADMIN_PROFILES_STORE_NAME);
+        const request = store.getAll();
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+    });
+};
+
+export const createAdminRequest = async (email: string, name: string, sector: Sector): Promise<void> => {
+    const db = await openDb();
+    const tx = db.transaction(ADMIN_PROFILES_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(ADMIN_PROFILES_STORE_NAME);
+    
+    // Check if exists
+    const existing = await new Promise<AdminProfile | undefined>((resolve) => {
+        const req = store.getAll(); // Simple scan, in real app use index
+        req.onsuccess = () => {
+            const all = req.result as AdminProfile[];
+            resolve(all.find(p => p.email === email && p.sector === sector));
+        }
+    });
+
+    if (!existing) {
+        const newProfile: AdminProfile = {
+            id: `admin_${Date.now()}`,
+            email,
+            name,
+            sector,
+            status: 'pending',
+            requestDate: Date.now()
+        };
+        store.put(newProfile);
+    }
+    
+    return new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+};
+
+export const updateAdminStatus = async (id: string, status: AccessStatus, approvedBy: string): Promise<void> => {
+    const db = await openDb();
+    const tx = db.transaction(ADMIN_PROFILES_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(ADMIN_PROFILES_STORE_NAME);
+    
+    const profile = await new Promise<AdminProfile>((resolve) => {
+        const req = store.get(id);
+        req.onsuccess = () => resolve(req.result);
+    });
+
+    if (profile) {
+        profile.status = status;
+        if (status === 'approved') {
+            profile.approvedDate = Date.now();
+            profile.approvedBy = approvedBy;
+        }
+        store.put(profile);
+    }
+
+    return new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+};
+
+export const getAdminProfile = async (email: string, sector: Sector): Promise<AdminProfile | undefined> => {
+    const requests = await getAdminRequests();
+    return requests.find(r => r.email === email && r.sector === sector);
+}

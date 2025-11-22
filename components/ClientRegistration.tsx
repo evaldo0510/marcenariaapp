@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserAddIcon, Spinner, CheckIcon } from './Shared';
+import { saveClient, getPartners } from '../services/historyService';
+import type { Partner } from '../types';
 
 export const ClientRegistration: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -8,28 +10,54 @@ export const ClientRegistration: React.FC = () => {
         email: '',
         phone: '',
         companyName: '',
-        plan: 'pro'
+        plan: 'pro',
+        partnerId: ''
     });
+    const [partners, setPartners] = useState<Partner[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    
+    // Check if user is Super Admin
+    const userEmail = sessionStorage.getItem('userEmail');
+    const isSuperAdmin = userEmail === 'evaldo0510@gmail.com';
+
+    useEffect(() => {
+        if (isSuperAdmin) {
+            getPartners().then(setPartners);
+        }
+    }, [isSuperAdmin]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-        // Simulate API call
-        setTimeout(() => {
+        
+        try {
+            // Save client to IndexedDB linked to partner
+            await saveClient({
+                name: formData.name, // Store responsible name as main name for now, or extend type
+                email: formData.email,
+                phone: formData.phone,
+                status: 'active', // Auto activate for manual registration
+                partnerId: isSuperAdmin ? formData.partnerId : 'current_partner_id', // In real app, use logged in partner ID
+                notes: `Empresa: ${formData.companyName}. Plano: ${formData.plan}`
+            });
+
             setIsLoading(false);
             setSuccess(true);
-            // Reset form after success
+            
             setTimeout(() => {
                 setSuccess(false);
-                setFormData({ name: '', email: '', phone: '', companyName: '', plan: 'pro' });
+                setFormData({ name: '', email: '', phone: '', companyName: '', plan: 'pro', partnerId: '' });
             }, 3000);
-        }, 1500);
+        } catch (error) {
+            console.error(error);
+            setIsLoading(false);
+            alert("Erro ao cadastrar cliente.");
+        }
     };
 
     return (
@@ -44,7 +72,7 @@ export const ClientRegistration: React.FC = () => {
                         <CheckIcon className="text-white w-8 h-8" />
                     </div>
                     <h4 className="text-xl font-bold text-green-700 dark:text-green-400 mb-2">Cadastro Realizado!</h4>
-                    <p className="text-gray-600 dark:text-gray-300">Um e-mail de boas-vindas com os dados de acesso foi enviado para o cliente. Ele já está vinculado à sua conta.</p>
+                    <p className="text-gray-600 dark:text-gray-300">Cliente cadastrado e vinculado com sucesso.</p>
                 </div>
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -98,18 +126,36 @@ export const ClientRegistration: React.FC = () => {
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Plano de Interesse</label>
-                        <select 
-                            name="plan" 
-                            value={formData.plan} 
-                            onChange={handleChange} 
-                            className="w-full p-3 rounded-lg border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f] focus:ring-2 focus:ring-[#d4ac6e] outline-none"
-                        >
-                            <option value="pro">Plano Profissional (R$ 49,90/mês)</option>
-                            <option value="business">Plano Oficina (R$ 149,90/mês)</option>
-                            <option value="trial">Trial Gratuito (7 dias)</option>
-                        </select>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Plano de Interesse</label>
+                            <select 
+                                name="plan" 
+                                value={formData.plan} 
+                                onChange={handleChange} 
+                                className="w-full p-3 rounded-lg border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f] focus:ring-2 focus:ring-[#d4ac6e] outline-none"
+                            >
+                                <option value="pro">Plano Profissional (R$ 49,90/mês)</option>
+                                <option value="business">Plano Oficina (R$ 149,90/mês)</option>
+                                <option value="trial">Trial Gratuito (7 dias)</option>
+                            </select>
+                        </div>
+                        {isSuperAdmin && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vincular ao Parceiro</label>
+                                <select 
+                                    name="partnerId" 
+                                    value={formData.partnerId} 
+                                    onChange={handleChange} 
+                                    className="w-full p-3 rounded-lg border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f] focus:ring-2 focus:ring-[#d4ac6e] outline-none"
+                                >
+                                    <option value="">Nenhum (Direto)</option>
+                                    {partners.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name} ({p.email})</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
 
                     <div className="pt-4">
@@ -122,9 +168,6 @@ export const ClientRegistration: React.FC = () => {
                             {isLoading ? 'Cadastrando...' : 'Cadastrar Cliente'}
                         </button>
                     </div>
-                    <p className="text-xs text-gray-500 text-center mt-2">
-                        Ao cadastrar, você confirma que tem permissão para compartilhar os dados deste contato.
-                    </p>
                 </form>
             )}
         </div>

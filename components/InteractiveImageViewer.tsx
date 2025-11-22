@@ -42,31 +42,20 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
 
   const applyTransform = useCallback(({ scale, x, y }: { scale: number, x: number, y: number }) => {
     const container = containerRef.current;
-    const image = imageRef.current;
-    if (!container || !image) {
+    if (!container) {
       setTransform({ scale, x, y });
       return;
     }
     
-    const containerRect = container.getBoundingClientRect();
-    // Use the actual rendered dimensions of the image element (which fits within container)
-    const imageWidth = image.offsetWidth;
-    const imageHeight = image.offsetHeight;
-
+    const rect = container.getBoundingClientRect();
     const clampedScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
 
-    const scaledImageWidth = imageWidth * clampedScale;
-    const scaledImageHeight = imageHeight * clampedScale;
+    const imageWidth = rect.width * clampedScale;
+    const imageHeight = rect.height * clampedScale;
 
-    // Calculate limits based on centered origin (transform-origin: center center)
-    // The maximum absolute translation allowed in either direction from center (0,0)
-    // If scaled image is smaller than container, limit is 0 (keep centered).
-    // If larger, limit is half the difference.
-    const xLimit = Math.max(0, (scaledImageWidth - containerRect.width) / 2);
-    const yLimit = Math.max(0, (scaledImageHeight - containerRect.height) / 2);
-
-    const clampedX = Math.max(-xLimit, Math.min(xLimit, x));
-    const clampedY = Math.max(-yLimit, Math.min(yLimit, y));
+    // Center if smaller than container, otherwise clamp to boundaries
+    const clampedX = imageWidth > rect.width ? Math.max(rect.width - imageWidth, Math.min(0, x)) : (rect.width - imageWidth) / 2;
+    const clampedY = imageHeight > rect.height ? Math.max(rect.height - imageHeight, Math.min(0, y)) : (rect.height - imageHeight) / 2;
     
     setTransform({ scale: clampedScale, x: clampedX, y: clampedY });
   }, []);
@@ -95,7 +84,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     interactionStartRef.current = { 
       startX: e.clientX, 
       startY: e.clientY, 
-      initialX: transformRef.current.x,
+      initialX: transformRef.current.x, 
       initialY: transformRef.current.y,
       initialDistance: 0
     };
@@ -117,14 +106,14 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (!containerRef.current) return;
-    
-    // Simple zoom centered on container for simplicity and robustness
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
     const scaleDelta = e.deltaY > 0 ? 1 - ZOOM_SPEED : 1 + ZOOM_SPEED;
     const newScale = transform.scale * scaleDelta;
 
-    // Keep relative position roughly stable (simplified for center zoom)
-    const newX = transform.x * scaleDelta; 
-    const newY = transform.y * scaleDelta;
+    const newX = mouseX - (mouseX - transform.x) * (newScale / transform.scale);
+    const newY = mouseY - (mouseY - transform.y) * (newScale / transform.scale);
 
     applyTransform({ scale: newScale, x: newX, y: newY });
   }, [transform, applyTransform]);
@@ -145,7 +134,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
         startX: touches[0].clientX, 
         startY: touches[0].clientY, 
         initialX: transform.x, 
-        initialY: transform.y,
+        initialY: transform.y, 
         initialDistance: 0
       };
     } else if (touches.length === 2) { // Pinch
@@ -170,11 +159,14 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
         const scaleDelta = newDistance / interactionStartRef.current.initialDistance;
         const newScale = transform.scale * scaleDelta;
         
-        // Pinch zoom usually centers on the midpoint of touches, 
-        // but clamping logic handles the bounds. 
-        // Simplified to center zoom for stability.
+        const rect = containerRef.current.getBoundingClientRect();
+        const centerX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
+        const centerY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
         
-        applyTransform({ ...transform, scale: newScale });
+        const newX = centerX - (centerX - transform.x) * scaleDelta;
+        const newY = centerY - (centerY - transform.y) * scaleDelta;
+
+        applyTransform({ scale: newScale, x: newX, y: newY });
         interactionStartRef.current.initialDistance = newDistance; // Update for next move
     }
   }, [isInteracting, transform, applyTransform]);
@@ -182,12 +174,21 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
 
   // --- CONTROLS ---
   const manualZoom = (direction: 'in' | 'out') => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
     const scaleDelta = direction === 'in' ? 1 + ZOOM_SPEED * 2 : 1 - ZOOM_SPEED * 2;
     const newScale = transform.scale * scaleDelta;
-    applyTransform({ ...transform, scale: newScale });
+    
+    const newX = centerX - (centerX - transform.x) * (newScale / transform.scale);
+    const newY = centerY - (centerY - transform.y) * (newScale / transform.scale);
+    
+    applyTransform({ scale: newScale, x: newX, y: newY });
   };
 
   const resetTransform = useCallback(() => {
+    // A scale of 1 will be centered by applyTransform
     applyTransform({ scale: 1, x: 0, y: 0 });
   }, [applyTransform]);
 
@@ -288,11 +289,11 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
               maxHeight: '100%',
               width: 'auto',
               height: 'auto',
-              objectFit: 'contain',
+              objectFit: 'contain', // Ensure whole object is visible
               display: 'block',
               cursor: isInteracting ? 'grabbing' : 'grab',
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-              transition: isInteracting ? 'none' : 'transform 0.1s ease-out',
+              transition: 'transform 0.1s ease-out',
               transformOrigin: 'center center'
           }}
       />
@@ -304,11 +305,11 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
             </div>
         ) : (
           <>
-            <button onClick={() => manualZoom('in')} className="p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Aproximar"><ZoomInIcon /></button>
-            <button onClick={() => manualZoom('out')} className="p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Afastar"><ZoomOutIcon /></button>
-            <button onClick={resetTransform} className="p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Resetar Zoom"><ResetZoomIcon /></button>
+            <button onClick={() => manualZoom('in')} className="p-3 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Aproximar"><ZoomInIcon /></button>
+            <button onClick={() => manualZoom('out')} className="p-3 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Afastar"><ZoomOutIcon /></button>
+            <button onClick={resetTransform} className="p-3 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Resetar Zoom"><ResetZoomIcon /></button>
             <div className="relative">
-                <button onClick={() => setShowShareMenu(prev => !prev)} className="p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Compartilhar"><ShareIcon /></button>
+                <button onClick={() => setShowShareMenu(prev => !prev)} className="p-3 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Compartilhar"><ShareIcon /></button>
                 {showShareMenu && (
                     <div className="absolute bottom-full right-0 mb-2 w-48 bg-[#2d2424] border border-[#4a4040] rounded-lg shadow-lg p-2 flex flex-col gap-1 animate-fadeInUp" style={{ animationDuration: '0.2s'}}>
                         <button onClick={handleWhatsappShare} className="w-full flex items-center gap-3 text-left p-2 rounded text-green-400 hover:bg-[#3e3535] transition">

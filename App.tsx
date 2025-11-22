@@ -21,6 +21,7 @@ import { LayoutEditor } from './components/LayoutEditor';
 import { NewViewGenerator } from './components/NewViewGenerator';
 import { ManagementDashboard } from './components/ManagementDashboard';
 import { DistributorPortal } from './components/DistributorPortal';
+import { DistributorAdmin } from './components/DistributorAdmin'; // Import Admin component
 import { NotificationSystem } from './components/NotificationSystem'; 
 import { CommissionWallet } from './components/CommissionWallet'; 
 import { ImageProjectGenerator } from './components/ImageProjectGenerator';
@@ -40,8 +41,8 @@ interface AppProps {
   userPlan: string;
 }
 
-// ... (Keep StyleSuggestionsModal, FinishSuggestionsModal, ToolButton, framingOptions as they are)
-// Re-including simple Modal components to ensure context integrity if previously defined in App.tsx
+// ... (StyleSuggestionsModal, FinishSuggestionsModal, ToolButton, framingOptions)
+// Keeping these definitions to ensure file integrity, same as previous version.
 interface StyleSuggestionsModalProps {
     isOpen: boolean;
     isLoading: boolean;
@@ -138,7 +139,7 @@ const ToolButton: React.FC<{ icon: React.ReactNode; label: string; onClick: () =
 );
 
 const framingOptions = [
-    { label: 'Padrão (Sem Cortes)', value: 'ATENÇÃO CRÍTICA AO ENQUADRAMENTO: Renderize o projeto 3D centralizado, aplicando um ZOOM OUT (afastamento da câmera) para garantir margens de segurança (padding) generosas em todas as 4 bordas. O objeto deve "flutuar" no centro da imagem. É ESTRITAMENTE PROIBIDO cortar qualquer extremidade do móvel ou do ambiente. O foco é a totalidade do projeto.' },
+    { label: 'Padrão (Sem Cortes)', value: 'OTIMIZAÇÃO PARA CELULAR/TABLET: Renderize o objeto centralizado com um "Zoom Out" estratégico. Deixe margens de segurança (padding) de pelo menos 15% em todas as laterais para garantir que nada seja cortado em telas verticais ou horizontais. O móvel deve estar flutuando no centro, totalmente visível do topo à base.' },
     { label: 'Grande Angular (Tudo Visível)', value: 'Gere uma imagem 3D do projeto, ajustando o enquadramento para que todo o espaço fique visível, inclusive as paredes, teto e piso.' },
     { label: 'Horizontal (Panorâmico)', value: 'Mostre o móvel ou ambiente completamente, em formato horizontal, detalhando todas as laterais e evitando cortes nos extremos.' },
     { label: 'Social Media (Proporção)', value: 'Crie uma visualização 3D centralizada e com proporção adequada ao quadro, pronta para compartilhamento nas redes sociais.' },
@@ -153,17 +154,10 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   
   // SUPER ADMIN LOGIC
   const isSuperAdmin = userEmail.toLowerCase() === 'evaldo0510@gmail.com';
-  
-  // Determine effective plan and role
-  const effectivePlan = isSuperAdmin ? 'business' : userPlan; // 'business' gives max access
-  
-  // User Role Logic (Partner vs Carpenter)
-  // We assume this was passed via login or derived. For this demo, if plan is 'partner', it's a partner.
-  // If super admin, they have 'all' access.
+  const effectivePlan = isSuperAdmin ? 'business' : userPlan;
   const isPartner = userPlan === 'partner' || isSuperAdmin;
   const isCarpenter = userPlan !== 'partner' || isSuperAdmin;
 
-  // Main Input States
   const [description, setDescription] = useState('');
   const [stylePreset, setStylePreset] = useState('Moderno');
   const [framingStrategy, setFramingStrategy] = useState(framingOptions[0].value);
@@ -173,19 +167,15 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [withLedLighting, setWithLedLighting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // Quality & Resolution States
   const [qualityMode, setQualityMode] = useState<'standard' | 'pro'>('standard');
   const [imageResolution, setImageResolution] = useState<'1K' | '2K' | '4K'>('1K');
 
-  // Mobile Tab State
   const [mobileTab, setMobileTab] = useState<'create' | 'result'>('create');
 
-  // Data State
   const [history, setHistory] = useState<ProjectHistoryItem[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [favoriteFinishes, setFavoriteFinishes] = useState<Finish[]>([]);
 
-  // Modal States
   const [modals, setModals] = useState({
       research: false,
       live: false,
@@ -204,7 +194,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       newView: false,
       management: false,
       partnerPortal: false,
-      admin: false,
       wallet: false,
       notifications: false,
       projectGenerator: false,
@@ -218,7 +207,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const descriptionTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const [currentProject, setCurrentProject] = useState<ProjectHistoryItem | null>(null);
 
-  // Effects
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
@@ -243,7 +231,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const toggleModal = (key: keyof typeof modals, value: boolean) => setModals(prev => ({ ...prev, [key]: value }));
 
   const loadDemoProject = () => {
-      // Generate a demo floor plan image
       const demoFloorPlan = createDemoFloorPlanBase64();
       const base64Data = demoFloorPlan.split(',')[1];
       const mimeType = 'image/png';
@@ -260,14 +247,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       showAlert("Exemplo carregado! A planta baixa foi anexada. Ao clicar em 'GERAR PROJETO 3D', a IA analisará o desenho (medidas, portas, janelas) e criará o ambiente 3D sobre ele.", "Demo com Análise de Visão");
   };
 
-  // Handlers
+  // Handlers (generate, view, suggestions etc. same as before)
   const handleGenerateProject = async () => {
       if (!description.trim()) return showAlert("Por favor, descreva seu projeto.", "Falta Descrição");
       setIsGenerating(true);
       try {
-          // Simplify prompt construction - User description is the single source of truth
           let fullPrompt = `PROJETO SOLICITADO: ${description}`;
-
           fullPrompt += `\n\nDETALHES TÉCNICOS:`;
           fullPrompt += `\n- Estilo Visual: ${stylePreset}`;
           
@@ -275,12 +260,10 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
               fullPrompt += `\n- Acabamento Principal: ${selectedFinish.finish.name} (${selectedFinish.manufacturer})`;
               if (selectedFinish.handleDetails) fullPrompt += `\n- Detalhes/Puxadores: ${selectedFinish.handleDetails}`;
           }
-          
           if (withLedLighting) {
               fullPrompt += `\n- Iluminação: Incluir iluminação LED para valorizar o móvel.`;
           }
 
-          // Use Pro Model if selected, passing resolution
           const usePro = qualityMode === 'pro';
           const imageBase64 = await generateImage(fullPrompt, uploadedImages, framingStrategy, usePro, imageResolution);
           
@@ -299,14 +282,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           const updatedHistory = await addProjectToHistory(projectData);
           setHistory(updatedHistory);
           setCurrentProject(updatedHistory[0]); 
-          
-          // Switch to result tab on mobile
           setMobileTab('result');
           
       } catch (e: any) {
           console.error(e);
           const errorMsg = e.message || JSON.stringify(e);
-          if (errorMsg.includes('403') || errorMsg.includes('PERMISSION_DENIED') || errorMsg.includes('The caller does not have permission')) {
+          if (errorMsg.includes('403') || errorMsg.includes('PERMISSION_DENIED')) {
                if ((window as any).aistudio?.openSelectKey) {
                    await (window as any).aistudio.openSelectKey();
                    showAlert("Permissão atualizada. Por favor, tente gerar o projeto novamente.", "Acesso");
@@ -338,7 +319,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     } else {
         setUploadedImages(null);
     }
-
     toggleModal('history', false);
   };
 
@@ -368,7 +348,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
   const handleOpenLayoutEditor = async () => {
     if (!currentProject) return;
-
     if (!currentProject.image2d) {
         if (!confirm("Gerar planta baixa agora?")) return;
         setIsGenerating(true);
@@ -408,10 +387,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       <Header 
         userEmail={userEmail} 
         isAdmin={isSuperAdmin || effectivePlan === 'business'}
-        // Permission Logic for Header Buttons
         isPartner={isPartner}
         isCarpenter={isCarpenter}
-        
         onOpenResearch={() => toggleModal('research', true)}
         onOpenLive={() => toggleModal('live', true)}
         onOpenDistributors={() => toggleModal('distributors', true)}
@@ -440,38 +417,21 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
       {/* Mobile Tab Switcher */}
       <div className="lg:hidden flex sticky top-20 z-20 bg-[#f5f1e8] dark:bg-[#2d2424] border-b border-[#e6ddcd] dark:border-[#4a4040]">
-          <button 
-            onClick={() => setMobileTab('create')} 
-            className={`flex-1 py-3 font-bold text-sm border-b-2 ${mobileTab === 'create' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e]' : 'border-transparent text-gray-500'}`}
-          >
-            1. Criar Projeto
-          </button>
-          <button 
-            onClick={() => setMobileTab('result')} 
-            className={`flex-1 py-3 font-bold text-sm border-b-2 ${mobileTab === 'result' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e]' : 'border-transparent text-gray-500'}`}
-          >
-            2. Resultado 3D
-          </button>
+          <button onClick={() => setMobileTab('create')} className={`flex-1 py-3 font-bold text-sm border-b-2 ${mobileTab === 'create' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e]' : 'border-transparent text-gray-500'}`}>1. Criar Projeto</button>
+          <button onClick={() => setMobileTab('result')} className={`flex-1 py-3 font-bold text-sm border-b-2 ${mobileTab === 'result' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e]' : 'border-transparent text-gray-500'}`}>2. Resultado 3D</button>
       </div>
 
       <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
             {/* Left Column: Inputs (Creation) */}
             <div className={`${mobileTab === 'create' ? 'block' : 'hidden'} lg:block space-y-6 animate-fadeIn`}>
-                
                 {/* Descrição */}
                 <section className="bg-white dark:bg-[#3e3535] p-5 rounded-2xl shadow-sm border border-[#e6ddcd] dark:border-[#4a4040]">
                     <div className="flex justify-between items-center mb-3">
                         <h2 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
                             <BookIcon className="w-5 h-5"/> O que vamos criar hoje?
                         </h2>
-                        <button 
-                            onClick={loadDemoProject}
-                            className="text-xs font-bold text-[#d4ac6e] hover:text-[#c89f5e] bg-[#f0e9dc] dark:bg-[#4a4040] px-3 py-1 rounded-full transition"
-                        >
-                            Exemplo c/ Planta
-                        </button>
+                        <button onClick={loadDemoProject} className="text-xs font-bold text-[#d4ac6e] hover:text-[#c89f5e] bg-[#f0e9dc] dark:bg-[#4a4040] px-3 py-1 rounded-full transition">Exemplo c/ Planta</button>
                     </div>
                     <div className="relative">
                         <textarea
@@ -496,11 +456,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         <h2 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
                             <SparklesIcon className="w-5 h-5"/> Estilo do Projeto
                         </h2>
-                        <button 
-                            onClick={handleGetStyleSuggestions} 
-                            className="p-2 bg-[#f0e9dc] dark:bg-[#2d2424] rounded-lg hover:bg-[#e6ddcd] dark:hover:bg-[#4a4040] text-[#d4ac6e] transition"
-                            title="Sugira estilos de projeto"
-                        >
+                        <button onClick={handleGetStyleSuggestions} className="p-2 bg-[#f0e9dc] dark:bg-[#2d2424] rounded-lg hover:bg-[#e6ddcd] dark:hover:bg-[#4a4040] text-[#d4ac6e] transition" title="Sugira estilos de projeto">
                             <WandIcon className="w-4 h-4" />
                         </button>
                     </div>
@@ -508,11 +464,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div className="col-span-2 md:col-span-1">
                             <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] block mb-1">Estilo Visual</label>
-                            <select 
-                                value={stylePreset} 
-                                onChange={(e) => setStylePreset(e.target.value)}
-                                className="w-full p-3 rounded-xl bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-medium"
-                            >
+                            <select value={stylePreset} onChange={(e) => setStylePreset(e.target.value)} className="w-full p-3 rounded-xl bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-medium">
                                 {availableStyles.map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
                         </div>
@@ -521,14 +473,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                             <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] flex items-center gap-1 mb-1">
                                 <VideoCameraIcon className="w-3 h-3" /> Enquadramento
                             </label>
-                            <select 
-                                value={framingStrategy} 
-                                onChange={(e) => setFramingStrategy(e.target.value)}
-                                className="w-full p-3 rounded-xl bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-medium text-sm"
-                            >
-                                {framingOptions.map(option => (
-                                    <option key={option.label} value={option.value}>{option.label}</option>
-                                ))}
+                            <select value={framingStrategy} onChange={(e) => setFramingStrategy(e.target.value)} className="w-full p-3 rounded-xl bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-medium text-sm">
+                                {framingOptions.map(option => (<option key={option.label} value={option.value}>{option.label}</option>))}
                             </select>
                             <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 px-1">✅ O modo padrão centraliza o objeto e aplica margens para evitar cortes.</p>
                         </div>
@@ -549,28 +495,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         <div className="flex-1">
                             <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] block mb-1">Motor de Renderização</label>
                             <div className="flex bg-[#f0e9dc] dark:bg-[#2d2424] rounded-lg p-1">
-                                <button 
-                                    onClick={() => setQualityMode('standard')}
-                                    className={`flex-1 py-2 text-xs font-bold rounded-md transition ${qualityMode === 'standard' ? 'bg-white dark:bg-[#4a4040] shadow text-[#3e3535] dark:text-white' : 'text-gray-500'}`}
-                                >
-                                    Rápido (Flash)
-                                </button>
-                                <button 
-                                    onClick={() => setQualityMode('pro')}
-                                    className={`flex-1 py-2 text-xs font-bold rounded-md transition flex items-center justify-center gap-1 ${qualityMode === 'pro' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow' : 'text-gray-500'}`}
-                                >
-                                    Pro (Realista)
-                                </button>
+                                <button onClick={() => setQualityMode('standard')} className={`flex-1 py-2 text-xs font-bold rounded-md transition ${qualityMode === 'standard' ? 'bg-white dark:bg-[#4a4040] shadow text-[#3e3535] dark:text-white' : 'text-gray-500'}`}>Rápido (Flash)</button>
+                                <button onClick={() => setQualityMode('pro')} className={`flex-1 py-2 text-xs font-bold rounded-md transition flex items-center justify-center gap-1 ${qualityMode === 'pro' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow' : 'text-gray-500'}`}>Pro (Realista)</button>
                             </div>
                         </div>
                         {qualityMode === 'pro' && (
                             <div className="flex-1 animate-fadeIn">
                                 <label className="text-xs text-xs text-[#8a7e7e] dark:text-[#a89d8d] block mb-1">Resolução</label>
-                                <select 
-                                    value={imageResolution}
-                                    onChange={(e) => setImageResolution(e.target.value as '1K' | '2K' | '4K')}
-                                    className="w-full p-2 rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-bold text-sm"
-                                >
+                                <select value={imageResolution} onChange={(e) => setImageResolution(e.target.value as '1K' | '2K' | '4K')} className="w-full p-2 rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-bold text-sm">
                                     <option value="1K">1K (HD)</option>
                                     <option value="2K">2K (Full HD)</option>
                                     <option value="4K">4K (Ultra HD)</option>
@@ -627,23 +559,20 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             <div className={`${mobileTab === 'result' ? 'block' : 'hidden'} lg:block space-y-6 animate-fadeIn`}>
                 {currentProject ? (
                     <div className="bg-white dark:bg-[#3e3535] rounded-2xl shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] overflow-hidden sticky top-24">
-                        {/* 3D View */}
-                        <div className="relative aspect-[4/3] md:aspect-video bg-gray-100 dark:bg-[#2d2424]">
+                        {/* 3D View - Optimised Container */}
+                        <div className="relative w-full h-[60vh] lg:h-auto lg:aspect-video bg-neutral-900">
                             <InteractiveImageViewer 
                                 src={currentProject.views3d[0]} 
                                 alt={currentProject.name} 
                                 projectName={currentProject.name}
-                                className="w-full h-full bg-neutral-900 relative overflow-hidden touch-none"
+                                className="w-full h-full bg-neutral-900 relative overflow-hidden touch-none rounded-t-2xl"
                             />
-                            
-                            {/* Overlays */}
-                            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold pointer-events-none">
+                            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold pointer-events-none z-20">
                                 {currentProject.style}
                             </div>
-                            
-                            <div className="absolute bottom-4 left-4 flex gap-2">
-                                <button onClick={() => toggleModal('ar', true)} className="bg-white/90 text-[#3e3535] p-2 rounded-full shadow-lg hover:bg-white transition" title="Realidade Aumentada"><CubeIcon /></button>
-                                <button onClick={() => toggleModal('newView', true)} className="bg-[#d4ac6e] text-[#3e3535] p-2 rounded-full shadow-lg hover:bg-[#c89f5e] transition" title="Nova Vista"><WandIcon /></button>
+                            <div className="absolute bottom-4 left-4 flex gap-2 z-20">
+                                <button onClick={() => toggleModal('ar', true)} className="bg-white/90 text-[#3e3535] p-3 rounded-full shadow-lg hover:bg-white transition" title="Realidade Aumentada"><CubeIcon className="w-6 h-6" /></button>
+                                <button onClick={() => toggleModal('newView', true)} className="bg-[#d4ac6e] text-[#3e3535] p-3 rounded-full shadow-lg hover:bg-[#c89f5e] transition" title="Nova Vista"><WandIcon className="w-6 h-6" /></button>
                             </div>
                         </div>
                         
@@ -679,12 +608,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         </div>
                         <h3 className="text-lg font-bold mb-2">Visualize seu projeto aqui</h3>
                         <p className="text-sm max-w-xs">Preencha os detalhes na aba "Criar Projeto" e a mágica acontecerá nesta tela.</p>
-                        <button 
-                            onClick={() => setMobileTab('create')} 
-                            className="mt-6 lg:hidden text-[#d4ac6e] font-bold underline"
-                        >
-                            Ir para Criação
-                        </button>
+                        <button onClick={() => setMobileTab('create')} className="mt-6 lg:hidden text-[#d4ac6e] font-bold underline">Ir para Criação</button>
                     </div>
                 )}
             </div>
@@ -693,57 +617,13 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
       {/* Modals */}
       <AlertModal state={alert} onClose={closeAlert} />
-      
-      <StyleSuggestionsModal
-        isOpen={styleSuggestions.isOpen}
-        isLoading={styleSuggestions.isLoading}
-        suggestions={styleSuggestions.suggestions}
-        onClose={() => setStyleSuggestions({ ...styleSuggestions, isOpen: false })}
-        onSelectStyle={(style) => {
-            setAvailableStyles(prev => prev.includes(style) ? prev : [style, ...prev]);
-            setStylePreset(style);
-            setStyleSuggestions({ ...styleSuggestions, isOpen: false });
-            showAlert(`Estilo "${style}" aplicado!`, "Estilo Definido");
-        }}
-      />
-
-      <FinishSuggestionsModal
-        isOpen={finishSuggestions.isOpen}
-        isLoading={finishSuggestions.isLoading}
-        suggestions={finishSuggestions.suggestions}
-        onClose={() => setFinishSuggestions({ ...finishSuggestions, isOpen: false })}
-        onSelectFinish={(finish) => {
-            setSelectedFinish({ manufacturer: finish.manufacturer, finish, handleDetails: finish.type === 'solid' ? 'Puxador Cava' : undefined });
-            setFinishSuggestions({ ...finishSuggestions, isOpen: false });
-            showAlert(`Acabamento "${finish.name}" aplicado!`, "Acabamento Definido");
-        }}
-      />
-
+      <StyleSuggestionsModal isOpen={styleSuggestions.isOpen} isLoading={styleSuggestions.isLoading} suggestions={styleSuggestions.suggestions} onClose={() => setStyleSuggestions({ ...styleSuggestions, isOpen: false })} onSelectStyle={(style) => { setAvailableStyles(prev => prev.includes(style) ? prev : [style, ...prev]); setStylePreset(style); setStyleSuggestions({ ...styleSuggestions, isOpen: false }); showAlert(`Estilo "${style}" aplicado!`, "Estilo Definido"); }} />
+      <FinishSuggestionsModal isOpen={finishSuggestions.isOpen} isLoading={finishSuggestions.isLoading} suggestions={finishSuggestions.suggestions} onClose={() => setFinishSuggestions({ ...finishSuggestions, isOpen: false })} onSelectFinish={(finish) => { setSelectedFinish({ manufacturer: finish.manufacturer, finish, handleDetails: finish.type === 'solid' ? 'Puxador Cava' : undefined }); setFinishSuggestions({ ...finishSuggestions, isOpen: false }); showAlert(`Acabamento "${finish.name}" aplicado!`, "Acabamento Definido"); }} />
       <ResearchAssistant isOpen={modals.research} onClose={() => toggleModal('research', false)} showAlert={showAlert} />
       <LiveAssistant isOpen={modals.live} onClose={() => toggleModal('live', false)} showAlert={showAlert} />
       <DistributorFinder isOpen={modals.distributors} onClose={() => toggleModal('distributors', false)} showAlert={showAlert} />
-      <HistoryPanel 
-        isOpen={modals.history} 
-        onClose={() => toggleModal('history', false)} 
-        history={history}
-        onViewProject={handleViewProject}
-        onAddNewView={(id) => { 
-            const p = history.find(h => h.id === id); 
-            if(p) { setCurrentProject(p); toggleModal('newView', true); }
-        }}
-        onDeleteProject={async (id) => {
-            setHistory(await removeProjectFromHistory(id));
-        }}
-      />
-      <ClientPanel 
-        isOpen={modals.clients} 
-        onClose={() => toggleModal('clients', false)} 
-        clients={clients}
-        projects={history}
-        onSaveClient={async (c) => setClients(await saveClient(c))}
-        onDeleteClient={async (id) => setClients(await removeClient(id))}
-        onViewProject={(p) => { setCurrentProject(p); toggleModal('clients', false); toggleModal('proposal', true); }}
-      />
+      <HistoryPanel isOpen={modals.history} onClose={() => toggleModal('history', false)} history={history} onViewProject={handleViewProject} onAddNewView={(id) => { const p = history.find(h => h.id === id); if(p) { setCurrentProject(p); toggleModal('newView', true); }}} onDeleteProject={async (id) => { setHistory(await removeProjectFromHistory(id)); }} />
+      <ClientPanel isOpen={modals.clients} onClose={() => toggleModal('clients', false)} clients={clients} projects={history} onSaveClient={async (c) => setClients(await saveClient(c))} onDeleteClient={async (id) => setClients(await removeClient(id))} onViewProject={(p) => { setCurrentProject(p); toggleModal('clients', false); toggleModal('proposal', true); }} />
       <AboutModal isOpen={modals.about} onClose={() => toggleModal('about', false)} />
       <BomGeneratorModal isOpen={modals.bom} onClose={() => toggleModal('bom', false)} showAlert={showAlert} />
       <CuttingPlanGeneratorModal isOpen={modals.cutting} onClose={() => toggleModal('cutting', false)} showAlert={showAlert} />
@@ -751,66 +631,42 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       <EncontraProModal isOpen={modals.encontraPro} onClose={() => toggleModal('encontraPro', false)} showAlert={showAlert} />
       <ARViewer isOpen={modals.ar} onClose={() => toggleModal('ar', false)} imageSrc={currentProject?.views3d[0] || ''} showAlert={showAlert} />
       <ManagementDashboard isOpen={modals.management} onClose={() => toggleModal('management', false)} />
-      <DistributorPortal isOpen={modals.partnerPortal} onClose={() => toggleModal('partnerPortal', false)} />
-      <ImageProjectGenerator isOpen={modals.projectGenerator} onClose={() => toggleModal('projectGenerator', false)} showAlert={showAlert} />
       <StoreDashboard isOpen={modals.storeMode} onClose={() => toggleModal('storeMode', false)} /> 
-      {currentProject && <ImageEditor isOpen={modals.imageEditor} imageSrc={currentProject.views3d[0]} projectDescription={currentProject.description} onClose={() => toggleModal('imageEditor', false)} onSave={async (newImage) => {
-          const newViewUrl = `data:image/png;base64,${newImage}`;
-          const updatedViews = [...currentProject.views3d, newViewUrl];
-          await updateProjectInHistory(currentProject.id, { views3d: updatedViews });
-          setHistory(await getHistory());
-          toggleModal('imageEditor', false);
-          showAlert("Edição salva como nova vista!");
-      }} showAlert={showAlert} />}
+      <ImageProjectGenerator isOpen={modals.projectGenerator} onClose={() => toggleModal('projectGenerator', false)} showAlert={showAlert} />
       
-      {/* Notifications & Wallet Modals Wrapper */}
-        {modals.notifications && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => toggleModal('notifications', false)}>
-                <div onClick={e => e.stopPropagation()}>
-                    <NotificationSystem />
-                </div>
-            </div>
-        )}
-        {modals.wallet && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => toggleModal('wallet', false)}>
-                <div className="w-full max-w-4xl bg-[#f5f1e8] dark:bg-[#2d2424] p-6 rounded-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold dark:text-white">Minha Carteira</h2>
-                        <button onClick={() => toggleModal('wallet', false)} className="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+      {/* Conditionally render Distributor Portal or Admin based on User Role */}
+      {isSuperAdmin ? (
+          // Reuse DistributorPortal modal container but render Admin Content inside for Super Admin convenience
+          // Or ideally have separate modals. Here we hijack the portal modal for admin if user is super admin
+          modals.partnerPortal && (
+            <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => toggleModal('partnerPortal', false)}>
+                <div className="w-full h-full bg-[#f5f1e8] dark:bg-[#2d2424] rounded-lg overflow-hidden" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center p-4 bg-white dark:bg-[#3e3535] border-b border-gray-200 dark:border-[#4a4040]">
+                        <h2 className="text-xl font-bold text-[#b99256]">Administração de Parceiros (Super Admin)</h2>
+                        <button onClick={() => toggleModal('partnerPortal', false)} className="text-gray-500 text-2xl">&times;</button>
                     </div>
-                    <CommissionWallet />
+                    <div className="h-[calc(100%-60px)] overflow-hidden">
+                        <DistributorAdmin />
+                    </div>
                 </div>
             </div>
-        )}
-
-      
-      {currentProject && (
-        <>
-            <ProposalModal 
-                isOpen={modals.proposal} 
-                onClose={() => toggleModal('proposal', false)} 
-                project={currentProject} 
-                client={clients.find(c => c.id === currentProject.clientId)}
-                showAlert={showAlert}
-            />
-            <NewViewGenerator 
-                isOpen={modals.newView} 
-                project={currentProject} 
-                onClose={() => toggleModal('newView', false)} 
-                onSaveComplete={async () => setHistory(await getHistory())} 
-                showAlert={showAlert} 
-            />
-            <LayoutEditor 
-                isOpen={modals.layoutEditor}
-                floorPlanSrc={currentProject.image2d || ''}
-                projectDescription={currentProject.description}
-                onClose={() => toggleModal('layoutEditor', false)}
-                onSave={handleSaveLayout}
-                showAlert={showAlert}
-            />
-        </>
+          )
+      ) : (
+          <DistributorPortal isOpen={modals.partnerPortal} onClose={() => toggleModal('partnerPortal', false)} />
       )}
 
+      {currentProject && <ImageEditor isOpen={modals.imageEditor} imageSrc={currentProject.views3d[0]} projectDescription={currentProject.description} onClose={() => toggleModal('imageEditor', false)} onSave={async (newImage) => { const newViewUrl = `data:image/png;base64,${newImage}`; const updatedViews = [...currentProject.views3d, newViewUrl]; await updateProjectInHistory(currentProject.id, { views3d: updatedViews }); setHistory(await getHistory()); toggleModal('imageEditor', false); showAlert("Edição salva como nova vista!"); }} showAlert={showAlert} />}
+      
+      {modals.notifications && (<div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => toggleModal('notifications', false)}><div onClick={e => e.stopPropagation()}><NotificationSystem /></div></div>)}
+      {modals.wallet && (<div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => toggleModal('wallet', false)}><div className="w-full max-w-4xl bg-[#f5f1e8] dark:bg-[#2d2424] p-6 rounded-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}><div className="flex justify-between items-center mb-4"><h2 className="text-xl font-bold dark:text-white">Minha Carteira</h2><button onClick={() => toggleModal('wallet', false)} className="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div><CommissionWallet /></div></div>)}
+
+      {currentProject && (
+        <>
+            <ProposalModal isOpen={modals.proposal} onClose={() => toggleModal('proposal', false)} project={currentProject} client={clients.find(c => c.id === currentProject.clientId)} showAlert={showAlert} />
+            <NewViewGenerator isOpen={modals.newView} project={currentProject} onClose={() => toggleModal('newView', false)} onSaveComplete={async () => setHistory(await getHistory())} showAlert={showAlert} />
+            <LayoutEditor isOpen={modals.layoutEditor} floorPlanSrc={currentProject.image2d || ''} projectDescription={currentProject.description} onClose={() => toggleModal('layoutEditor', false)} onSave={handleSaveLayout} showAlert={showAlert} />
+        </>
+      )}
     </div>
   );
 };
