@@ -1,11 +1,28 @@
 
-import { GoogleGenAI, Type, Modality } from "@google/genai";
+import { GoogleGenAI, Type, Modality, GenerateContentResponse } from "@google/genai";
 import type { ProjectHistoryItem, ProjectLead, Finish } from '../types';
 
 // Helper to get a fresh AI client instance
 const getAiClient = () => {
     return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
+
+// Helper for retrying operations with exponential backoff
+async function retryOperation<T>(operation: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+    try {
+        return await operation();
+    } catch (error: any) {
+        if (retries > 0) {
+            const isNetworkError = error.message?.includes('xhr') || error.message?.includes('fetch') || error.message?.includes('500') || error.status === 500;
+            if (isNetworkError) {
+                console.warn(`Retrying operation... attempts left: ${retries}. Error: ${error.message}`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return retryOperation(operation, retries - 1, delay * 2);
+            }
+        }
+        throw error;
+    }
+}
 
 // Helper to create GenerativePart from base64
 export const fileToGenerativePart = (data: string, mimeType: string) => {
@@ -39,8 +56,8 @@ export async function generateImage(
     prompt: string, 
     referenceImages?: { data: string, mimeType: string }[] | null, 
     framingStrategy?: string,
-    useProModel: boolean = true, // Changed default to true
-    imageResolution: '1K' | '2K' | '4K' = '2K', // Changed default to 2K
+    useProModel: boolean = false,
+    imageResolution: '1K' | '2K' | '4K' = '1K',
     decorationLevel: 'minimal' | 'standard' | 'rich' = 'standard',
     isMirrored: boolean = false
 ): Promise<string> {
@@ -53,67 +70,93 @@ export async function generateImage(
 
     // Engenharia de prompt para estilo PROMOB/V-Ray com proteção contra alucinações
     let technicalPrompt = `
-    ATUE COMO: Um Arquiteto Sênior e Renderizador 3D Técnico.
+    ATUE COMO: Um Arquiteto e Renderizador 3D Sênior (Expert em Marcenaria).
     
-    MISSÃO CRÍTICA:
-    Gerar uma representação visual EXATA e PRECISA baseada na descrição fornecida.
-    Você NÃO deve ser "criativo" com a estrutura. Você deve ser um "tradutor visual" rigoroso do texto.
+    SUA MISSÃO: 
+    Criar uma imagem 3D fotorrealista que satisfaça RIGOROSAMENTE a solicitação do usuário. 
+    Você deve ignorar instruções padrão se elas contradisserem a descrição específica do usuário.
     
-    DESCRIÇÃO DO PROJETO (LEI ABSOLUTA):
+    SOLICITAÇÃO DO USUÁRIO (MANDATÓRIO):
     "${prompt}"
     
-    DIRETRIZES DE INTEGRIDADE ARQUITETÔNICA (MUITO IMPORTANTE):
-    1. **TOPOLOGIA E CONTAGEM:** Se o texto menciona "3 quartos" e "2 banheiros", a imagem DEVE mostrar essa distribuição ou sugerir fortemente essa escala. Se a descrição for de uma casa inteira (planta completa), gere uma vista **ISOMÉTRICA DE CORTE (3D FLOOR PLAN / CUTAWAY)** ou uma vista aérea angular para que todos os cômodos descritos sejam visíveis. NÃO gere apenas uma sala se o usuário descreveu a casa toda.
-    2. **RESPEITO ÀS MEDIDAS:** Se o texto cita medidas específicas (ex: "21,77m²"), mantenha a proporção visual correta. Não faça o ambiente parecer um salão de baile se ele tem 20m², nem um cubículo.
-    3. **ELEMENTOS ESTRUTURAIS:** Se o texto diz "cozinha aberta" ou "integrada", NÃO coloque paredes dividindo. Se diz "garagem frontal", posicione-a corretamente.
-    
-    DIRETRIZES DE ESTILO E RENDERIZAÇÃO:
-    1. **Estilo Visual:** Fotorrealismo estilo V-Ray / Corona Render. Iluminação natural suave.
-    2. **Materiais:** Texturas PBR de alta fidelidade (madeira, concreto, tecido).
-    3. **Decoração:** ${decorationLevel === 'minimal' ? 'Minimalista, apenas o essencial.' : decorationLevel === 'rich' ? 'Rica em detalhes, humanizada (livros, plantas, objetos de uso diário).' : 'Padrão de mercado imobiliário, equilibrada.'}
+    DIRETRIZES DE EXECUÇÃO:
+    1. **Fidelidade ao Texto:** O que está escrito na "Solicitação do Usuário" é a LEI. Se o usuário pede um armário vermelho, ele deve ser vermelho, independente do estilo.
+    2. **Atenção aos Detalhes:** Verifique cada item pedido (gavetas, portas, espelhos, leds) e garanta que estão presentes.
+    3. **Qualidade Visual:** Renderização V-Ray, texturas 4K, iluminação global realista.
     `;
 
     // --- BLOCO DE ENQUADRAMENTO E CÂMERA (CRÍTICO PARA EVITAR CORTES) ---
     technicalPrompt += `
-    \n**DIRETRIZES DE CÂMERA:**
+    \n**DIRETRIZES OBRIGATÓRIAS DE CÂMERA E ENQUADRAMENTO (ANTI-CORTE):**
     `;
 
     // Injeta a estratégia específica escolhida pelo usuário, se houver
     if (framingStrategy) {
         technicalPrompt += `\n**COMANDO PRIORITÁRIO DE ENQUADRAMENTO:** "${framingStrategy}"\n`;
-    } else {
-        // Estratégia padrão inteligente baseada no texto
+    }
+
+    technicalPrompt += `
+    1. **ZOOM OUT OBRIGATÓRIO:** Afaste a câmera virtual 20% a mais do que você acha necessário. O objeto deve "flutuar" no centro da imagem com espaço sobrando ao redor.
+    2. **ZONA DE SEGURANÇA (SAFE AREA):** Mantenha uma margem vazia (padding) generosa em todas as 4 bordas (topo, base, esquerda, direita). NENHUMA parte do móvel (pés, puxadores, sancas) pode tocar a borda da imagem.
+    3. **LENTE:** Use uma lente **Grande Angular (Wide Angle - 24mm)** para capturar todo o contexto sem distorcer demais.
+    4. **COMPOSIÇÃO:** Centralize o objeto principal matematicamente.
+    5. **RESPONSIVIDADE:** A imagem deve ser legível tanto em telas verticais quanto horizontais, por isso o espaço extra ao redor é vital.
+    6. **VISUALIZAÇÃO VOLUMÉTRICA:** Salvo especificado em contrário, use uma perspectiva levemente rotacionada (3/4 view) para mostrar a profundidade e as laterais do móvel, não apenas a frente chapada.
+    `;
+
+    // --- BLOCO DE DECORAÇÃO INTELIGENTE ---
+    if (decorationLevel !== 'minimal') {
         technicalPrompt += `
-        Se o texto descreve UM ÚNICO MÓVEL: Use câmera frontal ou 3/4, com margem de segurança (padding) ao redor.
-        Se o texto descreve UM CÔMODO: Use lente Grande Angular (24mm) para mostrar o máximo possível.
-        Se o texto descreve UMA CASA INTEIRA/PLANTA: Use vista Isométrica Aérea (Bird's Eye View) ou Corte de Perspectiva para mostrar a distribuição dos cômodos (Quartos, Banheiros, Sala) conforme descrito.
+        \n**DIRETRIZES DE DECORAÇÃO INTELIGENTE (${decorationLevel.toUpperCase()}):**
         `;
+        if (decorationLevel === 'standard') {
+            technicalPrompt += `Adicione elementos de decoração equilibrados que combinem com o estilo do móvel. Inclua 2-3 itens como: plantas, quadros, ou objetos decorativos nas prateleiras.`;
+        } else if (decorationLevel === 'rich') {
+            technicalPrompt += `Crie uma cena totalmente ambientada e decorada ("Lived-in Look"). Adicione tapetes texturizados, iluminação decorativa (abajures, pendentes), livros, plantas volumosas, quadros na parede e objetos de design sobre o móvel. A cena deve parecer pronta para uma revista de arquitetura.`;
+        }
+    } else {
+        technicalPrompt += `\n**DIRETRIZES DE DECORAÇÃO:** Mantenha a cena limpa (Clean). Foco total no móvel, sem objetos decorativos que distraiam.`;
     }
 
     if (referenceImages && referenceImages.length > 0) {
         technicalPrompt += `
         \n**PROTOCOLO DE ANÁLISE DE IMAGEM (GEMINI VISION):**
-        Use a imagem anexa como a VERDADE ABSOLUTA para a geometria (paredes, portas, janelas).
-        1. **Fidelidade:** Mantenha exatamente a posição das paredes e aberturas da imagem.
-        2. **Preenchimento:** Apenas "vista" e "core" o layout existente com os materiais e móveis solicitados no texto.
-        3. **Escala:** Respeite a proporção visual da imagem fornecida.
+        Você recebeu uma imagem de referência (Planta Baixa ou Foto do Local). ANTES DE RENDERIZAR, execute os passos:
+        1. **EXTRAÇÃO DE GEOMETRIA:** Analise as linhas de parede, posição de portas e janelas na imagem. Use isso como o "esqueleto" da cena 3D.
+        2. **ESTIMATIVA DE ESCALA:** Use elementos padrão (portas = 80cm, pé-direito = 2.60m) para inferir as dimensões do ambiente.
+        3. **DISTRIBUIÇÃO DE MÓVEIS:** Se for uma planta baixa, levante as paredes e coloque os móveis solicitados exatamente onde o desenho sugere.
         
         ${isMirrored ? 
         `**⚠️ ALERTA DE ESPELHAMENTO (PLANTA INVERTIDA) ⚠️**
-        O usuário indicou que esta é uma planta invertida.
-        VOCÊ DEVE INVERTER A LÓGICA ESPACIAL HORIZONTALMENTE da imagem de referência.
-        O que está na direita, renderize na esquerda.` 
+        O usuário indicou que esta é uma planta invertida (tipo apartamento espelhado).
+        VOCÊ DEVE INVERTER A LÓGICA ESPACIAL HORIZONTALMENTE:
+        - Se na imagem a parede do armário está à direita, no render 3D coloque-a à ESQUERDA.
+        - Se a janela está na esquerda, mova-a para a DIREITA.
+        - Mantenha as dimensões e estilo, apenas espelhe a posição dos elementos.` 
         : ''}
+
+        4. **ESTILO ARQUITETÔNICO:** Identifique pistas visuais de estilo na imagem e aplique no render final.
+        
+        **IMPORTANTE:** Use a imagem para definir a FORMA/ESPAÇO (considerando o espelhamento se solicitado), e o texto para definir os MATERIAIS/ACABAMENTOS.
         `;
     }
+
+    technicalPrompt += `
+    \n**DIRETRIZES VISUAIS (Fotorrealismo):**
+    1. **Materiais:** Texturas de alta definição. Madeira com veios naturais. Lacas com reflexo correto.
+    2. **Iluminação:** Iluminação Global (GI) suave. Sombras de contato (Ambient Occlusion) para "aterrar" o móvel no chão.
+    3. **Estilo:** Renderização limpa, comercial, pronta para catálogo.
+    4. **Qualidade:** 4K, nítida, sem distorções.
+    `;
 
     // --- BLOCO ESPECÍFICO PARA MODO PRO ---
     if (useProModel) {
         technicalPrompt += `
-        \n**💎 QUALIDADE DE REVISTA (MODO PRO):**
-        - Iluminação Global (GI) perfeita.
-        - Sombras de contato (Ambient Occlusion) profundas.
-        - Reflexos e refrações realistas nos vidros e metais.
+        \n**💎 MODO PRO ATIVADO (Hiper-Realismo):**
+        - **Renderização:** Utilize técnicas de Path Tracing para simular fisicamente a luz.
+        - **Materiais PBR:** As superfícies devem interagir com a luz de forma complexa (rugosidade, especularidade, normal maps).
+        - **Fotografia:** Simule uma lente de câmera profissional (85mm para retratos de móveis ou 24mm para ambientes). Adicione profundidade de campo sutil (Bokeh) se apropriado.
+        - **Atmosfera:** A imagem deve ser indistinguível de uma fotografia real de revista de design (Architectural Digest).
         `;
     }
 
@@ -138,11 +181,11 @@ export async function generateImage(
             };
         }
 
-        const response = await ai.models.generateContent({
+        const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
             model: modelName,
             contents: { parts },
             config: config
-        });
+        }));
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
         
@@ -157,7 +200,25 @@ export async function generateImage(
     }
 }
 
-// ... (Existing functions suggestAlternativeStyles, suggestAlternativeFinishes, searchFinishes, editImage, suggestImageEdits, generateGroundedResponse, editFloorPlan, estimateProjectCosts, generateText, generateCuttingPlan, findProjectLeads, generateProjectBom, generateAssemblyDetails, parseBomToList, findSupplierPrice, generateFloorPlanFrom3D, generate3Dfrom2D) ...
+// Function to describe an image for a 3D project prompt
+export async function describeImageFor3D(base64Data: string, mimeType: string): Promise<string> {
+    const ai = getAiClient();
+    const prompt = `Descreva detalhadamente este móvel da foto para um projeto 3D: destaque o tipo de móvel, as dimensões aproximadas, materiais, estilo, quantidade de portas/gavetas/nichos e qualquer característica visual que se destaca. Formule como um prompt de geração de projeto.`;
+
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: {
+            parts: [
+                fileToGenerativePart(base64Data, mimeType),
+                { text: prompt }
+            ]
+        }
+    }));
+
+    return response.text || "Não foi possível descrever a imagem.";
+}
+
+// ... (Rest of the functions remain mostly the same, but we can wrap heavy ones with retryOperation)
 
 export async function analyzeRoomImage(base64Image: string): Promise<{ roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }> {
     const ai = getAiClient();
@@ -167,14 +228,14 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
     const prompt = `Analise esta imagem de ambiente ou planta baixa como um Arquiteto Sênior.
     
     TAREFAS:
-    1. Identifique o tipo de ambiente (Cozinha, Quarto, Sala, Planta Baixa Completa, etc).
+    1. Identifique o tipo de ambiente (Cozinha, Quarto, Sala, Banheiro, Escritório).
     2. Estime as dimensões (Largura, Profundidade, Altura) baseando-se em padrões arquitetônicos (portas 80cm, janelas 120cm).
     3. Liste os elementos estruturais (paredes, portas, janelas).
     4. **ANÁLISE DE FLUXO:** Identifique mentalmente onde seria o local IDEAL para móveis planejados neste layout.
     
     Retorne JSON: { roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }`;
 
-    const response = await ai.models.generateContent({
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: {
             parts: [
@@ -201,7 +262,7 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
                 }
             }
         }
-    });
+    }));
 
     if (response.text) {
         return cleanAndParseJson(response.text);
@@ -211,21 +272,17 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
 
 export async function generateLayoutSuggestions(roomType: string, dimensions: any, userIntent?: string): Promise<{ title: string, description: string, pros: string }[]> {
     const ai = getAiClient();
-    let prompt = `ATUE COMO: Arquiteto Especialista em Otimização de Espaços.
-    AMBIENTE: "${roomType}"
-    DIMENSÕES APROXIMADAS: ${dimensions.width}m x ${dimensions.depth}m.
+    let prompt = `Para um ambiente do tipo "${roomType}" com dimensões ${dimensions.width}m x ${dimensions.depth}m.`;
     
-    SOLICITAÇÃO DO CLIENTE (PRIORIDADE MÁXIMA):
-    "${userIntent || 'Otimizar o espaço para melhor fluxo e funcionalidade.'}"
-    
-    TAREFA:
-    Com base ESTRITAMENTE na solicitação do cliente acima, sugira 3 layouts de móveis planejados.
-    Se o cliente descreveu uma casa inteira (ex: 3 quartos), sugira distribuições que caibam nessa descrição.
-    Se o cliente descreveu um móvel específico, foque nos detalhes desse móvel.
-    
-    Retorne JSON Array: [{ title, description, pros }]`;
+    if (userIntent) {
+        prompt += `\nCONTEXTO DO USUÁRIO: "${userIntent}".\nIMPORTANTE: Gere sugestões que cubram TODOS os ambientes ou móveis solicitados na descrição acima.`;
+    } else {
+        prompt += `\nSugira 3 layouts de móveis planejados eficientes.`;
+    }
 
-    const response = await ai.models.generateContent({
+    prompt += `\nRetorne JSON Array: [{ title, description, pros }]`;
+
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -242,7 +299,7 @@ export async function generateLayoutSuggestions(roomType: string, dimensions: an
                 }
             }
         }
-    });
+    }));
 
     if (response.text) {
         return cleanAndParseJson(response.text);
@@ -262,7 +319,7 @@ export async function generateDecorationList(projectDescription: string, style: 
     
     Retorne APENAS um JSON Array com objetos: { item, category, estimatedPrice, suggestion }`;
 
-    const response = await ai.models.generateContent({
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -281,7 +338,7 @@ export async function generateDecorationList(projectDescription: string, style: 
                 }
             }
         }
-    });
+    }));
 
     if (response.text) {
         return cleanAndParseJson(response.text);
@@ -309,7 +366,7 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
         parts.push(fileToGenerativePart(data, mimeType));
     }
 
-    const response = await ai.models.generateContent({
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: { parts },
         config: {
@@ -319,7 +376,7 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
                 items: { type: Type.STRING }
             }
         }
-    });
+    }));
     
     if (response.text) {
         return cleanAndParseJson<string[]>(response.text);
@@ -339,7 +396,7 @@ export async function suggestAlternativeFinishes(projectDescription: string, sty
     Retorne JSON array com objetos Finish.
     Type deve ser um de: 'wood', 'solid', 'metal', 'stone', 'glass'.`;
 
-    const response = await ai.models.generateContent({
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -361,7 +418,7 @@ export async function suggestAlternativeFinishes(projectDescription: string, sty
                 }
             }
         }
-    });
+    }));
 
     if (response.text) {
         return cleanAndParseJson<Finish[]>(response.text);
@@ -374,7 +431,7 @@ export async function searchFinishes(query: string): Promise<Finish[]> {
     const prompt = `Sugira 4 acabamentos de marcenaria reais (MDF, pedras, metais) para: "${query}".
     Retorne JSON array.`;
 
-    const response = await ai.models.generateContent({
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -396,7 +453,7 @@ export async function searchFinishes(query: string): Promise<Finish[]> {
                 }
             }
         }
-    });
+    }));
 
     if (response.text) {
         return cleanAndParseJson<Finish[]>(response.text);
@@ -413,7 +470,7 @@ export async function editImage(base64Data: string, mimeType: string, prompt: st
         **REGRA CRÍTICA DE MANUTENÇÃO DE ENQUADRAMENTO:**
         Ao editar, NÃO dê zoom in. Mantenha o enquadramento original ou afaste a câmera (Zoom Out) se necessário para mostrar o objeto inteiro. Mantenha margens de segurança nas bordas.`;
 
-        const response = await ai.models.generateContent({
+        const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash-image', // Explicitly using Flash Image for editing tasks
             contents: {
                 parts: [
@@ -424,7 +481,7 @@ export async function editImage(base64Data: string, mimeType: string, prompt: st
             config: {
                 responseModalities: [Modality.IMAGE]
             }
-        });
+        }));
 
         const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
         if (part && part.inlineData) {
@@ -444,7 +501,7 @@ export async function suggestImageEdits(projectDescription: string, imageSrc: st
 
     const prompt = `Analise esta imagem de projeto. Sugira 4 edições visuais (ex: mudar cor, adicionar luz). Retorne JSON array de strings.`;
 
-    const response = await ai.models.generateContent({
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: {
             parts: [
@@ -459,7 +516,7 @@ export async function suggestImageEdits(projectDescription: string, imageSrc: st
                 items: { type: Type.STRING }
             }
         }
-    });
+    }));
 
     if (response.text) {
         return cleanAndParseJson<string[]>(response.text);
@@ -471,13 +528,13 @@ export async function generateGroundedResponse(prompt: string, location: { latit
     const ai = getAiClient();
     const tools: any[] = [{ googleSearch: {} }];
     
-    const response = await ai.models.generateContent({
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-3-pro-preview', // Using Pro for better reasoning on grounded tasks
         contents: prompt,
         config: {
             tools: tools,
         }
-    });
+    }));
 
     const text = response.text || "Não encontrei informações.";
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
@@ -529,7 +586,7 @@ export async function estimateProjectCosts(project: ProjectHistoryItem): Promise
         parts.push(fileToGenerativePart(data, mimeType));
     }
 
-    const response = await ai.models.generateContent({
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: { parts },
         config: {
@@ -543,7 +600,7 @@ export async function estimateProjectCosts(project: ProjectHistoryItem): Promise
                 required: ['materialCost', 'laborCost']
             }
         }
-    });
+    }));
 
     if (response.text) {
         return cleanAndParseJson<{ materialCost: number, laborCost: number }>(response.text);
@@ -560,10 +617,10 @@ export async function generateText(prompt: string, images?: { data: string, mime
         });
     }
 
-    const response = await ai.models.generateContent({
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-3-pro-preview', // Use Pro for better reasoning on BOMS
         contents: { parts }
-    });
+    }));
 
     return response.text || "Não foi possível gerar o texto.";
 }
@@ -581,10 +638,10 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
     1. Lista de cortes detalhada.
     2. Dicas de otimização (nesting) para economizar chapas.`;
 
-    const textResponse = await ai.models.generateContent({
+    const textResponse = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-3-pro-preview',
         contents: textPrompt
-    });
+    }));
     
     const textPlan = textResponse.text || "Plano não gerado.";
 
@@ -613,11 +670,11 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
 
     let imageBase64 = "";
     try {
-        const imgResponse = await ai.models.generateContent({
+        const imgResponse = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash-image',
             contents: { parts: imgParts },
             config: { responseModalities: [Modality.IMAGE] }
-        });
+        }));
         
         const imgPart = imgResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
         if (imgPart && imgPart.inlineData) {
@@ -637,7 +694,7 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
 export async function findProjectLeads(city: string): Promise<ProjectLead[]> {
     const ai = getAiClient();
     const prompt = `Gere 3 leads fictícios de marcenaria em ${city}. JSON Array.`;
-    const response = await ai.models.generateContent({
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -656,7 +713,7 @@ export async function findProjectLeads(city: string): Promise<ProjectLead[]> {
                 }
             }
         }
-    });
+    }));
 
     if (response.text) {
         return cleanAndParseJson<ProjectLead[]>(response.text);
@@ -676,11 +733,11 @@ export async function parseBomToList(bomText: string): Promise<any[]> {
     const ai = getAiClient();
     // Simplified logic for brevity, assuming same functionality as before
     const prompt = `Extraia itens da BOM para JSON Array [{item, qty, dimensions}]. BOM: ${bomText}`;
-    const response = await ai.models.generateContent({
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: { responseMimeType: 'application/json' }
-    });
+    }));
     if (response.text) return cleanAndParseJson<any[]>(response.text);
     return [];
 }

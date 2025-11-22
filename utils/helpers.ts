@@ -2,14 +2,40 @@
 import type { ProjectHistoryItem } from '../types';
 import type { Blob } from '@google/genai';
 
-export const fileToBase64 = (file: File): Promise<{ full: string; data: string; mimeType: string }> => {
+export const fileToBase64 = (file: File, maxWidth = 1024): Promise<{ full: string; data: string; mimeType: string }> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => {
-      const fullBase64 = reader.result as string;
-      const data = fullBase64.split(',')[1];
-      resolve({ full: fullBase64, data, mimeType: file.type });
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Resize if larger than maxWidth
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            reject(new Error("Could not get canvas context"));
+            return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Use JPEG for compression if not PNG to save space
+        const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        const fullBase64 = canvas.toDataURL(mimeType, 0.85); // 0.85 quality for JPEG
+        const data = fullBase64.split(',')[1];
+        resolve({ full: fullBase64, data, mimeType });
+      };
+      img.onerror = (error) => reject(error);
     };
     reader.onerror = error => reject(error);
   });
