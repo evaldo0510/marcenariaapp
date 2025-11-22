@@ -40,7 +40,7 @@ interface AppProps {
   userPlan: string;
 }
 
-// ... (Keep StyleSuggestionsModal and FinishSuggestionsModal as they are, or optimize if needed. Assuming they are fine for now)
+// ... (Keep StyleSuggestionsModal, FinishSuggestionsModal, ToolButton, framingOptions as they are)
 // Re-including simple Modal components to ensure context integrity if previously defined in App.tsx
 interface StyleSuggestionsModalProps {
     isOpen: boolean;
@@ -151,6 +151,18 @@ const framingOptions = [
 export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   
+  // SUPER ADMIN LOGIC
+  const isSuperAdmin = userEmail.toLowerCase() === 'evaldo0510@gmail.com';
+  
+  // Determine effective plan and role
+  const effectivePlan = isSuperAdmin ? 'business' : userPlan; // 'business' gives max access
+  
+  // User Role Logic (Partner vs Carpenter)
+  // We assume this was passed via login or derived. For this demo, if plan is 'partner', it's a partner.
+  // If super admin, they have 'all' access.
+  const isPartner = userPlan === 'partner' || isSuperAdmin;
+  const isCarpenter = userPlan !== 'partner' || isSuperAdmin;
+
   // Main Input States
   const [description, setDescription] = useState('');
   const [stylePreset, setStylePreset] = useState('Moderno');
@@ -395,7 +407,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     <div className="min-h-screen bg-[#f5f1e8] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] transition-colors duration-300 pb-20 lg:pb-0">
       <Header 
         userEmail={userEmail} 
-        isAdmin={userPlan === 'business'}
+        isAdmin={isSuperAdmin || effectivePlan === 'business'}
+        // Permission Logic for Header Buttons
+        isPartner={isPartner}
+        isCarpenter={isCarpenter}
+        
         onOpenResearch={() => toggleModal('research', true)}
         onOpenLive={() => toggleModal('live', true)}
         onOpenDistributors={() => toggleModal('distributors', true)}

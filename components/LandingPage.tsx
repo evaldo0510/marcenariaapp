@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { LogoIcon, CubeIcon, BlueprintIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, StarIcon, CheckIcon, StoreIcon, ChartBarIcon, HandshakeIcon } from './Shared';
 
 interface LandingPageProps {
-  onLoginSuccess: (email: string) => void;
+  onLoginSuccess: (email: string, role?: 'user' | 'partner') => void;
 }
 
 const plans = [
@@ -156,6 +156,7 @@ const GalleryImage: React.FC<{ src: string; alt: string; title: string }> = ({ s
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
+    const [accountType, setAccountType] = useState<'user' | 'partner'>('user');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const loginRef = useRef<HTMLDivElement>(null);
@@ -167,7 +168,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
 
         setTimeout(() => {
             if (email.trim() && email.includes('@')) {
-                onLoginSuccess(email);
+                onLoginSuccess(email, accountType);
             } else {
                 setError('Por favor, insira um e-mail válido.');
             }
@@ -199,7 +200,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
             </header>
 
             <main>
-                {/* Hero Section */}
+                {/* Hero Section - FIXED IMAGE */}
                 <section className="py-16 md:py-24 px-6 relative overflow-hidden">
                     {/* Background Decoration */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[1000px] bg-gradient-to-b from-[#d4ac6e]/10 to-transparent rounded-full blur-3xl -z-10 pointer-events-none"></div>
@@ -230,8 +231,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         </div>
                         
                         <div className="relative animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
+                            {/* REPLACED WITH HIGH RELIABILITY URL */}
                             <img 
-                                src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80" 
+                                src="https://images.unsplash.com/photo-1631679706909-1844bbd07221?q=80&w=1000&auto=format&fit=crop" 
                                 alt="Cozinha Planejada MarcenApp" 
                                 className="rounded-2xl shadow-2xl border-4 border-white dark:border-[#4a4040] w-full object-cover transform rotate-2 hover:rotate-0 transition-transform duration-500"
                             />
@@ -272,7 +274,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                     </div>
                 </section>
 
-                {/* Project Gallery Section */}
+                {/* Project Gallery Section - FIXED IMAGES */}
                 <section className="py-20 px-6 bg-[#fffefb] dark:bg-[#2d2424]">
                     <div className="max-w-7xl mx-auto">
                         <div className="text-center mb-12">
@@ -281,22 +283,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1556910103-1c02745a30bf?auto=format&fit=crop&w=600&q=80" 
+                                src="https://images.unsplash.com/photo-1556910103-1c02745a30bf?q=80&w=600&auto=format&fit=crop" 
                                 alt="Cozinha Moderna" 
                                 title="Cozinhas" 
                             />
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=600&q=80" 
+                                src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=600&auto=format&fit=crop" 
                                 alt="Sala de Estar" 
                                 title="Salas de Estar" 
                             />
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1616594039964-40891a909d99?auto=format&fit=crop&w=600&q=80" 
+                                src="https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?q=80&w=600&auto=format&fit=crop" 
                                 alt="Dormitório" 
                                 title="Dormitórios" 
                             />
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80" 
+                                src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=600&auto=format&fit=crop" 
                                 alt="Escritório" 
                                 title="Escritórios" 
                             />
@@ -360,7 +362,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                     </div>
                 </section>
                 
-                {/* Login/CTA Section */}
+                {/* Login/CTA Section - UPDATED WITH USER TYPE SELECTOR */}
                 <section id="login" ref={loginRef} className="py-20 px-6 bg-[#fffefb] dark:bg-[#3e3535]">
                     <div className="w-full max-w-md mx-auto">
                         <div className="flex flex-col items-center mb-8">
@@ -369,6 +371,29 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         </div>
                         <div className="bg-[#f5f1e8] dark:bg-[#2d2424] p-8 rounded-2xl border border-[#e6ddcd] dark:border-[#4a4040] shadow-xl">
                             <form onSubmit={handleLogin} className="space-y-6">
+                                {/* Account Type Selector */}
+                                <div>
+                                    <label className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-2">
+                                        Quero ser:
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setAccountType('user')}
+                                            className={`py-2 px-3 rounded-lg text-sm font-bold transition ${accountType === 'user' ? 'bg-[#d4ac6e] text-[#3e3535] shadow-md' : 'bg-white dark:bg-[#3e3535] text-gray-500 border border-[#e6ddcd] dark:border-[#4a4040]'}`}
+                                        >
+                                            Marceneiro
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAccountType('partner')}
+                                            className={`py-2 px-3 rounded-lg text-sm font-bold transition ${accountType === 'partner' ? 'bg-[#3e3535] text-white shadow-md' : 'bg-white dark:bg-[#3e3535] text-gray-500 border border-[#e6ddcd] dark:border-[#4a4040]'}`}
+                                        >
+                                            Parceiro
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <div>
                                     <label htmlFor="email-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-2">
                                         E-mail Profissional
@@ -392,7 +417,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                         disabled={isLoading}
                                         className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-[#3e3535] bg-[#d4ac6e] hover:bg-[#c89f5e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4ac6e] transition disabled:opacity-70"
                                     >
-                                        {isLoading ? 'Criando conta...' : 'Criar Conta Grátis'}
+                                        {isLoading ? 'Criando conta...' : accountType === 'partner' ? 'Criar Conta de Parceiro' : 'Criar Conta Grátis'}
                                     </button>
                                 </div>
                                 <p className="text-xs text-center text-gray-500">Sem necessidade de cartão de crédito para o plano Hobby.</p>

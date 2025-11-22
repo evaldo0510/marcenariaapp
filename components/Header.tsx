@@ -1,10 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, ChartBarIcon, BellIcon, WalletIcon, MagicIcon, CogIcon } from './Shared';
+import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, ChartBarIcon, BellIcon, WalletIcon, MagicIcon, CogIcon, ShieldIcon } from './Shared';
 
 interface HeaderProps {
     userEmail: string;
-    isAdmin: boolean;
+    isAdmin: boolean; // "Business" level or higher
+    isPartner: boolean; // Specific for partner portal
+    isCarpenter: boolean; // Specific for carpentry tools
     onOpenResearch: () => void;
     onOpenLive: () => void;
     onOpenDistributors: () => void;
@@ -24,19 +26,20 @@ interface HeaderProps {
     theme: 'light' | 'dark';
     setTheme: (theme: 'light' | 'dark') => void;
     onOpenManagement: () => void;
-    // New props for Partner features
     onOpenPartnerPortal: () => void;
     onOpenNotifications: () => void;
     onOpenWallet: () => void;
-    // New prop for AI Project Generation
     onOpenProjectGenerator: () => void;
-    // New prop for Store Mode
     onOpenStoreMode: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onLogout, theme, setTheme, onOpenManagement, onOpenPartnerPortal, onOpenNotifications, onOpenWallet, onOpenProjectGenerator, onOpenStoreMode }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+    userEmail, isAdmin, isPartner, isCarpenter,
+    onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onLogout, theme, setTheme, onOpenManagement, onOpenPartnerPortal, onOpenNotifications, onOpenWallet, onOpenProjectGenerator, onOpenStoreMode 
+}) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const isSuperAdmin = userEmail === 'evaldo0510@gmail.com';
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -75,32 +78,39 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                     <div className="flex items-center gap-2">
                         {/* Action icons hidden on small screens */}
                         <nav className="hidden md:flex items-center gap-2">
-                            {/* Partner Shortcuts */}
-                            <button onClick={onOpenNotifications} className="p-2 rounded-full text-[#6a5f5f] dark:text-[#a89d8d] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition-colors relative" title="Notificações">
-                                <BellIcon />
-                                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                            </button>
-                            <button onClick={onOpenWallet} className="p-2 rounded-full text-[#6a5f5f] dark:text-[#a89d8d] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition-colors" title="Minha Carteira">
-                                <WalletIcon />
-                            </button>
                             
-                            <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+                            {/* Partner Shortcuts */}
+                            {isPartner && (
+                                <>
+                                    <button onClick={onOpenNotifications} className="p-2 rounded-full text-[#6a5f5f] dark:text-[#a89d8d] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition-colors relative" title="Notificações">
+                                        <BellIcon />
+                                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                                    </button>
+                                    <button onClick={onOpenWallet} className="p-2 rounded-full text-[#6a5f5f] dark:text-[#a89d8d] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition-colors" title="Minha Carteira">
+                                        <WalletIcon />
+                                    </button>
+                                    <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+                                    <button onClick={onOpenPartnerPortal} className="flex items-center gap-2 bg-[#d4ac6e] text-[#3e3535] font-bold py-2 px-4 rounded-lg hover:bg-[#c89f5e] transition shadow-sm text-sm">
+                                        <UsersIcon className="w-4 h-4"/> Portal Parceiro
+                                    </button>
+                                </>
+                            )}
 
-                            {/* New Store Mode Button */}
-                            <button onClick={onOpenStoreMode} className="flex items-center gap-2 bg-[#3e3535] dark:bg-[#f5f1e8] text-white dark:text-[#3e3535] font-bold py-2 px-3 rounded-lg hover:opacity-90 transition shadow-sm text-sm" title="Mudar para modo Loja de Móveis">
-                                <StoreIcon className="w-4 h-4"/> Modo Loja
-                            </button>
-
-                            {/* New AI Project Button */}
-                            <button onClick={onOpenProjectGenerator} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:opacity-90 transition shadow-sm text-sm">
-                                <MagicIcon className="w-4 h-4"/> Criar com IA
-                            </button>
-
-                            <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-
-                            <button onClick={onOpenManagement} className="flex items-center gap-2 bg-[#d4ac6e] text-[#3e3535] font-bold py-2 px-4 rounded-lg hover:bg-[#c89f5e] transition shadow-sm text-sm">
-                                <ChartBarIcon className="w-4 h-4"/> Gestão
-                            </button>
+                            {/* Carpenter / Store Shortcuts */}
+                            {isCarpenter && (
+                                <>
+                                    <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+                                    <button onClick={onOpenStoreMode} className="flex items-center gap-2 bg-[#3e3535] dark:bg-[#f5f1e8] text-white dark:text-[#3e3535] font-bold py-2 px-3 rounded-lg hover:opacity-90 transition shadow-sm text-sm" title="Mudar para modo Loja de Móveis">
+                                        <StoreIcon className="w-4 h-4"/> Modo Loja
+                                    </button>
+                                    <button onClick={onOpenProjectGenerator} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:opacity-90 transition shadow-sm text-sm">
+                                        <MagicIcon className="w-4 h-4"/> Criar com IA
+                                    </button>
+                                    <button onClick={onOpenManagement} className="flex items-center gap-2 bg-[#d4ac6e] text-[#3e3535] font-bold py-2 px-4 rounded-lg hover:bg-[#c89f5e] transition shadow-sm text-sm">
+                                        <ChartBarIcon className="w-4 h-4"/> Gestão
+                                    </button>
+                                </>
+                            )}
                             
                             <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-2"></div>
                             <button onClick={onOpenResearch} className="p-2 rounded-full text-[#6a5f5f] dark:text-[#a89d8d] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] hover:text-[#3e3535] dark:hover:text-[#f5f1e8] transition-colors" title="Pesquisar com Iara">
@@ -121,31 +131,51 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                                 <div className="absolute right-0 mt-2 w-64 bg-[#fffefb] dark:bg-[#4a4040] border border-[#e6ddcd] dark:border-[#4a4040] rounded-lg shadow-xl p-2 z-10 animate-scaleIn" style={{transformOrigin: 'top right'}}>
                                     <div className="px-3 py-2">
                                         <p className="text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8] truncate">{userEmail}</p>
-                                        {isAdmin && <p className="text-xs text-green-600 dark:text-green-400 font-bold">Admin / Parceiro</p>}
+                                        {isSuperAdmin && <p className="text-xs text-red-600 font-bold flex items-center gap-1"><ShieldIcon className="w-3 h-3"/> Super Admin</p>}
+                                        {!isSuperAdmin && isPartner && <p className="text-xs text-green-600 dark:text-green-400 font-bold">Parceiro</p>}
                                     </div>
                                     <div className="my-2 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
                                     
-                                    <button onClick={() => {onOpenStoreMode(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-white bg-[#3e3535] dark:bg-[#f5f1e8] dark:text-[#3e3535] hover:opacity-90 mb-1 md:hidden"><StoreIcon /> Modo Loja</button>
-                                    <button onClick={() => {onOpenProjectGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 mb-2 md:hidden"><MagicIcon /> Criar com IA</button>
-                                    <button onClick={() => {onOpenManagement(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-[#3e3535] dark:text-[#f5f1e8] bg-[#f0e9dc] dark:bg-[#2d2424] hover:bg-[#e6ddcd] mb-1"><ChartBarIcon /> Dashboard Gestão</button>
-                                    <button onClick={() => {onOpenPartnerPortal(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-[#3e3535] dark:text-[#f5f1e8] bg-[#d4ac6e] hover:bg-[#c89f5e] mb-2"><UsersIcon /> Portal do Parceiro</button>
+                                    {isSuperAdmin && (
+                                        <button className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-white bg-red-600 hover:bg-red-700 mb-2">
+                                            <ShieldIcon /> Painel Super Admin
+                                        </button>
+                                    )}
 
-                                    <nav className="flex flex-col gap-1 md:hidden">
-                                        <button onClick={() => {onOpenNotifications(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><BellIcon /> Notificações</button>
-                                        <button onClick={() => {onOpenWallet(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><WalletIcon /> Carteira</button>
-                                        <button onClick={() => {onOpenResearch(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><SearchIcon /> Pesquisar com Iara</button>
-                                        <button onClick={() => {onOpenLive(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><HeadsetIcon /> Conversar com Iara</button>
-                                        <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
-                                    </nav>
-                                    <button onClick={() => {onOpenHistory(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><HistoryIcon /> Histórico de Projetos</button>
-                                    <button onClick={() => {onOpenClients(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><UsersIcon /> Clientes</button>
-                                    <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
-                                    <div className="text-sm px-3 py-2 text-[#6a5f5f] dark:text-[#c7bca9]">
-                                        <strong>Ferramentas Autônomas</strong>
-                                    </div>
-                                    <button onClick={() => {onOpenBomGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><BookIcon /> Gerador de BOM</button>
-                                    <button onClick={() => {onOpenCuttingPlanGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><ToolsIcon /> Plano de Corte</button>
-                                    <button onClick={() => {onOpenCostEstimator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><CurrencyDollarIcon /> Estimativa de Custos</button>
+                                    {/* Mobile Only Main Buttons */}
+                                    {isCarpenter && (
+                                        <>
+                                            <button onClick={() => {onOpenStoreMode(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-white bg-[#3e3535] dark:bg-[#f5f1e8] dark:text-[#3e3535] hover:opacity-90 mb-1 md:hidden"><StoreIcon /> Modo Loja</button>
+                                            <button onClick={() => {onOpenProjectGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 mb-2 md:hidden"><MagicIcon /> Criar com IA</button>
+                                            <button onClick={() => {onOpenManagement(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-[#3e3535] dark:text-[#f5f1e8] bg-[#f0e9dc] dark:bg-[#2d2424] hover:bg-[#e6ddcd] mb-1 md:hidden"><ChartBarIcon /> Dashboard Gestão</button>
+                                        </>
+                                    )}
+
+                                    {isPartner && (
+                                        <>
+                                            <button onClick={() => {onOpenPartnerPortal(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-[#3e3535] dark:text-[#f5f1e8] bg-[#d4ac6e] hover:bg-[#c89f5e] mb-2 md:hidden"><UsersIcon /> Portal do Parceiro</button>
+                                            <nav className="flex flex-col gap-1 md:hidden">
+                                                <button onClick={() => {onOpenNotifications(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><BellIcon /> Notificações</button>
+                                                <button onClick={() => {onOpenWallet(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><WalletIcon /> Carteira</button>
+                                            </nav>
+                                        </>
+                                    )}
+
+                                    {isCarpenter && (
+                                        <>
+                                            <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
+                                            <button onClick={() => {onOpenHistory(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><HistoryIcon /> Histórico de Projetos</button>
+                                            <button onClick={() => {onOpenClients(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><UsersIcon /> Clientes</button>
+                                            <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
+                                            <div className="text-sm px-3 py-2 text-[#6a5f5f] dark:text-[#c7bca9]">
+                                                <strong>Ferramentas Autônomas</strong>
+                                            </div>
+                                            <button onClick={() => {onOpenBomGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><BookIcon /> Gerador de BOM</button>
+                                            <button onClick={() => {onOpenCuttingPlanGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><ToolsIcon /> Plano de Corte</button>
+                                            <button onClick={() => {onOpenCostEstimator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><CurrencyDollarIcon /> Estimativa de Custos</button>
+                                        </>
+                                    )}
+
                                     <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
                                     <button onClick={handleOpenApiKey} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]">
                                         <CogIcon /> Configurar Chave API

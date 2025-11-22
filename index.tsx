@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
@@ -24,11 +25,15 @@ const AuthWrapper = () => {
     }
   }, []);
 
-  const handleLoginSuccess = (email: string) => {
-    const plan = 'hobby';
+  const handleLoginSuccess = (email: string, role: 'user' | 'partner' = 'user') => {
+    // If logging in as a partner, set plan to 'partner'. Otherwise default to 'hobby'.
+    // If Evaldo, he will override this in App.tsx anyway, but 'business' is a safe default for him here.
+    let plan = role === 'partner' ? 'partner' : 'hobby';
+    if (email === 'evaldo0510@gmail.com') plan = 'business';
+
     sessionStorage.setItem('userEmail', email);
-    // Default new users to the free hobby plan for instant access
     sessionStorage.setItem('userPlan', plan);
+    
     setUserEmail(email);
     setUserPlan(plan);
     setIsAuthenticated(true);
