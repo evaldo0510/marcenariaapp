@@ -11,11 +11,12 @@ interface Project3DGeneratorProps {
         layoutDescription: string;
         style: string;
     };
+    isMirrored?: boolean;
     onGenerate: (imageUrl: string) => void;
     showAlert: (message: string, title?: string) => void;
 }
 
-export const Project3DGenerator: React.FC<Project3DGeneratorProps> = ({ inputData, onGenerate, showAlert }) => {
+export const Project3DGenerator: React.FC<Project3DGeneratorProps> = ({ inputData, isMirrored = false, onGenerate, showAlert }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [progress, setProgress] = useState('');
 
@@ -31,14 +32,17 @@ export const Project3DGenerator: React.FC<Project3DGeneratorProps> = ({ inputDat
             Móveis Planejados: ${inputData.furniture.join(', ')}.
             Layout: ${inputData.layoutDescription}.
             
-            IMPORTANTE: Use a imagem fornecida como base geométrica da sala (paredes, janelas, piso), mas insira os novos móveis planejados descritos acima.
+            IMPORTANTE: Use a imagem fornecida como base geométrica da sala (paredes, janelas, piso).
+            ${isMirrored ? 'ATENÇÃO: PLANTA INVERTIDA. Inverta horizontalmente a disposição dos móveis em relação à geometria da imagem.' : ''}
             `;
 
             const imageBase64 = inputData.image.split(',')[1];
             const mimeType = inputData.image.match(/data:(.*);/)?.[1] || 'image/png';
 
             setProgress('Renderizando com IA...');
-            const resultImage = await generateImage(prompt, [{ data: imageBase64, mimeType }]);
+            // Pass isMirrored logic is handled in the prompt above, but we can also pass it to service if needed for further logic
+            // Currently passing null for framingStrategy to use default
+            const resultImage = await generateImage(prompt, [{ data: imageBase64, mimeType }], undefined, false, '1K', 'standard', isMirrored);
             
             onGenerate(`data:image/png;base64,${resultImage}`);
         } catch (e) {

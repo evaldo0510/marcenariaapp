@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, ChangeEvent, useEffect } from 'react';
 import { fileToBase64 } from '../utils/helpers';
 import { CameraIcon, SwitchCameraIcon } from './Shared';
@@ -63,16 +64,37 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
   const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
       const files = [...event.target.files];
-      const totalFiles = uploadedFiles.length + files.length;
+      
+      // Validation
+      const validFiles: File[] = [];
+      for (const file of files) {
+          if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+              showAlert(`O arquivo "${file.name}" não é suportado. Use apenas JPG, PNG ou WebP.`, "Formato Inválido");
+              continue;
+          }
+          if (file.size > 5 * 1024 * 1024) {
+              showAlert(`O arquivo "${file.name}" é muito grande. Máximo de 5MB.`, "Arquivo Muito Grande");
+              continue;
+          }
+          validFiles.push(file);
+      }
+
+      if (validFiles.length === 0) {
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          return;
+      }
+
+      const totalFiles = uploadedFiles.length + validFiles.length;
       if (totalFiles > 3) {
           showAlert("Você pode adicionar no máximo 3 imagens.", "Limite Atingido");
           if (fileInputRef.current) fileInputRef.current.value = "";
           return;
       }
+      
       setIsUploading(true);
       
       try {
-        const imagePromises = files.map(file => fileToBase64(file));
+        const imagePromises = validFiles.map(file => fileToBase64(file));
         const results = await Promise.all(imagePromises);
         
         const newUploadedFiles = [...uploadedFiles, ...results.map(r => ({ preview: r.full, data: r.data, mimeType: r.mimeType }))];
@@ -198,8 +220,9 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
         <button onClick={handleOpenCamera} className="bg-[#e6ddcd] dark:bg-[#4a4040] hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] text-[#3e3535] dark:text-[#f5f1e8] font-bold py-2 px-4 rounded-lg transition flex items-center gap-2">
           <CameraIcon /> Tirar Foto
         </button>
-        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" multiple className="hidden" />
+        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/png, image/jpeg, image/webp" multiple className="hidden" />
       </div>
+      <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] mt-1">Formatos: JPG, PNG, WebP. Máx: 5MB.</p>
       {uploadedFiles.length > 0 && (
         <div className="mt-4 grid grid-cols-3 gap-2">
           {uploadedFiles.map((img, index) => (

@@ -41,7 +41,8 @@ export async function generateImage(
     framingStrategy?: string,
     useProModel: boolean = false,
     imageResolution: '1K' | '2K' | '4K' = '1K',
-    decorationLevel: 'minimal' | 'standard' | 'rich' = 'standard'
+    decorationLevel: 'minimal' | 'standard' | 'rich' = 'standard',
+    isMirrored: boolean = false
 ): Promise<string> {
     
     const ai = getAiClient();
@@ -108,9 +109,19 @@ export async function generateImage(
         1. **EXTRAÇÃO DE GEOMETRIA:** Analise as linhas de parede, posição de portas e janelas na imagem. Use isso como o "esqueleto" da cena 3D.
         2. **ESTIMATIVA DE ESCALA:** Use elementos padrão (portas = 80cm, pé-direito = 2.60m) para inferir as dimensões do ambiente.
         3. **DISTRIBUIÇÃO DE MÓVEIS:** Se for uma planta baixa, levante as paredes e coloque os móveis solicitados exatamente onde o desenho sugere.
+        
+        ${isMirrored ? 
+        `**⚠️ ALERTA DE ESPELHAMENTO (PLANTA INVERTIDA) ⚠️**
+        O usuário indicou que esta é uma planta invertida (tipo apartamento espelhado).
+        VOCÊ DEVE INVERTER A LÓGICA ESPACIAL HORIZONTALMENTE:
+        - Se na imagem a parede do armário está à direita, no render 3D coloque-a à ESQUERDA.
+        - Se a janela está na esquerda, mova-a para a DIREITA.
+        - Mantenha as dimensões e estilo, apenas espelhe a posição dos elementos.` 
+        : ''}
+
         4. **ESTILO ARQUITETÔNICO:** Identifique pistas visuais de estilo na imagem e aplique no render final.
         
-        **IMPORTANTE:** Use a imagem para definir a FORMA/ESPAÇO, e o texto para definir os MATERIAIS/ACABAMENTOS.
+        **IMPORTANTE:** Use a imagem para definir a FORMA/ESPAÇO (considerando o espelhamento se solicitado), e o texto para definir os MATERIAIS/ACABAMENTOS.
         `;
     }
 
@@ -162,7 +173,94 @@ export async function generateImage(
     }
 }
 
-// ... (Existing functions suggestAlternativeStyles, suggestAlternativeFinishes, searchFinishes, editImage, suggestImageEdits, generateGroundedResponse, editFloorPlan, estimateProjectCosts, generateText, generateCuttingPlan, findProjectLeads, generateProjectBom, generateAssemblyDetails, parseBomToList, findSupplierPrice, generateFloorPlanFrom3D, generate3Dfrom2D, analyzeRoomImage, generateLayoutSuggestions) ...
+// ... (Existing functions suggestAlternativeStyles, suggestAlternativeFinishes, searchFinishes, editImage, suggestImageEdits, generateGroundedResponse, editFloorPlan, estimateProjectCosts, generateText, generateCuttingPlan, findProjectLeads, generateProjectBom, generateAssemblyDetails, parseBomToList, findSupplierPrice, generateFloorPlanFrom3D, generate3Dfrom2D) ...
+
+export async function analyzeRoomImage(base64Image: string): Promise<{ roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }> {
+    const ai = getAiClient();
+    const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';
+    const data = base64Image.split(',')[1];
+
+    const prompt = `Analise esta imagem de ambiente ou planta baixa como um Arquiteto Sênior.
+    
+    TAREFAS:
+    1. Identifique o tipo de ambiente (Cozinha, Quarto, Sala, Banheiro, Escritório).
+    2. Estime as dimensões (Largura, Profundidade, Altura) baseando-se em padrões arquitetônicos (portas 80cm, janelas 120cm).
+    3. Liste os elementos estruturais (paredes, portas, janelas).
+    4. **ANÁLISE DE FLUXO:** Identifique mentalmente onde seria o local IDEAL para móveis planejados neste layout.
+    
+    Retorne JSON: { roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: {
+            parts: [
+                fileToGenerativePart(data, mimeType),
+                { text: prompt }
+            ]
+        },
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    roomType: { type: Type.STRING },
+                    confidence: { type: Type.STRING },
+                    dimensions: {
+                        type: Type.OBJECT,
+                        properties: {
+                            width: { type: Type.NUMBER },
+                            depth: { type: Type.NUMBER },
+                            height: { type: Type.NUMBER }
+                        }
+                    },
+                    detectedObjects: { type: Type.ARRAY, items: { type: Type.STRING } }
+                }
+            }
+        }
+    });
+
+    if (response.text) {
+        return cleanAndParseJson(response.text);
+    }
+    return { roomType: 'Desconhecido', confidence: 'Baixa', dimensions: { width: 3, depth: 3, height: 2.6 }, detectedObjects: [] };
+}
+
+export async function generateLayoutSuggestions(roomType: string, dimensions: any, userIntent?: string): Promise<{ title: string, description: string, pros: string }[]> {
+    const ai = getAiClient();
+    let prompt = `Para um ambiente do tipo "${roomType}" com dimensões ${dimensions.width}m x ${dimensions.depth}m.`;
+    
+    if (userIntent) {
+        prompt += `\nCONTEXTO DO USUÁRIO: "${userIntent}".\nIMPORTANTE: Gere sugestões que cubram TODOS os ambientes ou móveis solicitados na descrição acima.`;
+    } else {
+        prompt += `\nSugira 3 layouts de móveis planejados eficientes.`;
+    }
+
+    prompt += `\nRetorne JSON Array: [{ title, description, pros }]`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        title: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        pros: { type: Type.STRING }
+                    }
+                }
+            }
+        }
+    });
+
+    if (response.text) {
+        return cleanAndParseJson(response.text);
+    }
+    return [];
+}
 
 // 19. Generate Decoration List (Shopping List)
 export async function generateDecorationList(projectDescription: string, style: string): Promise<{ item: string, category: string, estimatedPrice: string, suggestion: string }[]> {
@@ -654,89 +752,4 @@ export async function generate3Dfrom2D(project: ProjectHistoryItem, style: strin
     `;
     
     return editImage(data, mimeType, renderPrompt);
-}
-
-export async function analyzeRoomImage(base64Image: string): Promise<{ roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }> {
-    const ai = getAiClient();
-    const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';
-    const data = base64Image.split(',')[1];
-
-    const prompt = `Analise esta imagem de ambiente ou planta baixa.
-    Identifique:
-    1. Tipo de ambiente (Cozinha, Quarto, Sala, Banheiro, Escritório).
-    2. Estime as dimensões aproximadas (Largura, Profundidade, Altura) em metros. Se não tiver certeza, estime um padrão.
-    3. Liste objetos ou móveis já presentes.
-    
-    Retorne JSON: { roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }`;
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: {
-            parts: [
-                fileToGenerativePart(data, mimeType),
-                { text: prompt }
-            ]
-        },
-        config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    roomType: { type: Type.STRING },
-                    confidence: { type: Type.STRING },
-                    dimensions: {
-                        type: Type.OBJECT,
-                        properties: {
-                            width: { type: Type.NUMBER },
-                            depth: { type: Type.NUMBER },
-                            height: { type: Type.NUMBER }
-                        }
-                    },
-                    detectedObjects: { type: Type.ARRAY, items: { type: Type.STRING } }
-                }
-            }
-        }
-    });
-
-    if (response.text) {
-        return cleanAndParseJson(response.text);
-    }
-    return { roomType: 'Desconhecido', confidence: 'Baixa', dimensions: { width: 3, depth: 3, height: 2.6 }, detectedObjects: [] };
-}
-
-export async function generateLayoutSuggestions(roomType: string, dimensions: any, userIntent?: string): Promise<{ title: string, description: string, pros: string }[]> {
-    const ai = getAiClient();
-    let prompt = `Para um ambiente do tipo "${roomType}" com dimensões ${dimensions.width}m x ${dimensions.depth}m.`;
-    
-    if (userIntent) {
-        prompt += `\nCONTEXTO DO USUÁRIO: "${userIntent}".\nIMPORTANTE: Gere sugestões que cubram TODOS os ambientes ou móveis solicitados na descrição acima.`;
-    } else {
-        prompt += `\nSugira 3 layouts de móveis planejados eficientes.`;
-    }
-
-    prompt += `\nRetorne JSON Array: [{ title, description, pros }]`;
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        title: { type: Type.STRING },
-                        description: { type: Type.STRING },
-                        pros: { type: Type.STRING }
-                    }
-                }
-            }
-        }
-    });
-
-    if (response.text) {
-        return cleanAndParseJson(response.text);
-    }
-    return [];
 }

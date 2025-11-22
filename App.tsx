@@ -323,17 +323,15 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       }
   };
 
-  const handleQuickStyleSwap = async (newStyle: string) => {
+  const handleQuickRoomSwap = async (newRoomType: string) => {
       if (!currentProject) return;
       setIsGenerating(true);
       try {
-          setStylePreset(newStyle);
-          
-          // Use original project description but update the style
-          let fullPrompt = `PROJETO SOLICITADO: ${currentProject.description}`;
-          fullPrompt += `\n\nDETALHES TÉCNICOS:`;
-          fullPrompt += `\n- NOVO ESTILO VISUAL: ${newStyle}`;
-          fullPrompt += `\n- MANTENHA A MESMA GEOMETRIA, troque apenas a decoração e materiais para o estilo solicitado.`;
+          // Use original project description but update the room function
+          let fullPrompt = `TRANSFORMAÇÃO DE AMBIENTE: Mantenha a mesma geometria básica da sala (paredes, janelas), mas altere a função do ambiente para: ${newRoomType}.`;
+          fullPrompt += `\n\nDETALHES:`;
+          fullPrompt += `\n- Proponha móveis planejados ideais para uma ${newRoomType} neste espaço.`;
+          fullPrompt += `\n- Estilo: ${currentProject.style}`;
 
           if (selectedFinish) {
               fullPrompt += `\n- Acabamento Principal: ${selectedFinish.finish.name}`;
@@ -344,13 +342,13 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           // Update history with new view
           const newViewUrl = `data:image/png;base64,${imageBase64}`;
           const updatedViews = [...currentProject.views3d, newViewUrl];
-          const updatedProject = await updateProjectInHistory(currentProject.id, { views3d: updatedViews, style: newStyle });
+          const updatedProject = await updateProjectInHistory(currentProject.id, { views3d: updatedViews, name: `${newRoomType} - Variação` });
           
           setHistory(await getHistory());
           setCurrentProject(updatedProject);
           
       } catch (e: any) {
-          showAlert("Erro ao trocar estilo: " + e.message);
+          showAlert("Erro ao trocar ambiente: " + e.message);
       } finally {
           setIsGenerating(false);
       }
@@ -703,18 +701,18 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                             </div>
                         </div>
                         
-                        {/* Quick Style Swap Bar */}
+                        {/* Quick Room Swap Bar - UPDATED TO ROOM TYPES */}
                         <div className="px-6 py-3 border-b border-[#e6ddcd] dark:border-[#4a4040] bg-[#f9f5eb] dark:bg-[#2d2424]/50 overflow-x-auto">
-                            <p className="text-xs font-bold text-[#8a7e7e] dark:text-[#a89d8d] uppercase tracking-wider mb-2">Variações Rápidas</p>
+                            <p className="text-xs font-bold text-[#8a7e7e] dark:text-[#a89d8d] uppercase tracking-wider mb-2">Transformar Ambiente</p>
                             <div className="flex gap-2">
-                                {['Industrial', 'Minimalista', 'Rústico', 'Clássico'].map(s => (
+                                {['Sala', 'Cozinha', 'Quarto', 'Dormitório 1', 'Dormitório 2', 'Banheiro'].map(roomType => (
                                     <button
-                                        key={s}
-                                        onClick={() => handleQuickStyleSwap(s)}
+                                        key={roomType}
+                                        onClick={() => handleQuickRoomSwap(roomType)}
                                         disabled={isGenerating}
                                         className="px-3 py-1 rounded-full text-xs font-bold bg-white dark:bg-[#3e3535] border border-[#dcd6c8] dark:border-[#5a4f4f] hover:border-[#d4ac6e] text-[#3e3535] dark:text-[#f5f1e8] whitespace-nowrap transition disabled:opacity-50"
                                     >
-                                        {s}
+                                        {roomType}
                                     </button>
                                 ))}
                             </div>

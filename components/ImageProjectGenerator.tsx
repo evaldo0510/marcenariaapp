@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { CameraIcon, Spinner, MagicIcon } from './Shared';
+import { CameraIcon, Spinner, MagicIcon, CheckIcon } from './Shared';
 import { ImageUploader } from './ImageUploader';
 import { RoomTypeDetector } from './RoomTypeDetector';
 import { DimensionExtractor } from './DimensionExtractor';
@@ -31,10 +31,12 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
     const [detectedObjects, setDetectedObjects] = useState<string[]>([]);
     
     // User Selections & Intent
-    const [userIntent, setUserIntent] = useState(''); // New Field for precision
+    const [userIntent, setUserIntent] = useState('');
     const [selectedFurniture, setSelectedFurniture] = useState<string[]>([]);
     const [selectedLayout, setSelectedLayout] = useState('');
     const [style, setStyle] = useState('Moderno');
+    const [isMirrored, setIsMirrored] = useState(false); // New State for Mirrored Plan
+    
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [showTutorial, setShowTutorial] = useState(false);
 
@@ -62,8 +64,8 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
         setResultImage(generatedImgUrl);
         // Save to history
         const projectData = {
-            name: `Projeto IA - ${roomType}`,
-            description: `Ambiente: ${roomType}. Objetivo: ${userIntent}. Layout: ${selectedLayout}. Móveis: ${selectedFurniture.join(', ')}.`,
+            name: `Projeto IA - ${roomType} ${isMirrored ? '(Invertido)' : ''}`,
+            description: `Ambiente: ${roomType}. Objetivo: ${userIntent}. Layout: ${selectedLayout}. Móveis: ${selectedFurniture.join(', ')}.${isMirrored ? ' [PLANTA INVERTIDA/ESPELHADA]' : ''}`,
             style: style,
             views3d: [generatedImgUrl],
             image2d: null,
@@ -134,6 +136,20 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                                         placeholder="Seja específico: 'Armário na parede do fundo...'"
                                         className="w-full p-3 rounded border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f] h-24 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition text-[#3e3535] dark:text-[#f5f1e8]"
                                     />
+                                    
+                                    <div className="mt-3 flex items-center gap-2 p-2 bg-gray-100 dark:bg-[#2d2424] rounded-lg border border-gray-200 dark:border-[#5a4f4f]">
+                                        <input 
+                                            type="checkbox" 
+                                            id="mirror-plan" 
+                                            checked={isMirrored} 
+                                            onChange={(e) => setIsMirrored(e.target.checked)}
+                                            className="w-4 h-4 text-[#d4ac6e] rounded focus:ring-[#d4ac6e]"
+                                        />
+                                        <label htmlFor="mirror-plan" className="text-sm font-bold text-[#3e3535] dark:text-[#f5f1e8] cursor-pointer select-none">
+                                            Planta Invertida (Espelhar Projeto)
+                                        </label>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 mt-1 ml-1">*Marque se a foto/planta for o oposto do que você vai construir (Ex: Apto Tipo A vs Tipo B).</p>
                                 </div>
 
                                 <div className="bg-white dark:bg-[#3e3535] p-4 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040]">
@@ -154,7 +170,7 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                                         <li><strong>Ambiente:</strong> {roomType}</li>
                                         <li><strong>Estilo:</strong> {style}</li>
                                         <li><strong>Móveis:</strong> {selectedFurniture.length} itens selecionados</li>
-                                        <li><strong>Objetivo:</strong> {userIntent ? 'Definido pelo usuário' : 'Automático (IA decidirá)'}</li>
+                                        <li><strong>Orientação:</strong> {isMirrored ? 'Invertida/Espelhada' : 'Padrão'}</li>
                                     </ul>
                                     <Project3DGenerator 
                                         inputData={{ 
@@ -164,6 +180,7 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                                             layoutDescription: `${selectedLayout}. Objetivo específico do usuário: ${userIntent}`, 
                                             style 
                                         }}
+                                        isMirrored={isMirrored}
                                         onGenerate={handleProjectComplete}
                                         showAlert={showAlert}
                                     />
