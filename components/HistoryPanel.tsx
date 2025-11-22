@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo } from 'react';
 import type { ProjectHistoryItem } from '../types';
-import { Spinner, BookIcon, WandIcon, TrashIcon, CheckIcon, SearchIcon, DocumentTextIcon, ToolsIcon } from './Shared';
+import { Spinner, BookIcon, WandIcon, TrashIcon, CheckIcon, SearchIcon, DocumentTextIcon, ToolsIcon, ConfirmationModal } from './Shared';
 
 interface HistoryPanelProps {
     isOpen: boolean;
@@ -21,6 +22,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 }) => {
     const [sortOrder, setSortOrder] = useState<'date-desc' | 'date-asc' | 'alpha-asc'>('date-desc');
     const [searchTerm, setSearchTerm] = useState('');
+    const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
 
     const displayedHistory = useMemo(() => {
         return history
@@ -170,7 +172,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                                                 </ActionButton>
 
                                                 <ActionButton
-                                                    onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }}
+                                                    onClick={(e) => { e.stopPropagation(); setProjectToDelete(project.id); }}
                                                     className="bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900"
                                                 >
                                                     <TrashIcon /> Excluir
@@ -183,6 +185,15 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                         )}
                     </main>
                 </div>
+                <ConfirmationModal
+                    isOpen={!!projectToDelete}
+                    onClose={() => setProjectToDelete(null)}
+                    onConfirm={() => { if (projectToDelete) onDeleteProject(projectToDelete); }}
+                    title="Excluir Projeto"
+                    message="Tem certeza que deseja excluir este projeto? Esta ação não pode ser desfeita."
+                    confirmText="Excluir"
+                    isDangerous={true}
+                />
             </div>
         </div>
     );

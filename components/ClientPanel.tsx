@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Client, ProjectHistoryItem } from '../types';
-import { UsersIcon, SearchIcon, WandIcon, TrashIcon } from './Shared';
+import { UsersIcon, SearchIcon, WandIcon, TrashIcon, ConfirmationModal } from './Shared';
 
 interface ClientPanelProps {
     isOpen: boolean;
@@ -34,6 +35,7 @@ export const ClientPanel: React.FC<ClientPanelProps> = ({
     const [formData, setFormData] = useState(emptyForm);
     const [isEditing, setIsEditing] = useState(false);
     const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
+    const [clientToDelete, setClientToDelete] = useState<string | null>(null);
 
     const filteredClients = useMemo(() => {
         return clients.filter(client =>
@@ -48,6 +50,7 @@ export const ClientPanel: React.FC<ClientPanelProps> = ({
             setIsEditing(false);
             setSearchTerm('');
             setExpandedClientId(null);
+            setClientToDelete(null);
         }
     }, [isOpen]);
 
@@ -179,7 +182,7 @@ export const ClientPanel: React.FC<ClientPanelProps> = ({
                                                     <button onClick={(e) => { e.stopPropagation(); handleEdit(client); }} className="p-2 rounded-full text-[#8a7e7e] hover:bg-amber-100 dark:hover:bg-amber-500/20 hover:text-amber-600 dark:hover:text-amber-400 transition" title="Editar Cliente">
                                                         <WandIcon />
                                                     </button>
-                                                    <button onClick={(e) => { e.stopPropagation(); onDeleteClient(client.id); }} className="p-2 rounded-full text-[#8a7e7e] hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red-600 dark:hover:text-red-400 transition" title="Excluir Cliente">
+                                                    <button onClick={(e) => { e.stopPropagation(); setClientToDelete(client.id); }} className="p-2 rounded-full text-[#8a7e7e] hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red-600 dark:hover:text-red-400 transition" title="Excluir Cliente">
                                                         <TrashIcon />
                                                     </button>
                                                 </div>
@@ -214,6 +217,15 @@ export const ClientPanel: React.FC<ClientPanelProps> = ({
                         )}
                     </main>
                 </div>
+                <ConfirmationModal
+                    isOpen={!!clientToDelete}
+                    onClose={() => setClientToDelete(null)}
+                    onConfirm={() => { if (clientToDelete) onDeleteClient(clientToDelete); }}
+                    title="Excluir Cliente"
+                    message="Tem certeza que deseja remover este cliente? O histórico de projetos será mantido, mas desvinculado."
+                    confirmText="Excluir"
+                    isDangerous={true}
+                />
             </div>
         </div>
     );

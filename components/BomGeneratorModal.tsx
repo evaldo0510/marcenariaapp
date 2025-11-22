@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { generateText } from '../services/geminiService';
-import { Spinner, SparklesIcon, BookIcon, CopyIcon, CheckIcon, WandIcon } from './Shared';
+import { Spinner, SparklesIcon, BookIcon, CopyIcon, CheckIcon } from './Shared';
 import { ImageUploader } from './ImageUploader';
 import { convertMarkdownToHtml } from '../utils/helpers';
 
@@ -85,10 +84,6 @@ export const BomGeneratorModal: React.FC<BomGeneratorModalProps> = ({ isOpen, on
         }
     };
 
-    const fillExample = () => {
-        setProjectDescription("Armário com 3 portas verticais em madeira clara, 2 gavetas centrais com puxadores metálicos, acabamento fosco, pés retos e estilo moderno minimalista. Inclua nichos abertos na lateral e prateleiras internas. Medidas aproximadas: 2.20m altura x 1.80m largura x 0.55m profundidade.");
-    }
-
     const handleClose = () => {
         setProjectDescription('');
         setUploadedImages(null);
@@ -115,14 +110,9 @@ export const BomGeneratorModal: React.FC<BomGeneratorModalProps> = ({ isOpen, on
 
                 <main className="p-4 flex-grow overflow-y-auto">
                     <div className="mb-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <label htmlFor="bom-description" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9]">
-                                Descreva o projeto para o qual você precisa da BOM:
-                            </label>
-                            <button onClick={fillExample} className="text-xs flex items-center gap-1 text-[#d4ac6e] hover:underline">
-                                <WandIcon className="w-3 h-3" /> Preencher Exemplo (Armário)
-                            </button>
-                        </div>
+                        <label htmlFor="bom-description" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">
+                            Descreva o projeto para o qual você precisa da BOM:
+                        </label>
                         <textarea
                             id="bom-description"
                             rows={5}
