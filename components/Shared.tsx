@@ -302,7 +302,7 @@ export const BathroomIcon: React.FC<{className?: string}> = ({className}) => (
 );
 
 export const ClosetIcon: React.FC<{className?: string}> = ({className}) => (
-    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>
+    <svg className={`w-6 h-6 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>
 );
 
 export const OfficeIcon: React.FC<{className?: string}> = ({className}) => (
@@ -476,16 +476,6 @@ export const AlertModal: React.FC<{ state: AlertState; onClose: () => void }> = 
     );
 };
 
-export const ImageModal: React.FC<ImageModalState & { onClose: () => void }> = ({ show, src, onClose }) => {
-    if (!show) return null;
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-90 z-[60] flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
-            <button onClick={onClose} className="absolute top-4 right-4 text-white text-3xl hover:text-gray-300 transition">&times;</button>
-            <img src={src} alt="Full view" className="max-w-full max-h-[90vh] rounded-lg shadow-2xl" onClick={e => e.stopPropagation()} />
-        </div>
-    );
-};
-
 export const ConfirmationModal: React.FC<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; onCancel: () => void }> = ({ isOpen, title, message, onConfirm, onCancel }) => {
     if (!isOpen) return null;
     return (
@@ -498,6 +488,16 @@ export const ConfirmationModal: React.FC<{ isOpen: boolean; title: string; messa
                      <button onClick={onConfirm} className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium">Confirmar</button>
                 </div>
             </div>
+        </div>
+    );
+};
+
+export const ImageModal: React.FC<ImageModalState & { onClose: () => void }> = ({ show, src, onClose }) => {
+    if (!show) return null;
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-90 z-[60] flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
+            <button onClick={onClose} className="absolute top-4 right-4 text-white text-3xl hover:text-gray-300 transition">&times;</button>
+            <img src={src} alt="Full view" className="max-w-full max-h-[90vh] rounded-lg shadow-2xl" onClick={e => e.stopPropagation()} />
         </div>
     );
 };

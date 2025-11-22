@@ -8,6 +8,7 @@ export const DistributorLinkSystem: React.FC = () => {
     const referralLink = `https://marcenapp.com/ref/${partnerId}`;
     
     const [copied, setCopied] = useState(false);
+    const [showQR, setShowQR] = useState(false);
     const [stats, setStats] = useState({
         clicks: 145,
         signups: 12,
@@ -46,7 +47,7 @@ export const DistributorLinkSystem: React.FC = () => {
                             {copied ? <CheckIcon className="w-5 h-5 text-green-500" /> : <CopyIcon className="w-5 h-5" />}
                         </button>
                     </div>
-                    <button className="flex items-center justify-center gap-2 bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-3 px-6 rounded-lg hover:opacity-90 transition">
+                    <button onClick={() => setShowQR(true)} className="flex items-center justify-center gap-2 bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-3 px-6 rounded-lg hover:opacity-90 transition">
                         <QRCodeIcon /> Gerar QR Code
                     </button>
                 </div>
@@ -76,6 +77,23 @@ export const DistributorLinkSystem: React.FC = () => {
                     </p>
                 </div>
             </div>
+
+            {showQR && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => setShowQR(false)}>
+                    <div className="bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center text-center max-w-sm w-full" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-gray-800 mb-4">Seu QR Code de Parceiro</h3>
+                        <div className="bg-white p-2 rounded border border-gray-200 mb-4">
+                            <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(referralLink)}`} 
+                                alt="QR Code" 
+                                className="w-64 h-64"
+                            />
+                        </div>
+                        <p className="text-sm text-gray-600 mb-4">Mostre este código para o cliente escanear com a câmera do celular.</p>
+                        <button onClick={() => setShowQR(false)} className="w-full bg-[#3e3535] text-white font-bold py-2 rounded-lg hover:bg-black transition">Fechar</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

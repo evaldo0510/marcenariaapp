@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, ChartBarIcon, BellIcon, WalletIcon, MagicIcon, CogIcon, ShieldIcon } from './Shared';
+import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, ChartBarIcon, BellIcon, WalletIcon, MagicIcon, CogIcon, ShieldIcon, EmailIcon } from './Shared';
 
 interface HeaderProps {
     userEmail: string;
@@ -64,6 +64,10 @@ export const Header: React.FC<HeaderProps> = ({
             setIsMenuOpen(false);
         }
     }
+
+    const handleEmailSupport = () => {
+        window.location.href = 'mailto:suporte@marcenapp.com?subject=MarcenApp - Suporte';
+    }
     
     return (
         <header className="bg-[#f5f1e8]/80 dark:bg-[#2d2424]/80 backdrop-blur-sm sticky top-0 z-30 border-b border-[#e6ddcd] dark:border-[#4a4040]">
@@ -121,6 +125,9 @@ export const Header: React.FC<HeaderProps> = ({
                             </button>
                             <button onClick={onOpenLive} className="p-2 rounded-full text-[#6a5f5f] dark:text-[#a89d8d] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] hover:text-[#3e3535] dark:hover:text-[#f5f1e8] transition-colors" title="Conversar com Iara (Voz)">
                                 <HeadsetIcon />
+                            </button>
+                            <button onClick={handleEmailSupport} className="p-2 rounded-full text-[#6a5f5f] dark:text-[#a89d8d] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] hover:text-[#3e3535] dark:hover:text-[#f5f1e8] transition-colors" title="Suporte via E-mail">
+                                <EmailIcon />
                             </button>
                         </nav>
                         
@@ -192,6 +199,7 @@ export const Header: React.FC<HeaderProps> = ({
                                         </div>
                                     </button>
                                     <button onClick={() => {onOpenAbout(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><InfoIcon /> Sobre</button>
+                                    <button onClick={handleEmailSupport} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><EmailIcon /> Suporte</button>
                                     <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
                                     <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2 rounded text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20"><LogoutIcon /> Sair</button>
                                 </div>
