@@ -7,6 +7,7 @@ interface HeaderProps {
     isAdmin: boolean; // "Business" level or higher
     isPartner: boolean; // Specific for partner portal
     isCarpenter: boolean; // Specific for carpentry tools
+    isStoreOwner: boolean; // Specific for store mode (currently restricted)
     onOpenResearch: () => void;
     onOpenLive: () => void;
     onOpenDistributors: () => void;
@@ -34,7 +35,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
-    userEmail, isAdmin, isPartner, isCarpenter,
+    userEmail, isAdmin, isPartner, isCarpenter, isStoreOwner,
     onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onLogout, theme, setTheme, onOpenManagement, onOpenPartnerPortal, onOpenNotifications, onOpenWallet, onOpenProjectGenerator, onOpenStoreMode 
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -100,9 +101,11 @@ export const Header: React.FC<HeaderProps> = ({
                             {isCarpenter && (
                                 <>
                                     <div className="w-px h-8 bg-gray-300 dark:bg-gray-600 mx-1"></div>
-                                    <button onClick={onOpenStoreMode} className="flex items-center gap-2 bg-[#3e3535] dark:bg-[#f5f1e8] text-white dark:text-[#3e3535] font-bold py-2 px-3 rounded-lg hover:opacity-90 transition shadow-sm text-sm" title="Mudar para modo Loja de Móveis">
-                                        <StoreIcon className="w-4 h-4"/> Modo Loja
-                                    </button>
+                                    {isStoreOwner && (
+                                        <button onClick={onOpenStoreMode} className="flex items-center gap-2 bg-[#3e3535] dark:bg-[#f5f1e8] text-white dark:text-[#3e3535] font-bold py-2 px-3 rounded-lg hover:opacity-90 transition shadow-sm text-sm" title="Mudar para modo Loja de Móveis">
+                                            <StoreIcon className="w-4 h-4"/> Modo Loja
+                                        </button>
+                                    )}
                                     <button onClick={onOpenProjectGenerator} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:opacity-90 transition shadow-sm text-sm">
                                         <MagicIcon className="w-4 h-4"/> Criar com IA
                                     </button>
@@ -145,7 +148,9 @@ export const Header: React.FC<HeaderProps> = ({
                                     {/* Mobile Only Main Buttons */}
                                     {isCarpenter && (
                                         <>
-                                            <button onClick={() => {onOpenStoreMode(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-white bg-[#3e3535] dark:bg-[#f5f1e8] dark:text-[#3e3535] hover:opacity-90 mb-1 md:hidden"><StoreIcon /> Modo Loja</button>
+                                            {isStoreOwner && (
+                                                <button onClick={() => {onOpenStoreMode(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-white bg-[#3e3535] dark:bg-[#f5f1e8] dark:text-[#3e3535] hover:opacity-90 mb-1 md:hidden"><StoreIcon /> Modo Loja</button>
+                                            )}
                                             <button onClick={() => {onOpenProjectGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 mb-2 md:hidden"><MagicIcon /> Criar com IA</button>
                                             <button onClick={() => {onOpenManagement(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded font-bold text-[#3e3535] dark:text-[#f5f1e8] bg-[#f0e9dc] dark:bg-[#2d2424] hover:bg-[#e6ddcd] mb-1 md:hidden"><ChartBarIcon /> Dashboard Gestão</button>
                                         </>

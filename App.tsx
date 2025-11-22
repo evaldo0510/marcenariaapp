@@ -160,6 +160,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   // User Role Logic (Partner vs Carpenter)
   const isPartner = userPlan === 'partner' || isSuperAdmin;
   const isCarpenter = userPlan !== 'partner' || isSuperAdmin;
+  // Store Owner Role - Currently restricted to Super Admin (Standby Mode)
+  const isStoreOwner = isSuperAdmin;
 
   // Main Input States
   const [description, setDescription] = useState('');
@@ -409,6 +411,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         // Permission Logic for Header Buttons
         isPartner={isPartner}
         isCarpenter={isCarpenter}
+        isStoreOwner={isStoreOwner}
         
         onOpenResearch={() => toggleModal('research', true)}
         onOpenLive={() => toggleModal('live', true)}

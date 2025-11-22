@@ -48,7 +48,7 @@ const plans = [
     features: [
       'Tudo do Profissional',
       'Gestão Financeira & Estoque',
-      'Modo Loja (Showroom Virtual)',
+      // 'Modo Loja (Showroom Virtual)', // STANDBY
       'Gestão de Equipe (Multi-usuário)',
       'Relatórios de Produtividade',
       'Contratos Digitais',
@@ -135,7 +135,7 @@ const TestimonialCard: React.FC<{ quote: string; name: string; role: string; ima
             <img src={imageSrc} alt={name} className="w-10 h-10 rounded-full object-cover border-2 border-[#d4ac6e]" />
             <div>
                 <p className="font-bold text-[#3e3535] dark:text-[#f5f1e8] text-sm">{name}</p>
-                <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d]">{role}</p>
+                <p className="text-xs text-8a7e7e dark:text-[#a89d8d]">{role}</p>
             </div>
         </div>
     </div>
