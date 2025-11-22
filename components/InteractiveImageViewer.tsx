@@ -178,9 +178,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     const rect = containerRef.current.getBoundingClientRect();
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    // Use a larger step for buttons than scroll
-    const step = ZOOM_SPEED * 2;
-    const scaleDelta = direction === 'in' ? 1 + step : 1 - step;
+    const scaleDelta = direction === 'in' ? 1 + ZOOM_SPEED * 2 : 1 - ZOOM_SPEED * 2;
     const newScale = transform.scale * scaleDelta;
     
     const newX = centerX - (centerX - transform.x) * (newScale / transform.scale);
@@ -190,7 +188,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
   };
 
   const resetTransform = useCallback(() => {
-    // A scale of 1 will be centered by applyTransform logic (clampedX/Y calculation)
+    // A scale of 1 will be centered by applyTransform
     applyTransform({ scale: 1, x: 0, y: 0 });
   }, [applyTransform]);
 

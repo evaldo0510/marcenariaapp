@@ -107,16 +107,13 @@ export async function generateImage(
     4. **Qualidade:** 4K, nítida, sem distorções.
     `;
 
-    // Construct parts, putting images FIRST if present to act as primary context/base
-    const parts: any[] = [];
+    const parts: any[] = [{ text: technicalPrompt }];
     
     if (referenceImages && referenceImages.length > 0) {
         referenceImages.forEach(img => {
              parts.push(fileToGenerativePart(img.data, img.mimeType));
         });
     }
-    
-    parts.push({ text: technicalPrompt });
 
     try {
         // Configure based on model capabilities
@@ -137,31 +134,13 @@ export async function generateImage(
             config: config
         });
 
-        const candidate = response.candidates?.[0];
-        
-        if (!candidate) {
-             throw new Error("A IA não retornou candidatos. Verifique sua conexão.");
-        }
-
-        // Check for safety blocks
-        if (candidate.finishReason === 'SAFETY') {
-             throw new Error("A geração foi bloqueada pelos filtros de segurança. Tente ajustar a descrição removendo termos sensíveis.");
-        }
-
-        const imagePart = candidate.content?.parts?.find(part => part.inlineData);
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
         
         if (imagePart && imagePart.inlineData) {
             return imagePart.inlineData.data;
         }
         
-        // Check if text was returned instead (refusal/error explanation)
-        const textPart = candidate.content?.parts?.find(part => part.text);
-        if (textPart && textPart.text) {
-            console.warn("IA retornou texto em vez de imagem:", textPart.text);
-            throw new Error(`A IA não gerou a imagem. Resposta: ${textPart.text}`);
-        }
-        
-        throw new Error("A IA não retornou uma imagem válida. Tente novamente.");
+        throw new Error("A IA não retornou uma imagem válida.");
     } catch (error) {
         console.error("Generate Image Error:", error);
         throw error;
@@ -305,24 +284,10 @@ export async function editImage(base64Data: string, mimeType: string, prompt: st
             }
         });
 
-        const candidate = response.candidates?.[0];
-        if (!candidate) throw new Error("Sem resposta da IA.");
-
-        if (candidate.finishReason === 'SAFETY') {
-             throw new Error("Edição bloqueada por segurança.");
-        }
-
-        const part = candidate.content?.parts?.find(p => p.inlineData);
+        const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
         if (part && part.inlineData) {
             return part.inlineData.data;
         }
-        
-        // Check text fallback
-        const textPart = candidate.content?.parts?.find(part => part.text);
-        if (textPart && textPart.text) {
-             throw new Error(`A IA não conseguiu editar a imagem. Motivo: ${textPart.text}`);
-        }
-
         throw new Error("Falha ao gerar imagem editada.");
     } catch (e) {
         console.error("Edit Image Error:", e);
