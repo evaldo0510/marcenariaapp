@@ -70,7 +70,7 @@ export async function generateImage(
 
     // --- BLOCO DE ENQUADRAMENTO E CÂMERA (CRÍTICO PARA EVITAR CORTES) ---
     technicalPrompt += `
-    \n**DIRETRIZES OBRIGATÓRIAS DE CÂMERA E ENQUADRAMENTO:**
+    \n**DIRETRIZES OBRIGATÓRIAS DE CÂMERA E ENQUADRAMENTO (ANTI-CORTE):**
     `;
 
     // Injeta a estratégia específica escolhida pelo usuário, se houver
@@ -79,13 +79,12 @@ export async function generateImage(
     }
 
     technicalPrompt += `
-    1. **LENTE:** Use uma lente **Grande Angular (Wide Angle - 24mm ou 28mm)**. Isso é CRUCIAL para garantir que o objeto inteiro caiba na cena, especialmente em ambientes pequenos.
-    2. **DISTÂNCIA (ZOOM OUT):** Afaste a câmera virtual. O objeto NÃO deve tocar as bordas da imagem.
-    3. **MARGINS (SAFETY PADDING):** Deixe uma **margem de segurança (espaço vazio/respiro)** de pelo menos 15% em TODAS as bordas (topo, base, esquerda, direita). O móvel deve flutuar no centro, totalmente visível.
-    4. **COMPOSIÇÃO:** Centralize o objeto principal. Se for um móvel alto, mostre do chão ao teto com folga. Se for comprido, mostre as duas laterais.
-    5. **NUNCA CORTE:** É estritamente proibido cortar partes do móvel (pés, topo, laterais). A imagem deve ser um "Full Shot" (Plano Inteiro).
+    1. **ZOOM OUT OBRIGATÓRIO:** Afaste a câmera virtual 20% a mais do que você acha necessário. O objeto deve estar "flutuar" no centro da imagem com espaço sobrando ao redor.
+    2. **ZONA DE SEGURANÇA (SAFE AREA):** Mantenha uma margem vazia (padding) generosa em todas as 4 bordas (topo, base, esquerda, direita). NENHUMA parte do móvel (pés, puxadores, sancas) pode tocar a borda da imagem.
+    3. **LENTE:** Use uma lente **Grande Angular (Wide Angle - 24mm)** para capturar todo o contexto sem distorcer demais.
+    4. **COMPOSIÇÃO:** Centralize o objeto principal matematicamente.
+    5. **RESPONSIVIDADE:** A imagem deve ser legível tanto em telas verticais quanto horizontais, por isso o espaço extra ao redor é vital.
     6. **VISUALIZAÇÃO VOLUMÉTRICA:** Salvo especificado em contrário, use uma perspectiva levemente rotacionada (3/4 view) para mostrar a profundidade e as laterais do móvel, não apenas a frente chapada.
-    7. **PROPORÇÃO E ESCALA:** Se dimensões forem fornecidas (ex: 2.5m largura x 2.4m altura), MANTENHA a proporção visual correta (Aspect Ratio) do objeto.
     `;
 
     // --- BLOCO DE DECORAÇÃO INTELIGENTE ---
@@ -132,6 +131,17 @@ export async function generateImage(
     3. **Estilo:** Renderização limpa, comercial, pronta para catálogo.
     4. **Qualidade:** 4K, nítida, sem distorções.
     `;
+
+    // --- BLOCO ESPECÍFICO PARA MODO PRO ---
+    if (useProModel) {
+        technicalPrompt += `
+        \n**💎 MODO PRO ATIVADO (Hiper-Realismo):**
+        - **Renderização:** Utilize técnicas de Path Tracing para simular fisicamente a luz.
+        - **Materiais PBR:** As superfícies devem interagir com a luz de forma complexa (rugosidade, especularidade, normal maps).
+        - **Fotografia:** Simule uma lente de câmera profissional (85mm para retratos de móveis ou 24mm para ambientes). Adicione profundidade de campo sutil (Bokeh) se apropriado.
+        - **Atmosfera:** A imagem deve ser indistinguível de uma fotografia real de revista de design (Architectural Digest).
+        `;
+    }
 
     const parts: any[] = [{ text: technicalPrompt }];
     

@@ -8,6 +8,7 @@ interface InteractiveImageViewerProps {
   projectName: string;
   className?: string;
   onGenerateNewView?: () => void;
+  shareUrl?: string;
 }
 
 const ZOOM_SPEED = 0.1;
@@ -22,7 +23,7 @@ const getTouchDistance = (touches: React.TouchList) => {
     );
 };
 
-export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ src, alt, projectName, className, onGenerateNewView }) => {
+export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ src, alt, projectName, className, onGenerateNewView, shareUrl }) => {
   const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
   const [isInteracting, setIsInteracting] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -215,14 +216,14 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
 
   const handleWhatsappShare = () => {
     if (!projectName) return;
-    const text = encodeURIComponent(`Confira esta visualização do projeto "${projectName}" gerada com o MarcenApp!`);
+    const url = shareUrl ? ` ${shareUrl}` : '';
+    const text = encodeURIComponent(`Confira esta visualização do projeto "${projectName}" gerada com o MarcenApp!${url}`);
     window.open(`whatsapp://send?text=${text}`);
     setShowShareMenu(false);
   };
 
   const handleCopyLink = () => {
-    // Simulate a project link
-    const link = `https://marcenapp.com/p/${Math.random().toString(36).substring(2, 10)}`;
+    const link = shareUrl || `https://marcenapp.com/p/${Math.random().toString(36).substring(2, 10)}`;
     navigator.clipboard.writeText(link).then(() => {
         showFeedback('Link do projeto copiado!');
     });
@@ -265,7 +266,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
   return (
     <div 
         ref={containerRef} 
-        className={`${containerClass} flex items-center justify-center cursor-move`}
+        className={`${containerClass} flex items-center justify-center cursor-move bg-[#1a1a1a]`} // Force dark background for letterboxing
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
@@ -285,7 +286,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
               maxHeight: '100%',
               width: 'auto',
               height: 'auto',
-              objectFit: 'contain',
+              objectFit: 'contain', // STRICTLY PREVENT CROPPING
               display: 'block',
               cursor: isInteracting ? 'grabbing' : 'grab',
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
