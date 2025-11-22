@@ -122,7 +122,7 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                                 <img src={image!} alt="Reference" className="w-full rounded-lg shadow-sm border border-[#e6ddcd] dark:border-[#4a4040]" />
                                 <RoomTypeDetector detectedType={roomType} confidence={confidence} onConfirm={setRoomType} />
                                 <DimensionExtractor dimensions={dimensions} onUpdate={setDimensions} />
-                                <FloorPlanAnalyzer isFloorPlan={roomType === 'Planta Baixa'} detectedFeatures={detectedObjects} />
+                                <FloorPlanAnalyzer isFloorPlan={roomType === 'Planta Baixa'} detectedFeatures={detectedObjects} imageSrc={image} />
                             </div>
 
                             {/* Column 2: Decisions & Intent */}

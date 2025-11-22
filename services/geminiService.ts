@@ -79,7 +79,7 @@ export async function generateImage(
     }
 
     technicalPrompt += `
-    1. **ZOOM OUT OBRIGATÓRIO:** Afaste a câmera virtual 20% a mais do que você acha necessário. O objeto deve estar "flutuar" no centro da imagem com espaço sobrando ao redor.
+    1. **ZOOM OUT OBRIGATÓRIO:** Afaste a câmera virtual 20% a mais do que você acha necessário. O objeto deve "flutuar" no centro da imagem com espaço sobrando ao redor.
     2. **ZONA DE SEGURANÇA (SAFE AREA):** Mantenha uma margem vazia (padding) generosa em todas as 4 bordas (topo, base, esquerda, direita). NENHUMA parte do móvel (pés, puxadores, sancas) pode tocar a borda da imagem.
     3. **LENTE:** Use uma lente **Grande Angular (Wide Angle - 24mm)** para capturar todo o contexto sem distorcer demais.
     4. **COMPOSIÇÃO:** Centralize o objeto principal matematicamente.
@@ -721,18 +721,20 @@ export async function generateFloorPlanFrom3D(project: ProjectHistoryItem): Prom
     // Engenharia de prompt para converter 3D -> 2D Técnico (Estilo AutoCAD)
     const technicalPrompt = `
     ATUE COMO: Um software CAD (AutoCAD/Revit) exportando para PDF/PNG.
-    TAREFA: Converter esta visualização 3D em uma PLANTA BAIXA TÉCNICA 2D (Vista Superior/Top View).
+    TAREFA: Converter esta visualização 3D em uma PLANTA BAIXA TÉCNICA 2D (Vista Superior/Top View) de Alta Precisão.
 
     ESTILO VISUAL OBRIGATÓRIO (DWG/CAD):
-    1. **Fundo:** BRANCO PURO (#FFFFFF).
-    2. **Linhas:** PRETO SÓLIDO (#000000). Traço fino, preciso e vetorial.
-    3. **Perspectiva:** ORTOGRÁFICA (2D Flat). Zero profundidade ou 3D.
-    4. **Elementos Técnicos:**
-       - Represente portas com arcos de abertura.
-       - Represente paredes com linhas duplas ou hachura sólida.
-       - Móveis devem ser contornos geométricos simples (retângulos).
-    5. **Cotas (Dimensões):** É OBRIGATÓRIO desenhar linhas de cota com setas e números nas laterais externas (Largura e Profundidade), simulando um desenho técnico aprovado.
-    6. **Proibido:** Sombras, texturas realistas, cores, degradês ou perspectiva cônica.
+    1. **TIPO DE IMAGEM:** Desenho técnico linear (Line Art). NÃO gere uma imagem renderizada ou fotográfica.
+    2. **Fundo:** BRANCO PURO (#FFFFFF) uniforme.
+    3. **Linhas:** PRETO SÓLIDO (#000000). Traço fino e nítido. Alto contraste.
+    4. **Perspectiva:** ORTOGRÁFICA PERFEITA (2D Flat). A câmera deve estar a 90 graus (Top-Down). Nenhuma parede deve ter altura visível (apenas a espessura do corte).
+    5. **Elementos Arquitetônicos:**
+       - Portas: Desenhe o arco de abertura da porta (90 graus).
+       - Janelas: Linhas duplas ou triplas finas na parede.
+       - Paredes: Linhas duplas paralelas (espessura 15cm).
+    6. **Mobiliário:** Representação esquemática 2D simples (retângulos e formas geométricas).
+    7. **Cotas (Dimensões):** ADICIONE linhas de chamada e cotas numéricas externas indicando largura e profundidade aproximadas.
+    8. **Limpeza:** A imagem deve parecer um arquivo .DWG impresso em PDF. Sem ruído, sem sombras, sem cores.
     `;
     
     return editImage(data, mimeType, technicalPrompt);
