@@ -126,40 +126,41 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ isOpen, floorPlanSrc
                     </div>
                 </div>
 
-                {/* Right: Controls Sidebar */}
-                <aside className="w-full md:w-96 bg-white dark:bg-[#3e3535] border-l border-gray-100 dark:border-[#4a4040] flex flex-col shadow-xl z-10">
-                    <div className="p-6 border-b border-gray-100 dark:border-[#4a4040] flex justify-between items-center">
-                        <h3 className="font-bold text-lg text-[#3e3535] dark:text-[#f5f1e8]">Modificações</h3>
-                        <button onClick={onClose} className="text-gray-400 hover:text-red-500 text-2xl leading-none">&times;</button>
+                {/* Right: Controls Sidebar - Improved UI */}
+                <aside className="w-full md:w-96 bg-white dark:bg-[#3e3535] border-l border-gray-100 dark:border-[#4a4040] flex flex-col shadow-xl z-10 relative">
+                    <div className="p-6 border-b border-gray-100 dark:border-[#4a4040] flex justify-between items-center bg-white dark:bg-[#3e3535] z-20">
+                        <div>
+                            <h3 className="font-bold text-lg text-[#3e3535] dark:text-[#f5f1e8]">Editor de Planta</h3>
+                            <p className="text-xs text-gray-500">Ajuste o layout com IA</p>
+                        </div>
+                        <button onClick={onClose} className="text-gray-400 hover:text-red-500 text-2xl leading-none p-2 rounded-full hover:bg-gray-100 dark:hover:bg-[#4a4040] transition">&times;</button>
                     </div>
                     
-                    <div className="flex-grow overflow-y-auto p-6 space-y-6">
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                                O que você deseja alterar?
+                    <div className="flex-grow overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                        {/* Input Area */}
+                        <div className="bg-gray-50 dark:bg-[#2d2424]/50 p-4 rounded-xl border border-gray-100 dark:border-[#4a4040]">
+                            <label className="block text-sm font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-2 flex items-center gap-2">
+                                <WandIcon className="w-4 h-4 text-[#d4ac6e]" />
+                                O que alterar?
                             </label>
-                            <div className="relative">
-                                <textarea
-                                    rows={4}
-                                    value={prompt}
-                                    onChange={(e) => setPrompt(e.target.value)}
-                                    placeholder="Descreva a alteração... Ex: 'Mover a porta da sala 50cm para a esquerda' ou 'Adicionar uma ilha na cozinha'."
-                                    className="w-full bg-gray-50 dark:bg-[#2d2424] border border-gray-200 dark:border-[#5a4f4f] rounded-xl p-4 text-sm text-[#3e3535] dark:text-[#f5f1e8] focus:ring-2 focus:ring-[#d4ac6e] focus:border-transparent outline-none resize-none shadow-inner transition-all"
-                                />
-                                <div className="absolute bottom-3 right-3 text-gray-400">
-                                    <WandIcon className="w-4 h-4" />
-                                </div>
-                            </div>
+                            <textarea
+                                rows={4}
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder="Ex: Mova a porta para a direita..."
+                                className="w-full bg-white dark:bg-[#2d2424] border border-gray-200 dark:border-[#5a4f4f] rounded-lg p-3 text-sm text-[#3e3535] dark:text-[#f5f1e8] focus:ring-2 focus:ring-[#d4ac6e] focus:border-transparent outline-none resize-none transition-all placeholder-gray-400"
+                            />
                         </div>
 
+                        {/* Suggestions */}
                         <div>
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 block">Comandos Rápidos</span>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-1">Sugestões Rápidas</p>
                             <div className="flex flex-wrap gap-2">
                                 {editSuggestions.map((suggestion, idx) => (
                                     <button
                                         key={idx}
                                         onClick={() => setPrompt(suggestion)}
-                                        className="px-3 py-2 bg-gray-100 dark:bg-[#4a4040] hover:bg-[#e6ddcd] dark:hover:bg-[#5a4f4f] border border-transparent hover:border-[#d4ac6e] rounded-lg text-xs text-gray-600 dark:text-gray-300 transition-all text-left"
+                                        className="px-3 py-2 bg-gray-50 dark:bg-[#4a4040] hover:bg-[#e6ddcd] dark:hover:bg-[#5a4f4f] text-xs text-gray-600 dark:text-gray-300 rounded-lg transition-colors border border-transparent hover:border-[#d4ac6e] text-left"
                                     >
                                         {suggestion}
                                     </button>
@@ -168,11 +169,12 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ isOpen, floorPlanSrc
                         </div>
                     </div>
 
-                    <div className="p-6 bg-gray-50 dark:bg-[#2d2424]/50 border-t border-gray-100 dark:border-[#4a4040] space-y-3">
+                    {/* Action Footer */}
+                    <div className="p-6 border-t border-gray-100 dark:border-[#4a4040] bg-white dark:bg-[#3e3535] space-y-3 z-20">
                         <button 
                             onClick={handleEdit} 
                             disabled={isEditing || !prompt.trim()} 
-                            className="w-full bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] font-bold py-3.5 rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
                         >
                             {isEditing ? <Spinner size="sm" /> : <WandIcon className="w-5 h-5" />}
                             {isEditing ? 'Processando...' : 'Gerar Alteração'}
@@ -181,14 +183,14 @@ export const LayoutEditor: React.FC<LayoutEditorProps> = ({ isOpen, floorPlanSrc
                         <div className="grid grid-cols-2 gap-3">
                             <button 
                                 onClick={onClose} 
-                                className="w-full py-3 bg-white dark:bg-[#4a4040] border border-gray-200 dark:border-[#5a4f4f] text-gray-600 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-100 dark:hover:bg-[#5a4f4f] transition"
+                                className="w-full py-3 text-gray-500 dark:text-gray-400 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-[#4a4040] transition text-sm"
                             >
                                 Cancelar
                             </button>
                             <button 
                                 onClick={handleSave} 
                                 disabled={!editedImageSrc} 
-                                className="w-full py-3 bg-[#3e3535] dark:bg-[#f5f1e8] text-white dark:text-[#3e3535] font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-[#3e3535] dark:bg-[#f5f1e8] text-white dark:text-[#3e3535] font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm text-sm"
                             >
                                 <SaveIcon /> Salvar
                             </button>

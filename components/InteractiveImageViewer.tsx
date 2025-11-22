@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, WheelEvent, MouseEvent, TouchEvent, useCallback, useEffect } from 'react';
-import { ZoomInIcon, ZoomOutIcon, ResetZoomIcon, ShareIcon, CopyIcon, EmailIcon, DownloadIcon, CheckIcon, WhatsappIcon, CubeIcon } from './Shared';
+import { ZoomInIcon, ZoomOutIcon, ResetZoomIcon, ShareIcon, CopyIcon, EmailIcon, DownloadIcon, CheckIcon, WhatsappIcon, CubeIcon, LinkIcon } from './Shared';
 
 interface InteractiveImageViewerProps {
   src: string;
@@ -220,6 +220,14 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     setShowShareMenu(false);
   };
 
+  const handleCopyLink = () => {
+    // Simulate a project link
+    const link = `https://marcenapp.com/p/${Math.random().toString(36).substring(2, 10)}`;
+    navigator.clipboard.writeText(link).then(() => {
+        showFeedback('Link do projeto copiado!');
+    });
+  };
+
   const handleDownload = () => {
     try {
         const link = document.createElement('a');
@@ -257,13 +265,13 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
   return (
     <div 
         ref={containerRef} 
-        className={`${containerClass} flex items-center justify-center`}
+        className={`${containerClass} flex items-center justify-center cursor-move`}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleInteractionEnd}
-        style={{ touchAction: 'none' }} // CRITICAL: Prevents browser scrolling on mobile
+        style={{ touchAction: 'none', overscrollBehavior: 'contain' }} // CRITICAL: Prevents browser scrolling and pull-to-refresh on mobile
         aria-label="Visualizador interativo. Use dois dedos para zoom/pan ou duplo toque para resetar."
     >
       <img
@@ -320,9 +328,12 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
             <div className="relative">
                 <button onClick={() => setShowShareMenu(prev => !prev)} className={`w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95 ${showShareMenu ? 'bg-white/20' : ''}`} title="Compartilhar"><ShareIcon /></button>
                 {showShareMenu && (
-                    <div className="absolute bottom-full right-0 mb-3 w-52 bg-[#2d2424] border border-[#4a4040] rounded-xl shadow-2xl p-2 flex flex-col gap-1 animate-fadeInUp z-30" style={{ animationDuration: '0.2s'}}>
+                    <div className="absolute bottom-full right-0 mb-3 w-56 bg-[#2d2424] border border-[#4a4040] rounded-xl shadow-2xl p-2 flex flex-col gap-1 animate-fadeInUp z-30" style={{ animationDuration: '0.2s'}}>
                         <button onClick={handleWhatsappShare} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-green-400 hover:bg-[#3e3535] transition font-medium">
                            <WhatsappIcon className="w-5 h-5" /> <span>WhatsApp</span>
+                        </button>
+                        <button onClick={handleCopyLink} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-blue-400 hover:bg-[#3e3535] transition font-medium">
+                           <LinkIcon className="w-5 h-5" /> <span>Copiar Link</span>
                         </button>
                         <button onClick={handleCopyImage} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-[#c7bca9] hover:bg-[#3e3535] transition font-medium">
                             <CopyIcon className="w-5 h-5" /> <span>Copiar Imagem</span>

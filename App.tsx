@@ -27,7 +27,7 @@ import { ImageProjectGenerator } from './components/ImageProjectGenerator';
 import { StoreDashboard } from './components/StoreDashboard';
 import { InteractiveImageViewer } from './components/InteractiveImageViewer';
 import { DecorationListModal } from './components/DecorationListModal';
-import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, HighQualityIcon, PlantIcon, ShoppingBagIcon } from './components/Shared';
+import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, HighQualityIcon, PlantIcon, ShoppingBagIcon, ShareIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
 import { suggestAlternativeStyles, generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D } from './services/geminiService';
@@ -129,12 +129,12 @@ const FinishSuggestionsModal: React.FC<FinishSuggestionsModalProps> = ({ isOpen,
 const ToolButton: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void; done?: boolean }> = ({ icon, label, onClick, done }) => (
     <button 
         onClick={onClick} 
-        className={`flex flex-col items-center justify-center p-3 rounded-xl border shadow-sm transition-all ${done ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-white dark:bg-[#3e3535] border-[#e6ddcd] dark:border-[#4a4040] hover:border-[#d4ac6e] hover:shadow-md'}`}
+        className={`flex flex-col items-center justify-center p-3 rounded-xl border shadow-sm transition-all min-w-[70px] ${done ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-white dark:bg-[#3e3535] border-[#e6ddcd] dark:border-[#4a4040] hover:border-[#d4ac6e] hover:shadow-md'}`}
     >
         <div className={`p-2 rounded-full mb-1 ${done ? 'text-green-600 dark:text-green-400' : 'text-[#6a5f5f] dark:text-[#c7bca9]'}`}>
             {icon}
         </div>
-        <span className="text-xs font-bold text-[#3e3535] dark:text-[#f5f1e8]">{label}</span>
+        <span className="text-xs font-bold text-[#3e3535] dark:text-[#f5f1e8] whitespace-nowrap">{label}</span>
     </button>
 );
 
@@ -375,6 +375,26 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     }
 
     toggleModal('history', false);
+  };
+
+  const handleShareProject = async () => {
+      if (!currentProject) return;
+      const link = `https://marcenapp.com/p/${currentProject.id}`;
+      
+      if (navigator.share) {
+          try {
+              await navigator.share({
+                  title: currentProject.name,
+                  text: `Confira o projeto ${currentProject.name} criado no MarcenApp!`,
+                  url: link
+              });
+          } catch (err) {
+              // User cancelled
+          }
+      } else {
+          navigator.clipboard.writeText(link);
+          showAlert("Link do projeto copiado para a área de transferência!", "Link Copiado");
+      }
   };
 
   const handleGetStyleSuggestions = async () => {
@@ -687,7 +707,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                 src={currentProject.views3d[currentProject.views3d.length - 1]} // Always show latest view
                                 alt={currentProject.name} 
                                 projectName={currentProject.name}
-                                className="w-full h-full bg-neutral-900 relative overflow-hidden"
+                                className="w-full h-full bg-neutral-900 relative overflow-hidden select-none touch-none"
                                 onGenerateNewView={() => toggleModal('newView', true)} // Connect Camera Rotate button
                             />
                             
@@ -735,11 +755,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-4 gap-3 mb-6 overflow-x-auto pb-2">
+                            <div className="grid grid-cols-5 gap-2 mb-6 overflow-x-auto pb-2">
                                  <ToolButton icon={<BookIcon />} label="Lista" onClick={() => toggleModal('bom', true)} done={!!currentProject.bom} />
                                  <ToolButton icon={<BlueprintIcon />} label="Corte" onClick={() => toggleModal('cutting', true)} done={!!currentProject.cuttingPlan} />
                                  <ToolButton icon={<CurrencyDollarIcon />} label="Custo" onClick={() => toggleModal('cost', true)} done={!!currentProject.materialCost} />
                                  <ToolButton icon={<RulerIcon />} label="Planta" onClick={handleOpenLayoutEditor} done={!!currentProject.image2d} />
+                                 <ToolButton icon={<ShareIcon />} label="Compartilhar" onClick={handleShareProject} />
                             </div>
                             
                              <div className="bg-[#f9f5eb] dark:bg-[#2d2424] p-4 rounded-xl text-sm text-gray-700 dark:text-gray-300">
