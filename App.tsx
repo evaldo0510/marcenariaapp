@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Header } from './components/Header';
 import { FinishesSelector } from './components/FinishesSelector';
@@ -135,7 +136,7 @@ const ToolButton: React.FC<{ icon: React.ReactNode; label: string; onClick: () =
 );
 
 const framingOptions = [
-    { label: 'Padrão (Sem Cortes)', value: 'Renderize o ambiente inteiro em 3D, centralizando todos os itens principais, garantindo que nada fique cortado nas bordas da imagem.' },
+    { label: 'Padrão (Sem Cortes)', value: 'ATENÇÃO CRÍTICA AO ENQUADRAMENTO: Renderize o projeto 3D centralizado, aplicando um ZOOM OUT (afastamento da câmera) para garantir margens de segurança (padding) generosas em todas as 4 bordas. O objeto deve "flutuar" no centro da imagem. É ESTRITAMENTE PROIBIDO cortar qualquer extremidade do móvel ou do ambiente. O foco é a totalidade do projeto.' },
     { label: 'Grande Angular (Tudo Visível)', value: 'Gere uma imagem 3D do projeto, ajustando o enquadramento para que todo o espaço fique visível, inclusive as paredes, teto e piso.' },
     { label: 'Horizontal (Panorâmico)', value: 'Mostre o móvel ou ambiente completamente, em formato horizontal, detalhando todas as laterais e evitando cortes nos extremos.' },
     { label: 'Social Media (Proporção)', value: 'Crie uma visualização 3D centralizada e com proporção adequada ao quadro, pronta para compartilhamento nas redes sociais.' },
@@ -450,7 +451,13 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         <h2 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
                             <SparklesIcon className="w-5 h-5"/> Estilo do Projeto
                         </h2>
-                        <button onClick={handleGetStyleSuggestions} className="text-xs text-[#d4ac6e] font-bold underline">Sugerir</button>
+                        <button 
+                            onClick={handleGetStyleSuggestions} 
+                            className="p-2 bg-[#f0e9dc] dark:bg-[#2d2424] rounded-lg hover:bg-[#e6ddcd] dark:hover:bg-[#4a4040] text-[#d4ac6e] transition"
+                            title="Sugira estilos de projeto"
+                        >
+                            <WandIcon className="w-4 h-4" />
+                        </button>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4 mb-4">
@@ -478,6 +485,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                     <option key={option.label} value={option.value}>{option.label}</option>
                                 ))}
                             </select>
+                            <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 px-1">✅ O modo padrão centraliza o objeto e aplica margens para evitar cortes.</p>
                         </div>
                     </div>
 
@@ -536,7 +544,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                     <div className="bg-white dark:bg-[#3e3535] rounded-2xl shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] overflow-hidden sticky top-24">
                         {/* 3D View */}
                         <div className="relative aspect-[4/3] md:aspect-video bg-gray-100 dark:bg-[#2d2424]">
-                            <img src={currentProject.views3d[0]} alt={currentProject.name} className="w-full h-full object-cover" />
+                            <img src={currentProject.views3d[0]} alt={currentProject.name} className="w-full h-full object-contain bg-neutral-900" />
                             
                             {/* Overlays */}
                             <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold">
@@ -561,7 +569,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-4 gap-3 mb-6">
+                            <div className="grid grid-cols-4 gap-3 mb-6 overflow-x-auto pb-2">
                                  <ToolButton icon={<BookIcon />} label="Lista" onClick={() => toggleModal('bom', true)} done={!!currentProject.bom} />
                                  <ToolButton icon={<BlueprintIcon />} label="Corte" onClick={() => toggleModal('cutting', true)} done={!!currentProject.cuttingPlan} />
                                  <ToolButton icon={<CurrencyDollarIcon />} label="Custo" onClick={() => toggleModal('cost', true)} done={!!currentProject.materialCost} />

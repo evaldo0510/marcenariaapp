@@ -125,15 +125,18 @@ const FeatureCard: React.FC<{ icon: React.ReactNode; title: string; children: Re
     </div>
 );
 
-const TestimonialCard: React.FC<{ quote: string; name: string; role: string; }> = ({ quote, name, role }) => (
-    <div className="bg-[#fffefb] dark:bg-[#3e3535] p-6 rounded-xl border border-[#e6ddcd] dark:border-[#4a4040] shadow-md">
+const TestimonialCard: React.FC<{ quote: string; name: string; role: string; imageSrc: string; }> = ({ quote, name, role, imageSrc }) => (
+    <div className="bg-[#fffefb] dark:bg-[#3e3535] p-6 rounded-xl border border-[#e6ddcd] dark:border-[#4a4040] shadow-md flex flex-col h-full">
         <div className="flex text-yellow-500 mb-4">
             <StarIcon isFavorite /> <StarIcon isFavorite /> <StarIcon isFavorite /> <StarIcon isFavorite /> <StarIcon isFavorite />
         </div>
-        <p className="text-[#6a5f5f] dark:text-[#c7bca9] italic mb-4 text-sm">"{quote}"</p>
-        <div>
-            <p className="font-bold text-[#3e3535] dark:text-[#f5f1e8]">{name}</p>
-            <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d]">{role}</p>
+        <p className="text-[#6a5f5f] dark:text-[#c7bca9] italic mb-6 text-sm flex-grow">"{quote}"</p>
+        <div className="flex items-center gap-3 mt-auto">
+            <img src={imageSrc} alt={name} className="w-10 h-10 rounded-full object-cover border-2 border-[#d4ac6e]" />
+            <div>
+                <p className="font-bold text-[#3e3535] dark:text-[#f5f1e8] text-sm">{name}</p>
+                <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d]">{role}</p>
+            </div>
         </div>
     </div>
 );
@@ -228,7 +231,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         
                         <div className="relative animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
                             <img 
-                                src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80" 
+                                src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80" 
                                 alt="Cozinha Planejada MarcenApp" 
                                 className="rounded-2xl shadow-2xl border-4 border-white dark:border-[#4a4040] w-full object-cover transform rotate-2 hover:rotate-0 transition-transform duration-500"
                             />
@@ -237,7 +240,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                     <CheckIcon className="w-6 h-6 text-green-600" />
                                 </div>
                                 <div>
-                                    <p className="font-bold text-sm">Orçamento Aprovado</p>
+                                    <p className="font-bold text-sm text-[#3e3535] dark:text-[#f5f1e8]">Orçamento Aprovado</p>
                                     <p className="text-xs text-gray-500">R$ 18.500,00</p>
                                 </div>
                             </div>
@@ -278,22 +281,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1556912173-3db9963f6bee?auto=format&fit=crop&w=600&q=80" 
+                                src="https://images.unsplash.com/photo-1556910103-1c02745a30bf?auto=format&fit=crop&w=600&q=80" 
                                 alt="Cozinha Moderna" 
                                 title="Cozinhas" 
                             />
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=600&q=80" 
+                                src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=600&q=80" 
                                 alt="Sala de Estar" 
                                 title="Salas de Estar" 
                             />
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&w=600&q=80" 
+                                src="https://images.unsplash.com/photo-1616594039964-40891a909d99?auto=format&fit=crop&w=600&q=80" 
                                 alt="Dormitório" 
                                 title="Dormitórios" 
                             />
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=600&q=80" 
+                                src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80" 
                                 alt="Escritório" 
                                 title="Escritórios" 
                             />
@@ -312,16 +315,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                 name="Carlos Ferreira"
                                 role="Dono da Marcenaria CF"
                                 quote="O MarcenApp organizou minha oficina. Antes eu perdia horas calculando plano de corte na mão. Agora é automático."
+                                imageSrc="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80"
                             />
                              <TestimonialCard 
                                 name="Juliana Andrade"
                                 role="Arquiteta e Designer"
                                 quote="A qualidade dos renders gerados pela IA é impressionante. Meus clientes fecham o projeto muito mais rápido."
+                                imageSrc="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"
                             />
                              <TestimonialCard 
                                 name="Ricardo Martins"
                                 role="Distribuidor Parceiro"
                                 quote="Como parceiro, consigo gerenciar meus clientes marceneiros e oferecer uma solução que realmente ajuda eles a crescerem."
+                                imageSrc="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80"
                             />
                         </div>
                      </div>

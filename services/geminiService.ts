@@ -60,6 +60,7 @@ export async function generateImage(prompt: string, referenceImages?: { data: st
     3. **MARGINS (SAFETY PADDING):** Deixe uma **margem de segurança (espaço vazio/respiro)** de pelo menos 15% em TODAS as bordas (topo, base, esquerda, direita). O móvel deve flutuar no centro, totalmente visível.
     4. **COMPOSIÇÃO:** Centralize o objeto principal. Se for um móvel alto, mostre do chão ao teto com folga. Se for comprido, mostre as duas laterais.
     5. **NUNCA CORTE:** É estritamente proibido cortar partes do móvel (pés, topo, laterais). A imagem deve ser um "Full Shot" (Plano Inteiro).
+    6. **VISUALIZAÇÃO VOLUMÉTRICA:** Salvo especificado em contrário, use uma perspectiva levemente rotacionada (3/4 view) para mostrar a profundidade e as laterais do móvel, não apenas a frente chapada.
     `;
 
     if (referenceImages && referenceImages.length > 0) {
