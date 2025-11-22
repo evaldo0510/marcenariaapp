@@ -277,7 +277,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   }
 
   // Handlers
-  const handleGenerateProject = async () => {
+  const handleGenerateProject = async (forcePro = false) => {
       if (!description.trim()) return showAlert("Por favor, descreva seu projeto.", "Falta Descrição", "warning");
       setIsGenerating(true);
       try {
@@ -296,11 +296,15 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
               fullPrompt += `\n- Iluminação: Incluir iluminação LED para valorizar o móvel.`;
           }
 
-          // Use Pro Model if selected, forcing 2K resolution and Rich decoration
-          const usePro = qualityMode === 'pro';
-          // Force 2K and Rich decoration if Pro mode is on, regardless of dropdown
+          // Use Pro Model if selected or FORCED, forcing 2K resolution and Rich decoration
+          const usePro = forcePro || qualityMode === 'pro';
+          // Force 2K and Rich decoration if Pro mode is on (or forced), regardless of dropdown
           const effectiveResolution = usePro ? '2K' : imageResolution;
           const effectiveDecoration = usePro ? 'rich' : decorationLevel;
+
+          if (forcePro) {
+              showAlert("Gerando versão em Alta Definição (2K)... Aguarde.", "Upgrade Pro", "info");
+          }
 
           const imageBase64 = await generateImage(
               fullPrompt, 
@@ -312,7 +316,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           );
           
           const projectData: Omit<ProjectHistoryItem, 'id' | 'timestamp'> = {
-              name: `Projeto ${stylePreset} - ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
+              name: `Projeto ${stylePreset} ${usePro ? '(Pro)' : ''} - ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
               description: description,
               style: stylePreset,
               selectedFinish: selectedFinish,
@@ -724,7 +728,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                 </section>
                 
                 <button 
-                    onClick={handleGenerateProject}
+                    onClick={() => handleGenerateProject(false)}
                     disabled={isGenerating}
                     className={`w-full py-4 font-extrabold text-lg rounded-2xl shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed group relative ${qualityMode === 'pro' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:opacity-90' : 'bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535]'}`}
                 >
@@ -769,13 +773,21 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                 {currentProject.style}
                             </div>
                             
-                            <div className="absolute top-4 right-4 pointer-events-auto">
+                            <div className="absolute top-4 right-4 pointer-events-auto flex flex-col gap-2 items-end">
                                 <button 
                                     onClick={handleGenerateFloorPlan}
                                     className="bg-white/90 text-[#3e3535] px-3 py-1.5 rounded-lg shadow-lg hover:bg-white transition flex items-center gap-2 text-xs font-bold border border-[#d4ac6e]/50"
                                     title="Gerar Planta Baixa 2D"
                                 >
                                     <RulerIcon className="w-4 h-4" /> Gerar Planta Baixa
+                                </button>
+                                
+                                <button 
+                                    onClick={() => handleGenerateProject(true)}
+                                    className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-1.5 rounded-lg shadow-lg hover:opacity-90 transition flex items-center gap-2 text-xs font-bold border border-white/20"
+                                    title="Renderizar em Alta Definição (2K)"
+                                >
+                                    <HighQualityIcon className="w-4 h-4" /> Renderizar Pro (2K)
                                 </button>
                             </div>
                             
