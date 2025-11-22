@@ -70,13 +70,13 @@ export const Header: React.FC<HeaderProps> = ({
     }
     
     return (
-        <header className="bg-[#f5f1e8]/80 dark:bg-[#2d2424]/80 backdrop-blur-sm sticky top-0 z-30 border-b border-[#e6ddcd] dark:border-[#4a4040]">
+        <header className="bg-[#f5f1e8]/95 dark:bg-[#2d2424]/95 backdrop-blur-sm sticky top-0 z-30 border-b border-[#e6ddcd] dark:border-[#4a4040]">
             <div className="max-w-7xl mx-auto px-4 sm:p-6 lg:px-8">
-                <div className="flex items-center justify-between h-20">
+                <div className="flex items-center justify-between h-16 md:h-20">
                     {/* Left side: Brand */}
                     <div className="flex items-center gap-3">
-                        <LogoIcon className="text-[#3e3535] dark:text-[#f5f1e8]" />
-                        <h1 className="text-2xl font-semibold text-[#3e3535] dark:text-[#f5f1e8] tracking-tight">MarcenApp</h1>
+                        <LogoIcon className="text-[#3e3535] dark:text-[#f5f1e8] w-6 h-6 md:w-7 md:h-7" />
+                        <h1 className="text-xl md:text-2xl font-semibold text-[#3e3535] dark:text-[#f5f1e8] tracking-tight">MarcenApp</h1>
                     </div>
                     
                     {/* Right side: Actions & User */}
@@ -133,12 +133,12 @@ export const Header: React.FC<HeaderProps> = ({
                         
                         {/* User Menu */}
                         <div className="relative" ref={menuRef}>
-                            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-2 bg-[#e6ddcd] dark:bg-[#4a4040] py-2 px-3 rounded-full hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition-colors">
+                            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-2 bg-[#e6ddcd] dark:bg-[#4a4040] py-1.5 px-3 md:py-2 md:px-3 rounded-full hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition-colors">
                                 <UserIcon className="w-5 h-5 text-[#3e3535] dark:text-[#f5f1e8]" />
                                 <span className="hidden sm:inline text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8]">{userEmail.split('@')[0]}</span>
                             </button>
                             {isMenuOpen && (
-                                <div className="absolute right-0 mt-2 w-64 bg-[#fffefb] dark:bg-[#4a4040] border border-[#e6ddcd] dark:border-[#4a4040] rounded-lg shadow-xl p-2 z-10 animate-scaleIn" style={{transformOrigin: 'top right'}}>
+                                <div className="absolute right-0 mt-2 w-72 md:w-64 bg-[#fffefb] dark:bg-[#4a4040] border border-[#e6ddcd] dark:border-[#4a4040] rounded-lg shadow-xl p-2 z-50 animate-scaleIn max-h-[80vh] overflow-y-auto custom-scrollbar" style={{transformOrigin: 'top right'}}>
                                     <div className="px-3 py-2">
                                         <p className="text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8] truncate">{userEmail}</p>
                                         {isSuperAdmin && <p className="text-xs text-red-600 font-bold flex items-center gap-1"><ShieldIcon className="w-3 h-3"/> Super Admin</p>}
@@ -180,13 +180,18 @@ export const Header: React.FC<HeaderProps> = ({
                                             <button onClick={() => {onOpenClients(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><UsersIcon /> Clientes</button>
                                             <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
                                             <div className="text-sm px-3 py-2 text-[#6a5f5f] dark:text-[#c7bca9]">
-                                                <strong>Ferramentas Autônomas</strong>
+                                                <strong>Ferramentas</strong>
                                             </div>
                                             <button onClick={() => {onOpenBomGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><BookIcon /> Gerador de BOM</button>
                                             <button onClick={() => {onOpenCuttingPlanGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><ToolsIcon /> Plano de Corte</button>
                                             <button onClick={() => {onOpenCostEstimator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><CurrencyDollarIcon /> Estimativa de Custos</button>
                                         </>
                                     )}
+
+                                    {/* Mobile shortcuts for header tools */}
+                                    <div className="md:hidden border-t border-gray-200 dark:border-gray-600 my-1"></div>
+                                    <button onClick={() => {onOpenResearch(); setIsMenuOpen(false);}} className="md:hidden w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><SearchIcon /> Pesquisar com Iara</button>
+                                    <button onClick={() => {onOpenLive(); setIsMenuOpen(false);}} className="md:hidden w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><HeadsetIcon /> Conversa de Voz</button>
 
                                     <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
                                     <button onClick={handleOpenApiKey} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]">

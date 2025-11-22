@@ -94,52 +94,65 @@ export const ManagementDashboard: React.FC<ManagementDashboardProps> = ({ isOpen
     const NavButton: React.FC<{ tab: ModuleTab; icon: any; label: string }> = ({ tab, icon: Icon, label }) => (
         <button
             onClick={() => setActiveTab(tab)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${activeTab === tab ? 'bg-[#d4ac6e] text-[#3e3535] font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+            className={`flex-shrink-0 md:w-full flex flex-col md:flex-row items-center gap-2 md:gap-3 px-4 py-3 rounded-lg mb-1 transition-colors text-xs md:text-sm whitespace-nowrap ${activeTab === tab ? 'bg-[#d4ac6e] text-[#3e3535] font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
         >
-            <Icon className="w-5 h-5" />
+            <Icon className="w-5 h-5 md:w-5 md:h-5" />
             <span>{label}</span>
         </button>
     );
 
     return (
-        <div className="fixed inset-0 bg-gray-100 dark:bg-[#2d2424] z-50 flex animate-fadeIn">
-            {/* Sidebar */}
-            <aside className="w-64 bg-[#fffefb] dark:bg-[#3e3535] border-r border-gray-200 dark:border-[#4a4040] flex flex-col">
-                <div className="p-6 border-b border-gray-200 dark:border-[#4a4040]">
-                    <h2 className="text-xl font-bold text-[#b99256] flex items-center gap-2">
-                        <ChartBarIcon /> Gestão PRO
+        <div className="fixed inset-0 bg-gray-100 dark:bg-[#2d2424] z-50 flex flex-col md:flex-row animate-fadeIn h-full overflow-hidden">
+            {/* Sidebar / Top Nav */}
+            <aside className="w-full md:w-64 bg-[#fffefb] dark:bg-[#3e3535] border-b md:border-b-0 md:border-r border-gray-200 dark:border-[#4a4040] flex flex-col flex-shrink-0">
+                <div className="p-4 border-b border-gray-200 dark:border-[#4a4040] flex justify-between items-center md:block">
+                    <h2 className="text-lg md:text-xl font-bold text-[#b99256] flex items-center gap-2">
+                        <ChartBarIcon /> <span className="hidden md:inline">Gestão PRO</span> <span className="md:hidden">Gestão</span>
                     </h2>
+                    <button onClick={onClose} className="md:hidden text-gray-500 hover:text-gray-800 dark:hover:text-white px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-sm">
+                        Fechar
+                    </button>
                 </div>
-                <nav className="flex-grow p-4 overflow-y-auto">
+                <nav className="flex md:flex-col overflow-x-auto md:overflow-y-auto p-2 custom-scrollbar">
                     <NavButton tab="dashboard" icon={ChartBarIcon} label="Visão Geral" />
-                    <div className="my-2 border-t border-gray-100 dark:border-gray-700"></div>
-                    <p className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Produção</p>
-                    <NavButton tab="kanban" icon={ViewBoardsIcon} label="Projetos (Kanban)" />
-                    <NavButton tab="quotations" icon={ReceiptIcon} label="Cotações" />
-                    <NavButton tab="pricing" icon={CalculatorIcon} label="Precificação" />
+                    <div className="hidden md:block my-2 border-t border-gray-100 dark:border-gray-700"></div>
                     
-                    <p className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider mt-2">Recursos</p>
+                    {/* Mobile Separator */}
+                    <div className="w-px h-8 bg-gray-200 mx-2 md:hidden"></div>
+
+                    <p className="hidden md:block px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">Produção</p>
+                    <NavButton tab="kanban" icon={ViewBoardsIcon} label="Kanban" />
+                    <NavButton tab="quotations" icon={ReceiptIcon} label="Cotações" />
+                    <NavButton tab="pricing" icon={CalculatorIcon} label="Preços" />
+                    
+                    {/* Mobile Separator */}
+                    <div className="w-px h-8 bg-gray-200 mx-2 md:hidden"></div>
+
+                    <p className="hidden md:block px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider mt-2">Recursos</p>
                     <NavButton tab="inventory" icon={ClipboardListIcon} label="Estoque" />
                     <NavButton tab="catalog" icon={CatalogIcon} label="Catálogo" />
-                    <NavButton tab="suppliers" icon={TruckIcon} label="Fornecedores" />
+                    <NavButton tab="suppliers" icon={TruckIcon} label="Fornec." />
                     
-                    <p className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider mt-2">Admin</p>
+                    {/* Mobile Separator */}
+                    <div className="w-px h-8 bg-gray-200 mx-2 md:hidden"></div>
+
+                    <p className="hidden md:block px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider mt-2">Admin</p>
                     <NavButton tab="finance" icon={CurrencyDollarIcon} label="Financeiro" />
-                    <NavButton tab="settings" icon={CogIcon} label="Configurações" />
+                    <NavButton tab="settings" icon={CogIcon} label="Config." />
                 </nav>
             </aside>
 
             {/* Main Content */}
             <main className="flex-grow flex flex-col h-full overflow-hidden">
-                <header className="h-16 bg-[#fffefb] dark:bg-[#3e3535] border-b border-gray-200 dark:border-[#4a4040] flex justify-between items-center px-6">
-                    <h1 className="text-lg font-bold text-gray-800 dark:text-white capitalize">
+                <header className="h-14 md:h-16 bg-[#fffefb] dark:bg-[#3e3535] border-b border-gray-200 dark:border-[#4a4040] flex justify-between items-center px-4 md:px-6 flex-shrink-0">
+                    <h1 className="text-base md:text-lg font-bold text-gray-800 dark:text-white capitalize">
                         {activeTab === 'dashboard' ? 'Visão Geral' : activeTab}
                     </h1>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 dark:hover:text-white px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                    <button onClick={onClose} className="hidden md:block text-gray-500 hover:text-gray-800 dark:hover:text-white px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition">
                         Voltar ao App
                     </button>
                 </header>
-                <div className="flex-grow overflow-y-auto p-6">
+                <div className="flex-grow overflow-y-auto p-4 md:p-6">
                     {renderContent()}
                 </div>
             </main>

@@ -1,7 +1,6 @@
-
 import React, { useState, useMemo } from 'react';
 import type { ProjectHistoryItem } from '../types';
-import { Spinner, BookIcon, WandIcon, TrashIcon, CheckIcon, SearchIcon, DocumentTextIcon, ToolsIcon, ConfirmationModal } from './Shared';
+import { Spinner, BookIcon, WandIcon, TrashIcon, CheckIcon, SearchIcon, DocumentTextIcon, ToolsIcon } from './Shared';
 
 interface HistoryPanelProps {
     isOpen: boolean;
@@ -22,7 +21,6 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
 }) => {
     const [sortOrder, setSortOrder] = useState<'date-desc' | 'date-asc' | 'alpha-asc'>('date-desc');
     const [searchTerm, setSearchTerm] = useState('');
-    const [confirmModal, setConfirmModal] = useState<{isOpen: boolean, title: string, message: string, onConfirm: () => void}>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
     const displayedHistory = useMemo(() => {
         return history
@@ -172,15 +170,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                                                 </ActionButton>
 
                                                 <ActionButton
-                                                    onClick={(e) => { 
-                                                        e.stopPropagation(); 
-                                                        setConfirmModal({
-                                                            isOpen: true,
-                                                            title: 'Excluir Projeto',
-                                                            message: 'Tem certeza que deseja excluir este projeto? Esta ação não pode ser desfeita.',
-                                                            onConfirm: () => { onDeleteProject(project.id); setConfirmModal(prev => ({...prev, isOpen: false})); }
-                                                        });
-                                                    }}
+                                                    onClick={(e) => { e.stopPropagation(); onDeleteProject(project.id); }}
                                                     className="bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900"
                                                 >
                                                     <TrashIcon /> Excluir
@@ -194,13 +184,6 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                     </main>
                 </div>
             </div>
-            <ConfirmationModal 
-                isOpen={confirmModal.isOpen}
-                title={confirmModal.title}
-                message={confirmModal.message}
-                onConfirm={confirmModal.onConfirm}
-                onCancel={() => setConfirmModal(prev => ({...prev, isOpen: false}))}
-            />
         </div>
     );
 };

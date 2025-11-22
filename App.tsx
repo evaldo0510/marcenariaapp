@@ -129,7 +129,7 @@ const FinishSuggestionsModal: React.FC<FinishSuggestionsModalProps> = ({ isOpen,
 const ToolButton: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void; done?: boolean }> = ({ icon, label, onClick, done }) => (
     <button 
         onClick={onClick} 
-        className={`flex flex-col items-center justify-center p-3 rounded-xl border shadow-sm transition-all min-w-[70px] ${done ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-white dark:bg-[#3e3535] border-[#e6ddcd] dark:border-[#4a4040] hover:border-[#d4ac6e] hover:shadow-md'}`}
+        className={`flex flex-col items-center justify-center p-3 rounded-xl border shadow-sm transition-all min-w-[70px] active:scale-95 ${done ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-white dark:bg-[#3e3535] border-[#e6ddcd] dark:border-[#4a4040] hover:border-[#d4ac6e] hover:shadow-md'}`}
     >
         <div className={`p-2 rounded-full mb-1 ${done ? 'text-green-600 dark:text-green-400' : 'text-[#6a5f5f] dark:text-[#c7bca9]'}`}>
             {icon}
@@ -481,7 +481,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f1e8] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] transition-colors duration-300 pb-20 lg:pb-0">
+    <div className="min-h-screen bg-[#f5f1e8] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] transition-colors duration-300 pb-24 lg:pb-0">
       <Header 
         userEmail={userEmail} 
         isAdmin={isSuperAdmin || effectivePlan === 'business'}
@@ -516,23 +516,23 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         setTheme={setTheme}
       />
 
-      {/* Mobile Tab Switcher */}
-      <div className="lg:hidden flex sticky top-20 z-20 bg-[#f5f1e8] dark:bg-[#2d2424] border-b border-[#e6ddcd] dark:border-[#4a4040]">
+      {/* Mobile Tab Switcher - Improved Styling and Positioning */}
+      <div className="lg:hidden flex sticky top-16 z-20 bg-[#f5f1e8] dark:bg-[#2d2424] border-b border-[#e6ddcd] dark:border-[#4a4040] shadow-sm">
           <button 
             onClick={() => setMobileTab('create')} 
-            className={`flex-1 py-3 font-bold text-sm border-b-2 ${mobileTab === 'create' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e]' : 'border-transparent text-gray-500'}`}
+            className={`flex-1 py-3 font-bold text-sm border-b-4 transition-colors duration-200 ${mobileTab === 'create' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e] bg-[#d4ac6e]/5' : 'border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-[#3e3535]'}`}
           >
             1. Criar Projeto
           </button>
           <button 
             onClick={() => setMobileTab('result')} 
-            className={`flex-1 py-3 font-bold text-sm border-b-2 ${mobileTab === 'result' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e]' : 'border-transparent text-gray-500'}`}
+            className={`flex-1 py-3 font-bold text-sm border-b-4 transition-colors duration-200 ${mobileTab === 'result' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e] bg-[#d4ac6e]/5' : 'border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-[#3e3535]'}`}
           >
             2. Resultado 3D
           </button>
       </div>
 
-      <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:px-8">
+      <main className="max-w-7xl mx-auto p-3 sm:p-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
             {/* Left Column: Inputs (Creation) */}
@@ -789,7 +789,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-5 gap-2 mb-6 overflow-x-auto pb-2">
+                            <div className="grid grid-cols-5 gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
                                  <ToolButton icon={<BookIcon />} label="Lista" onClick={() => toggleModal('bom', true)} done={!!currentProject.bom} />
                                  <ToolButton icon={<BlueprintIcon />} label="Corte" onClick={() => toggleModal('cutting', true)} done={!!currentProject.cuttingPlan} />
                                  <ToolButton icon={<CurrencyDollarIcon />} label="Custo" onClick={() => toggleModal('cost', true)} done={!!currentProject.materialCost} />
@@ -908,7 +908,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       {/* Notifications & Wallet Modals Wrapper */}
         {modals.notifications && (
             <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => toggleModal('notifications', false)}>
-                <div onClick={e => e.stopPropagation()}>
+                <div className="w-full max-w-md" onClick={e => e.stopPropagation()}>
                     <NotificationSystem />
                 </div>
             </div>
