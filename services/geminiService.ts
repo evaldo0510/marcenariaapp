@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import type { ProjectHistoryItem, ProjectLead, Finish } from '../types';
 
@@ -39,7 +40,8 @@ export async function generateImage(
     referenceImages?: { data: string, mimeType: string }[] | null, 
     framingStrategy?: string,
     useProModel: boolean = false,
-    imageResolution: '1K' | '2K' | '4K' = '1K'
+    imageResolution: '1K' | '2K' | '4K' = '1K',
+    decorationLevel: 'minimal' | 'standard' | 'rich' = 'standard'
 ): Promise<string> {
     
     const ai = getAiClient();
@@ -84,6 +86,20 @@ export async function generateImage(
     6. **VISUALIZAÇÃO VOLUMÉTRICA:** Salvo especificado em contrário, use uma perspectiva levemente rotacionada (3/4 view) para mostrar a profundidade e as laterais do móvel, não apenas a frente chapada.
     7. **PROPORÇÃO E ESCALA:** Se dimensões forem fornecidas (ex: 2.5m largura x 2.4m altura), MANTENHA a proporção visual correta (Aspect Ratio) do objeto.
     `;
+
+    // --- BLOCO DE DECORAÇÃO INTELIGENTE ---
+    if (decorationLevel !== 'minimal') {
+        technicalPrompt += `
+        \n**DIRETRIZES DE DECORAÇÃO INTELIGENTE (${decorationLevel.toUpperCase()}):**
+        `;
+        if (decorationLevel === 'standard') {
+            technicalPrompt += `Adicione elementos de decoração equilibrados que combinem com o estilo do móvel. Inclua 2-3 itens como: plantas, quadros, ou objetos decorativos nas prateleiras.`;
+        } else if (decorationLevel === 'rich') {
+            technicalPrompt += `Crie uma cena totalmente ambientada e decorada ("Lived-in Look"). Adicione tapetes texturizados, iluminação decorativa (abajures, pendentes), livros, plantas volumosas, quadros na parede e objetos de design sobre o móvel. A cena deve parecer pronta para uma revista de arquitetura.`;
+        }
+    } else {
+        technicalPrompt += `\n**DIRETRIZES DE DECORAÇÃO:** Mantenha a cena limpa (Clean). Foco total no móvel, sem objetos decorativos que distraiam.`;
+    }
 
     if (referenceImages && referenceImages.length > 0) {
         technicalPrompt += `
@@ -146,7 +162,51 @@ export async function generateImage(
     }
 }
 
-// 1. Suggest Alternative Styles
+// ... (Existing functions suggestAlternativeStyles, suggestAlternativeFinishes, searchFinishes, editImage, suggestImageEdits, generateGroundedResponse, editFloorPlan, estimateProjectCosts, generateText, generateCuttingPlan, findProjectLeads, generateProjectBom, generateAssemblyDetails, parseBomToList, findSupplierPrice, generateFloorPlanFrom3D, generate3Dfrom2D, analyzeRoomImage, generateLayoutSuggestions) ...
+
+// 19. Generate Decoration List (Shopping List)
+export async function generateDecorationList(projectDescription: string, style: string): Promise<{ item: string, category: string, estimatedPrice: string, suggestion: string }[]> {
+    const ai = getAiClient();
+    const prompt = `Atue como um Designer de Interiores.
+    Baseado neste projeto: "${projectDescription}"
+    Estilo: "${style}"
+    
+    Sugira 5 a 7 itens de decoração REAIS que completariam este ambiente (ex: tapetes, luminárias, vasos, quadros).
+    Para cada item, dê uma estimativa de preço em Reais (R$) e uma breve sugestão de onde usar.
+    
+    Retorne APENAS um JSON Array com objetos: { item, category, estimatedPrice, suggestion }`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        item: { type: Type.STRING },
+                        category: { type: Type.STRING },
+                        estimatedPrice: { type: Type.STRING },
+                        suggestion: { type: Type.STRING }
+                    },
+                    required: ['item', 'category', 'estimatedPrice', 'suggestion']
+                }
+            }
+        }
+    });
+
+    if (response.text) {
+        return cleanAndParseJson(response.text);
+    }
+    return [];
+}
+
+// Placeholder functions imports fix
+export async function calculateFinancialSummary(project: any) { return {}; }
+export async function fetchSupplierCatalog() { return []; }
+export async function calculateShippingCost() { return 0; }
 export async function suggestAlternativeStyles(projectDescription: string, currentStyle: string, base64Image?: string): Promise<string[]> {
     const ai = getAiClient();
     const prompt = `Atue como um Diretor de Arte de Interiores.
@@ -181,7 +241,6 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
     return [];
 }
 
-// 1.1 Suggest Alternative Finishes
 export async function suggestAlternativeFinishes(projectDescription: string, style: string): Promise<Finish[]> {
     const ai = getAiClient();
     const prompt = `Atue como um Especialista em Materiais de Marcenaria.
@@ -224,7 +283,6 @@ export async function suggestAlternativeFinishes(projectDescription: string, sty
     return [];
 }
 
-// 2. Search Finishes
 export async function searchFinishes(query: string): Promise<Finish[]> {
     const ai = getAiClient();
     const prompt = `Sugira 4 acabamentos de marcenaria reais (MDF, pedras, metais) para: "${query}".
@@ -260,7 +318,6 @@ export async function searchFinishes(query: string): Promise<Finish[]> {
     return [];
 }
 
-// 3. Edit Image (Nano Banana / Gemini 2.5 Flash Image)
 export async function editImage(base64Data: string, mimeType: string, prompt: string): Promise<string> {
     const ai = getAiClient();
     try {
@@ -294,7 +351,6 @@ export async function editImage(base64Data: string, mimeType: string, prompt: st
     }
 }
 
-// 4. Suggest Image Edits
 export async function suggestImageEdits(projectDescription: string, imageSrc: string): Promise<string[]> {
     const ai = getAiClient();
     const base64Data = imageSrc.split(',')[1];
@@ -325,7 +381,6 @@ export async function suggestImageEdits(projectDescription: string, imageSrc: st
     return [];
 }
 
-// 5. Generate Grounded Response
 export async function generateGroundedResponse(prompt: string, location: { latitude: number, longitude: number } | null): Promise<{ text: string, sources: any[] }> {
     const ai = getAiClient();
     const tools: any[] = [{ googleSearch: {} }];
@@ -349,7 +404,6 @@ export async function generateGroundedResponse(prompt: string, location: { latit
     return { text, sources };
 }
 
-// 6. Edit Floor Plan (Layout Editor)
 export async function editFloorPlan(base64Data: string, mimeType: string, prompt: string): Promise<string> {
     // Prompt reforçado para manter estilo técnico AutoCAD com cotas
     const technicalPrompt = `
@@ -370,7 +424,6 @@ export async function editFloorPlan(base64Data: string, mimeType: string, prompt
     return editImage(base64Data, mimeType, technicalPrompt);
 }
 
-// 7. Estimate Project Costs
 export async function estimateProjectCosts(project: ProjectHistoryItem): Promise<{ materialCost: number, laborCost: number }> {
     const ai = getAiClient();
     const parts: any[] = [];
@@ -412,7 +465,6 @@ export async function estimateProjectCosts(project: ProjectHistoryItem): Promise
     return { materialCost: 0, laborCost: 0 };
 }
 
-// 8. Generate Text (BOM)
 export async function generateText(prompt: string, images?: { data: string, mimeType: string }[] | null): Promise<string> {
     const ai = getAiClient();
     const parts: any[] = [{ text: prompt }];
@@ -430,7 +482,6 @@ export async function generateText(prompt: string, images?: { data: string, mime
     return response.text || "Não foi possível gerar o texto.";
 }
 
-// 9. Generate Cutting Plan (Corrigido e Melhorado)
 export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidth: number, sheetHeight: number): Promise<{ text: string, image: string, optimization: string }> {
     const ai = getAiClient();
     const parts: any[] = [];
@@ -497,7 +548,6 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
     };
 }
 
-// 10. Find Project Leads
 export async function findProjectLeads(city: string): Promise<ProjectLead[]> {
     const ai = getAiClient();
     const prompt = `Gere 3 leads fictícios de marcenaria em ${city}. JSON Array.`;
@@ -528,7 +578,6 @@ export async function findProjectLeads(city: string): Promise<ProjectLead[]> {
     return [];
 }
 
-// ... (Other helper functions mostly unchanged but ensuring consistent exports) ...
 export async function generateProjectBom(project: ProjectHistoryItem): Promise<string> {
     return generateText(`Gere BOM completa em Markdown para: ${project.name}. ${project.description}`, null);
 }
@@ -554,7 +603,6 @@ export async function findSupplierPrice(itemDescription: string) {
     return { price: 100, supplier: "Genérico", url: "" }; // Placeholder
 }
 
-// 15. Generate Floor Plan from 3D (CORREÇÃO CRÍTICA - ESTILO AUTOCAD)
 export async function generateFloorPlanFrom3D(project: ProjectHistoryItem): Promise<string> {
     if (!project.views3d || project.views3d.length === 0) throw new Error("Sem imagem 3D para base.");
     
@@ -582,7 +630,6 @@ export async function generateFloorPlanFrom3D(project: ProjectHistoryItem): Prom
     return editImage(data, mimeType, technicalPrompt);
 }
 
-// 16. Generate 3D from 2D (CORREÇÃO CRÍTICA - ESTILO PROMOB)
 export async function generate3Dfrom2D(project: ProjectHistoryItem, style: string, finish: string): Promise<string> {
     if (!project.image2d) throw new Error("Sem planta baixa 2D.");
     
@@ -609,7 +656,6 @@ export async function generate3Dfrom2D(project: ProjectHistoryItem, style: strin
     return editImage(data, mimeType, renderPrompt);
 }
 
-// 17. Analyze Room Image (Vision API)
 export async function analyzeRoomImage(base64Image: string): Promise<{ roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }> {
     const ai = getAiClient();
     const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';
@@ -658,7 +704,6 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
     return { roomType: 'Desconhecido', confidence: 'Baixa', dimensions: { width: 3, depth: 3, height: 2.6 }, detectedObjects: [] };
 }
 
-// 18. Generate Layout Suggestions
 export async function generateLayoutSuggestions(roomType: string, dimensions: any, userIntent?: string): Promise<{ title: string, description: string, pros: string }[]> {
     const ai = getAiClient();
     let prompt = `Para um ambiente do tipo "${roomType}" com dimensões ${dimensions.width}m x ${dimensions.depth}m.`;
@@ -695,8 +740,3 @@ export async function generateLayoutSuggestions(roomType: string, dimensions: an
     }
     return [];
 }
-
-// Placeholder functions imports fix
-export async function calculateFinancialSummary(project: any) { return {}; }
-export async function fetchSupplierCatalog() { return []; }
-export async function calculateShippingCost() { return 0; }

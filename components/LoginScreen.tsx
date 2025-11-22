@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { LogoIcon } from './Shared';
 
@@ -10,15 +11,27 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Strict email regex validation
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(String(email).toLowerCase());
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!validateEmail(email)) {
+      setError('Por favor, insira um e-mail válido (ex: nome@dominio.com).');
+      return;
+    }
+
     setIsLoading(true);
 
     // Simulating an API call with simplified access
     setTimeout(() => {
       // Explicitly grant access to the requested email, while maintaining general access for any valid email.
-      if (email.trim().toLowerCase() === 'evaldo0510@gmail.com' || (email.trim() && email.includes('@'))) {
+      if (email.trim().toLowerCase() === 'evaldo0510@gmail.com' || validateEmail(email)) {
         onLoginSuccess(email);
       } else {
         setError('Por favor, insira um e-mail válido.');
@@ -56,7 +69,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
               />
             </div>
             
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+            {error && <p className="text-red-500 text-sm text-center font-bold animate-fadeIn">{error}</p>}
 
             <div>
               <button

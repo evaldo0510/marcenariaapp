@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { CameraIcon, Spinner, MagicIcon } from './Shared';
 import { ImageUploader } from './ImageUploader';
@@ -164,6 +165,7 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                                             style 
                                         }}
                                         onGenerate={handleProjectComplete}
+                                        showAlert={showAlert}
                                     />
                                 </div>
                             </div>

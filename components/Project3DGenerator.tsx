@@ -12,9 +12,10 @@ interface Project3DGeneratorProps {
         style: string;
     };
     onGenerate: (imageUrl: string) => void;
+    showAlert: (message: string, title?: string) => void;
 }
 
-export const Project3DGenerator: React.FC<Project3DGeneratorProps> = ({ inputData, onGenerate }) => {
+export const Project3DGenerator: React.FC<Project3DGeneratorProps> = ({ inputData, onGenerate, showAlert }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [progress, setProgress] = useState('');
 
@@ -42,7 +43,7 @@ export const Project3DGenerator: React.FC<Project3DGeneratorProps> = ({ inputDat
             onGenerate(`data:image/png;base64,${resultImage}`);
         } catch (e) {
             console.error(e);
-            alert('Erro ao gerar imagem.');
+            showAlert(e instanceof Error ? e.message : 'Erro ao gerar imagem.', 'Erro de Geração');
         } finally {
             setIsGenerating(false);
         }

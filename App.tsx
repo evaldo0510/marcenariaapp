@@ -26,7 +26,8 @@ import { CommissionWallet } from './components/CommissionWallet';
 import { ImageProjectGenerator } from './components/ImageProjectGenerator';
 import { StoreDashboard } from './components/StoreDashboard';
 import { InteractiveImageViewer } from './components/InteractiveImageViewer';
-import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, HighQualityIcon } from './components/Shared';
+import { DecorationListModal } from './components/DecorationListModal';
+import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, HighQualityIcon, PlantIcon, ShoppingBagIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
 import { suggestAlternativeStyles, generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D } from './services/geminiService';
@@ -172,6 +173,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [selectedFinish, setSelectedFinish] = useState<{ manufacturer: string; finish: Finish; handleDetails?: string } | null>(null);
   const [withLedLighting, setWithLedLighting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [decorationLevel, setDecorationLevel] = useState<'minimal' | 'standard' | 'rich'>('standard');
   
   // Quality & Resolution States
   const [qualityMode, setQualityMode] = useState<'standard' | 'pro'>('standard');
@@ -208,7 +210,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       wallet: false,
       notifications: false,
       projectGenerator: false,
-      storeMode: false
+      storeMode: false,
+      decorationList: false
   });
   
   const [styleSuggestions, setStyleSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as string[] });
@@ -256,6 +259,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       setFramingStrategy(framingOptions[0].value);
       setSelectedFinish(null);
       setQualityMode('standard');
+      setDecorationLevel('standard');
       
       showAlert("Exemplo carregado! A planta baixa foi anexada. Ao clicar em 'GERAR PROJETO 3D', a IA analisará o desenho (medidas, portas, janelas) e criará o ambiente 3D sobre ele.", "Demo com Análise de Visão");
   };
@@ -282,7 +286,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
           // Use Pro Model if selected, passing resolution
           const usePro = qualityMode === 'pro';
-          const imageBase64 = await generateImage(fullPrompt, uploadedImages, framingStrategy, usePro, imageResolution);
+          const imageBase64 = await generateImage(fullPrompt, uploadedImages, framingStrategy, usePro, imageResolution, decorationLevel);
           
           const projectData: Omit<ProjectHistoryItem, 'id' | 'timestamp'> = {
               name: `Projeto ${stylePreset} - ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
@@ -314,6 +318,39 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                }
           }
           showAlert("Erro ao gerar projeto: " + (e instanceof Error ? e.message : "Erro desconhecido"));
+      } finally {
+          setIsGenerating(false);
+      }
+  };
+
+  const handleQuickStyleSwap = async (newStyle: string) => {
+      if (!currentProject) return;
+      setIsGenerating(true);
+      try {
+          setStylePreset(newStyle);
+          
+          // Use original project description but update the style
+          let fullPrompt = `PROJETO SOLICITADO: ${currentProject.description}`;
+          fullPrompt += `\n\nDETALHES TÉCNICOS:`;
+          fullPrompt += `\n- NOVO ESTILO VISUAL: ${newStyle}`;
+          fullPrompt += `\n- MANTENHA A MESMA GEOMETRIA, troque apenas a decoração e materiais para o estilo solicitado.`;
+
+          if (selectedFinish) {
+              fullPrompt += `\n- Acabamento Principal: ${selectedFinish.finish.name}`;
+          }
+
+          const imageBase64 = await generateImage(fullPrompt, uploadedImages, framingStrategy, qualityMode === 'pro', imageResolution, decorationLevel);
+          
+          // Update history with new view
+          const newViewUrl = `data:image/png;base64,${imageBase64}`;
+          const updatedViews = [...currentProject.views3d, newViewUrl];
+          const updatedProject = await updateProjectInHistory(currentProject.id, { views3d: updatedViews, style: newStyle });
+          
+          setHistory(await getHistory());
+          setCurrentProject(updatedProject);
+          
+      } catch (e: any) {
+          showAlert("Erro ao trocar estilo: " + e.message);
       } finally {
           setIsGenerating(false);
       }
@@ -538,7 +575,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                     <ImageUploader onImagesChange={setUploadedImages} showAlert={showAlert} initialImageUrls={currentProject?.uploadedReferenceImageUrls || (uploadedImages && uploadedImages.length > 0 ? [`data:${uploadedImages[0].mimeType};base64,${uploadedImages[0].data}`] : null)} />
                 </section>
                 
-                {/* Qualidade & Acabamentos */}
+                {/* Qualidade, Acabamentos e Decoração */}
                 <section className="bg-white dark:bg-[#3e3535] p-5 rounded-2xl shadow-sm border border-[#e6ddcd] dark:border-[#4a4040]">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
@@ -546,8 +583,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         </h2>
                     </div>
 
-                    <div className="flex gap-4 mb-6">
-                        <div className="flex-1">
+                    <div className="flex gap-4 mb-6 flex-wrap">
+                        <div className="flex-1 min-w-[140px]">
                             <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] block mb-1">Motor de Renderização</label>
                             <div className="flex bg-[#f0e9dc] dark:bg-[#2d2424] rounded-lg p-1">
                                 <button 
@@ -564,8 +601,20 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                 </button>
                             </div>
                         </div>
+                        <div className="flex-1 min-w-[140px]">
+                            <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] flex items-center gap-1 mb-1"><PlantIcon className="w-3 h-3"/> Decoração Inteligente</label>
+                            <select 
+                                value={decorationLevel}
+                                onChange={(e) => setDecorationLevel(e.target.value as any)}
+                                className="w-full p-2 rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-medium text-sm"
+                            >
+                                <option value="minimal">Sem Decoração (Clean)</option>
+                                <option value="standard">Padrão (Equilibrada)</option>
+                                <option value="rich">Completa (Designer)</option>
+                            </select>
+                        </div>
                         {qualityMode === 'pro' && (
-                            <div className="flex-1 animate-fadeIn">
+                            <div className="flex-1 min-w-[100px] animate-fadeIn">
                                 <label className="text-xs text-xs text-[#8a7e7e] dark:text-[#a89d8d] block mb-1">Resolução</label>
                                 <select 
                                     value={imageResolution}
@@ -630,8 +679,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                     <div className="bg-white dark:bg-[#3e3535] rounded-2xl shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] overflow-hidden sticky top-24">
                         {/* 3D View - Increased height on mobile */}
                         <div className="relative h-[60vh] md:h-auto md:aspect-video bg-gray-100 dark:bg-[#2d2424]">
+                            {isGenerating && (
+                                <div className="absolute inset-0 bg-black/50 z-20 flex flex-col items-center justify-center text-white backdrop-blur-sm">
+                                    <Spinner size="lg" />
+                                    <p className="mt-4 font-bold">Gerando Variação...</p>
+                                </div>
+                            )}
                             <InteractiveImageViewer 
-                                src={currentProject.views3d[0]} 
+                                src={currentProject.views3d[currentProject.views3d.length - 1]} // Always show latest view
                                 alt={currentProject.name} 
                                 projectName={currentProject.name}
                                 className="w-full h-full bg-neutral-900 relative overflow-hidden"
@@ -643,8 +698,25 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                 {currentProject.style}
                             </div>
                             
-                            <div className="absolute bottom-4 left-4 flex gap-2">
+                            <div className="absolute bottom-4 left-4 flex gap-2 pointer-events-auto">
                                 <button onClick={() => toggleModal('ar', true)} className="bg-white/90 text-[#3e3535] p-2 rounded-full shadow-lg hover:bg-white transition" title="Realidade Aumentada"><CubeIcon /></button>
+                            </div>
+                        </div>
+                        
+                        {/* Quick Style Swap Bar */}
+                        <div className="px-6 py-3 border-b border-[#e6ddcd] dark:border-[#4a4040] bg-[#f9f5eb] dark:bg-[#2d2424]/50 overflow-x-auto">
+                            <p className="text-xs font-bold text-[#8a7e7e] dark:text-[#a89d8d] uppercase tracking-wider mb-2">Variações Rápidas</p>
+                            <div className="flex gap-2">
+                                {['Industrial', 'Minimalista', 'Rústico', 'Clássico'].map(s => (
+                                    <button
+                                        key={s}
+                                        onClick={() => handleQuickStyleSwap(s)}
+                                        disabled={isGenerating}
+                                        className="px-3 py-1 rounded-full text-xs font-bold bg-white dark:bg-[#3e3535] border border-[#dcd6c8] dark:border-[#5a4f4f] hover:border-[#d4ac6e] text-[#3e3535] dark:text-[#f5f1e8] whitespace-nowrap transition disabled:opacity-50"
+                                    >
+                                        {s}
+                                    </button>
+                                ))}
                             </div>
                         </div>
                         
@@ -655,9 +727,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                     <h3 className="text-2xl font-bold text-[#3e3535] dark:text-[#f5f1e8] line-clamp-1">{currentProject.name}</h3>
                                     <p className="text-xs text-gray-500 mt-1">{new Date(currentProject.timestamp).toLocaleDateString()}</p>
                                 </div>
-                                <button onClick={() => toggleModal('proposal', true)} className="text-[#d4ac6e] font-bold text-sm underline">
-                                    Ver Proposta
-                                </button>
+                                <div className="flex flex-col items-end gap-2">
+                                    <button onClick={() => toggleModal('proposal', true)} className="text-[#d4ac6e] font-bold text-sm underline">
+                                        Ver Proposta
+                                    </button>
+                                    <button onClick={() => toggleModal('decorationList', true)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#d4ac6e] transition">
+                                        <ShoppingBagIcon className="w-3 h-3"/> Lista de Decoração
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-4 gap-3 mb-6 overflow-x-auto pb-2">
@@ -755,6 +832,17 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       <DistributorPortal isOpen={modals.partnerPortal} onClose={() => toggleModal('partnerPortal', false)} />
       <ImageProjectGenerator isOpen={modals.projectGenerator} onClose={() => toggleModal('projectGenerator', false)} showAlert={showAlert} />
       <StoreDashboard isOpen={modals.storeMode} onClose={() => toggleModal('storeMode', false)} /> 
+      
+      {currentProject && (
+        <DecorationListModal 
+            isOpen={modals.decorationList} 
+            onClose={() => toggleModal('decorationList', false)} 
+            projectDescription={currentProject.description}
+            style={currentProject.style}
+            showAlert={showAlert}
+        />
+      )}
+
       {currentProject && <ImageEditor isOpen={modals.imageEditor} imageSrc={currentProject.views3d[0]} projectDescription={currentProject.description} onClose={() => toggleModal('imageEditor', false)} onSave={async (newImage) => {
           const newViewUrl = `data:image/png;base64,${newImage}`;
           const updatedViews = [...currentProject.views3d, newViewUrl];
