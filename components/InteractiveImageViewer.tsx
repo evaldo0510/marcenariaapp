@@ -266,15 +266,22 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
   return (
     <div 
         ref={containerRef} 
-        className={`${containerClass} flex items-center justify-center cursor-move bg-[#1a1a1a]`} // Force dark background for letterboxing
+        className={`${containerClass} flex items-center justify-center cursor-move bg-[#1a1a1a]`} 
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleInteractionEnd}
-        style={{ touchAction: 'none', overscrollBehavior: 'contain' }} // CRITICAL: Prevents browser scrolling and pull-to-refresh on mobile
-        aria-label="Visualizador interativo. Use dois dedos para zoom/pan ou duplo toque para resetar."
+        style={{ touchAction: 'none', overscrollBehavior: 'contain' }} 
+        aria-label="Visualizador interativo. Arraste para mover, use scroll/pinça para zoom."
     >
+      {/* Overlay Info */}
+      <div className="absolute top-0 left-0 w-full p-6 bg-gradient-to-b from-black/70 to-transparent z-10 pointer-events-none">
+           <h2 className="font-bold text-lg text-[#d4ac6e] tracking-wide drop-shadow-md">{projectName}</h2>
+           <div className="h-0.5 w-16 bg-[#d4ac6e] my-1 rounded-full"></div>
+           <p className="text-xs text-white/90 font-medium">{new Date().toLocaleDateString('pt-BR')}</p>
+      </div>
+
       {/* Image with clean Tailwind animation class */}
       <img
           ref={imageRef}
@@ -287,27 +294,26 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
               maxHeight: '100%',
               width: 'auto',
               height: 'auto',
-              objectFit: 'contain', // STRICTLY PREVENT CROPPING
+              objectFit: 'contain', 
               display: 'block',
               cursor: isInteracting ? 'grabbing' : 'grab',
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
               transition: isInteracting ? 'none' : 'transform 0.2s ease-out',
               transformOrigin: 'center center',
-              pointerEvents: 'none', // Allow events to bubble to container for robust gesture handling
+              pointerEvents: 'none', 
               animationDuration: '0.5s',
               animationTimingFunction: 'ease-out'
           }}
           onLoad={(e) => {
-              // Optional: Handle loading state if needed, but CSS animation handles visual fade
+              // Optional: Handle loading state
           }}
           onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
-              // We could show a fallback icon here
           }}
       />
       
       {/* 3D Gizmo / HUD */}
-      <div className="absolute top-4 right-4 pointer-events-none opacity-70">
+      <div className="absolute top-4 right-4 pointer-events-none opacity-70 z-10">
           <div className="w-10 h-10 relative">
               <div className="absolute bottom-0 left-0 w-8 h-0.5 bg-red-500 origin-left transform rotate-0"></div> {/* X */}
               <div className="absolute bottom-0 left-0 w-8 h-0.5 bg-green-500 origin-left transform -rotate-90"></div> {/* Y */}
@@ -327,8 +333,9 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
         ) : (
           <>
             {onGenerateNewView && (
-                <button onClick={onGenerateNewView} className="w-12 h-12 flex items-center justify-center text-[#d4ac6e] hover:bg-white/20 rounded-lg transition active:scale-95 border border-[#d4ac6e]/30" title="Girar Câmera / Nova Vista">
-                    <CubeIcon className="w-6 h-6" />
+                <button onClick={onGenerateNewView} className="w-12 h-12 flex flex-col items-center justify-center text-[#d4ac6e] hover:bg-white/20 rounded-lg transition active:scale-95 border border-[#d4ac6e]/30 group" title="Girar Objeto (Nova Vista)">
+                    <CubeIcon className="w-5 h-5 mb-0.5" />
+                    <span className="text-[8px] font-bold uppercase leading-none">Girar</span>
                 </button>
             )}
             <div className="w-px h-8 bg-white/20 self-center mx-1"></div>

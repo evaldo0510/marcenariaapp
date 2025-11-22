@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, ChartBarIcon, BellIcon, WalletIcon, MagicIcon, CogIcon, ShieldIcon, EmailIcon, DownloadIcon, ShareIcon, WhatsappIcon, CopyIcon, CheckIcon, ClipboardListIcon } from './Shared';
+import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, ChartBarIcon, BellIcon, WalletIcon, MagicIcon, CogIcon, ShieldIcon, EmailIcon, DownloadIcon, ShareIcon, WhatsappIcon, CopyIcon, CheckIcon, ClipboardListIcon, LinkIcon } from './Shared';
 import type { ProjectHistoryItem } from '../types';
 
 interface HeaderProps {
@@ -130,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({
     const handleCopyLink = () => {
         if (!currentProject) return;
         navigator.clipboard.writeText(projectLink);
-        setCopyFeedback('Copiado!');
+        setCopyFeedback('Link Copiado!');
         setTimeout(() => {
             setCopyFeedback(null);
             setIsShareOpen(false);
@@ -228,23 +228,24 @@ export const Header: React.FC<HeaderProps> = ({
                             </div>
                         </nav>
                         
-                        {/* Share Menu */}
+                        {/* Share Button - Prominently Placed */}
                         <div className="relative" ref={shareRef}>
                             <button 
                                 onClick={() => currentProject ? setIsShareOpen(!isShareOpen) : null} 
                                 disabled={!currentProject}
-                                className={`p-2 rounded-full transition-all duration-200 ${currentProject ? 'text-[#d4ac6e] hover:bg-[#3e3535] hover:scale-110' : 'text-[#6a5f5f] cursor-not-allowed'}`} 
-                                title={currentProject ? "Compartilhar Projeto Atual" : "Nenhum projeto aberto"}
+                                className={`flex items-center justify-center p-2 rounded-full border border-[#4a4040] transition-all duration-200 ${currentProject ? 'bg-[#3e3535] text-[#d4ac6e] hover:bg-[#d4ac6e] hover:text-[#3e3535] hover:shadow-md' : 'bg-transparent text-[#6a5f5f] cursor-not-allowed'}`}
+                                title={currentProject ? "Compartilhar Projeto" : "Abra um projeto para compartilhar"}
                             >
                                 <ShareIcon className="w-5 h-5" />
                             </button>
                             
                             {isShareOpen && currentProject && (
-                                <div className="absolute right-0 mt-4 w-64 bg-[#3e3535] border border-[#4a4040] rounded-xl shadow-2xl p-2 z-50 animate-fadeInUp origin-top-right">
-                                    <div className="px-4 py-3 text-xs font-bold text-[#a89d8d] border-b border-[#4a4040] mb-2 uppercase tracking-wider">
-                                        Compartilhar Projeto
+                                <div className="absolute right-0 mt-4 w-64 bg-[#3e3535] border border-[#4a4040] rounded-xl shadow-2xl z-50 animate-fadeInUp origin-top-right overflow-hidden">
+                                    <div className="px-4 py-3 bg-[#2d2424] border-b border-[#4a4040]">
+                                        <p className="text-xs font-bold text-[#a89d8d] uppercase tracking-wider">Compartilhar Projeto</p>
+                                        <p className="text-sm font-medium text-[#f5f1e8] truncate mt-1">{currentProject.name}</p>
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="p-2 space-y-1">
                                         <button onClick={handleWhatsappShare} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-green-400 hover:bg-[#2d2424] transition-colors font-medium text-sm group">
                                             <WhatsappIcon className="w-5 h-5 group-hover:scale-110 transition-transform" /> WhatsApp
                                         </button>
@@ -252,7 +253,7 @@ export const Header: React.FC<HeaderProps> = ({
                                             <EmailIcon className="w-5 h-5 group-hover:scale-110 transition-transform" /> E-mail
                                         </button>
                                         <button onClick={handleCopyLink} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#d4ac6e] hover:bg-[#2d2424] transition-colors font-medium text-sm group">
-                                            {copyFeedback ? <CheckIcon className="w-5 h-5 text-green-500" /> : <CopyIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />} 
+                                            {copyFeedback ? <CheckIcon className="w-5 h-5 text-green-500" /> : <LinkIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />} 
                                             {copyFeedback || 'Copiar Link'}
                                         </button>
                                     </div>

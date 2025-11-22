@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { Finish } from '../types';
 import { searchFinishes } from '../services/geminiService';
@@ -48,7 +49,6 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
             recognition.onend = () => setIsRecording(false);
 
             recognition.onerror = (event: any) => {
-                // Silently handle no-speech error to avoid annoying user with alerts for timeouts
                 if (event.error === 'no-speech') {
                     setIsRecording(false);
                     return;
@@ -246,6 +246,7 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
                 </div>
             </div>
             
+            {/* Conditional Inputs for specific finish types */}
             {value?.finish.type === 'solid' && (
                 <div className="mt-4 pt-4 border-t border-[#e6ddcd] dark:border-[#4a4040] animate-fadeIn">
                     <label className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Detalhes do Puxador (para cores sólidas):</label>
@@ -271,6 +272,30 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
                         value={handleDetails}
                         onChange={(e) => handleDetailChange(e.target.value)}
                         placeholder="Ou descreva um puxador customizado"
+                        className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
+                    />
+                </div>
+            )}
+
+            {value?.finish.type === 'wood' && (
+                <div className="mt-4 pt-4 border-t border-[#e6ddcd] dark:border-[#4a4040] animate-fadeIn">
+                    <label className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Detalhes da Madeira (Opcional):</label>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                        {['Veios Verticais', 'Veios Horizontais', 'Acabamento Rústico', 'Acabamento Liso'].map(detail => (
+                            <button
+                                key={detail}
+                                onClick={() => handleDetailChange(detail)}
+                                className={`py-1 px-3 rounded-full text-sm font-medium transition-colors ${handleDetails === detail ? 'bg-[#d4ac6e] text-[#3e3535]' : 'bg-[#e6ddcd] dark:bg-[#4a4040] text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f]'}`}
+                            >
+                                {detail}
+                            </button>
+                        ))}
+                    </div>
+                    <input 
+                        type="text"
+                        value={handleDetails}
+                        onChange={(e) => handleDetailChange(e.target.value)}
+                        placeholder="Especifique texturas ou direção dos veios..."
                         className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
                     />
                 </div>

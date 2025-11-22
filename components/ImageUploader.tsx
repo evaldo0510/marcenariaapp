@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useCallback, ChangeEvent, useEffect } from 'react';
 import { fileToBase64 } from '../utils/helpers';
-import { CameraIcon, SwitchCameraIcon, TrashIcon, CloudIcon, PlusIcon } from './Shared';
+import { CameraIcon, SwitchCameraIcon, TrashIcon, PlusIcon, CheckIcon } from './Shared';
 
 interface ImageUploaderProps {
   onImagesChange: (images: { data: string, mimeType: string }[] | null) => void;
@@ -31,7 +31,6 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
             return { preview: url, data, mimeType, name: `Imagem ${index + 1}` };
         });
         setUploadedFiles(initialFiles);
-        // Avoid triggering parent update immediately on load to prevent loops, unless necessary
     } else {
         setUploadedFiles([]);
     }
@@ -87,7 +86,6 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
       const totalFiles = uploadedFiles.length + validFiles.length;
       if (totalFiles > 3) {
           showAlert("Você pode adicionar no máximo 3 imagens.", "Limite Atingido");
-          // Allow adding up to the limit
           const slotsLeft = 3 - uploadedFiles.length;
           if (slotsLeft <= 0) {
              if (fileInputRef.current) fileInputRef.current.value = "";
@@ -102,7 +100,6 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
         const imagePromises = validFiles.map(file => fileToBase64(file));
         const results = await Promise.all(imagePromises);
         
-        // Combine new files with existing ones
         const newFiles = results.map((r, i) => ({ 
             preview: r.full, 
             data: r.data, 
@@ -146,10 +143,9 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
       return;
     }
     try {
-        // Request permission and enumerate devices
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         const devices = await navigator.mediaDevices.enumerateDevices();
-        stream.getTracks().forEach(track => track.stop()); // Stop the temporary stream
+        stream.getTracks().forEach(track => track.stop());
 
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         if (videoDevices.length === 0) {
@@ -158,7 +154,6 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
         }
         setCameraDevices(videoDevices);
 
-        // Prefer back camera
         const backCameraIndex = videoDevices.findIndex(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('traseira'));
         setCurrentDeviceIndex(backCameraIndex !== -1 ? backCameraIndex : 0);
         
@@ -226,17 +221,22 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
     <div className="mt-4 animate-fadeIn">
       <label className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Imagens de Referência ({uploadedFiles.length}/3)</label>
       
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-3">
           {uploadedFiles.map((img, index) => (
-            <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-[#e6ddcd] dark:border-[#4a4040] group">
+            <div key={index} className="relative aspect-square rounded-xl overflow-hidden border-2 border-green-500/50 dark:border-green-400/50 group shadow-sm bg-gray-100 dark:bg-[#2d2424]">
                 <img src={img.preview} alt={`ref ${index}`} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {/* Success Indicator */}
+                <div className="absolute top-1 right-1 bg-green-500 text-white rounded-full p-0.5 shadow-sm">
+                    <CheckIcon className="w-3 h-3" />
+                </div>
+                {/* Remove Overlay */}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                     <button 
                         onClick={() => handleRemoveImage(index)}
-                        className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
-                        title="Remover"
+                        className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition shadow-lg transform hover:scale-110"
+                        title="Remover imagem"
                     >
-                        <TrashIcon className="w-4 h-4" />
+                        <TrashIcon className="w-5 h-5" />
                     </button>
                 </div>
             </div>
@@ -245,17 +245,17 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
           {uploadedFiles.length < 3 && (
             <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="aspect-square border-2 border-dashed border-[#e6ddcd] dark:border-[#4a4040] rounded-xl flex flex-col items-center justify-center hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition text-gray-400 hover:text-[#d4ac6e]"
+                className="aspect-square border-2 border-dashed border-[#e6ddcd] dark:border-[#4a4040] rounded-xl flex flex-col items-center justify-center hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition text-gray-400 hover:text-[#d4ac6e] hover:border-[#d4ac6e]"
             >
-                {isUploading ? <div className="animate-pulse text-xs">...</div> : <PlusIcon className="w-6 h-6 mb-1" />}
-                <span className="text-[10px] font-bold uppercase">Adicionar</span>
+                {isUploading ? <div className="animate-spin w-6 h-6 border-2 border-[#d4ac6e] border-t-transparent rounded-full mb-1"></div> : <PlusIcon className="w-6 h-6 mb-1" />}
+                <span className="text-[10px] font-bold uppercase">{isUploading ? 'Enviando...' : 'Adicionar'}</span>
             </button>
           )}
 
           {uploadedFiles.length < 3 && (
             <button 
                 onClick={handleOpenCamera}
-                className="aspect-square border-2 border-dashed border-[#e6ddcd] dark:border-[#4a4040] rounded-xl flex flex-col items-center justify-center hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition text-gray-400 hover:text-[#d4ac6e]"
+                className="aspect-square border-2 border-dashed border-[#e6ddcd] dark:border-[#4a4040] rounded-xl flex flex-col items-center justify-center hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535] transition text-gray-400 hover:text-[#d4ac6e] hover:border-[#d4ac6e]"
             >
                 <CameraIcon className="w-6 h-6 mb-1" />
                 <span className="text-[10px] font-bold uppercase">Câmera</span>
@@ -267,7 +267,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
 
       {isCameraOpen && (
         <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4 animate-fadeIn">
-          <div className="relative w-full max-w-lg aspect-[3/4] bg-black rounded-xl overflow-hidden shadow-2xl">
+          <div className="relative w-full max-w-lg aspect-[3/4] bg-black rounded-xl overflow-hidden shadow-2xl border border-white/20">
               <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover"></video>
               
               <div className="absolute inset-0 border border-white/20 pointer-events-none">
@@ -280,19 +280,19 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ onImagesChange, sh
               <canvas ref={canvasRef} className="hidden"></canvas>
               
               <div className="absolute bottom-0 w-full p-6 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent">
-                 <button onClick={handleCloseCamera} className="text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition">
+                 <button onClick={handleCloseCamera} className="text-white p-3 rounded-full bg-white/10 hover:bg-white/20 transition backdrop-blur-sm">
                     Cancelar
                  </button>
                  
-                 <button onClick={handleCapturePhoto} className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center p-1 hover:scale-105 transition">
-                    <div className="w-full h-full bg-white rounded-full"></div>
+                 <button onClick={handleCapturePhoto} className="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center p-1 hover:scale-105 transition bg-white/20 backdrop-blur-sm">
+                    <div className="w-full h-full bg-white rounded-full shadow-inner"></div>
                  </button>
                  
                  {cameraDevices.length > 1 ? (
-                    <button onClick={handleSwitchCamera} className="text-white p-2 rounded-full bg-white/10 hover:bg-white/20 transition">
+                    <button onClick={handleSwitchCamera} className="text-white p-3 rounded-full bg-white/10 hover:bg-white/20 transition backdrop-blur-sm">
                         <SwitchCameraIcon className="w-6 h-6" />
                     </button>
-                 ) : <div className="w-10"></div>}
+                 ) : <div className="w-12"></div>}
               </div>
           </div>
         </div>
