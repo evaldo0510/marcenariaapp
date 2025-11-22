@@ -25,7 +25,7 @@ import { NotificationSystem } from './components/NotificationSystem';
 import { CommissionWallet } from './components/CommissionWallet'; 
 import { ImageProjectGenerator } from './components/ImageProjectGenerator';
 import { StoreDashboard } from './components/StoreDashboard';
-import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon } from './components/Shared';
+import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, ShareIcon, WhatsappIcon, CopyIcon, DownloadIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
 import { suggestAlternativeStyles, generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D } from './services/geminiService';
@@ -158,6 +158,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [selectedFinish, setSelectedFinish] = useState<{ manufacturer: string; finish: Finish; handleDetails?: string } | null>(null);
   const [withLedLighting, setWithLedLighting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   
   // Mobile Tab State
   const [mobileTab, setMobileTab] = useState<'create' | 'result'>('create');
@@ -307,6 +308,34 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     }
 
     toggleModal('history', false);
+  };
+
+  const handleShareProject = async (platform: 'whatsapp' | 'copy' | 'download') => {
+      if (!currentProject || !currentProject.views3d[0]) return;
+      
+      const imageUrl = currentProject.views3d[0];
+      
+      if (platform === 'whatsapp') {
+          const text = encodeURIComponent(`Veja este projeto que criei no MarcenApp: ${currentProject.name}\n\n${currentProject.description}`);
+          window.open(`whatsapp://send?text=${text}`, '_blank');
+      } else if (platform === 'copy') {
+          try {
+              const response = await fetch(imageUrl);
+              const blob = await response.blob();
+              await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+              showAlert("Imagem copiada para a área de transferência!", "Sucesso");
+          } catch (e) {
+              showAlert("Erro ao copiar imagem. Tente baixar.", "Erro");
+          }
+      } else if (platform === 'download') {
+          const link = document.createElement('a');
+          link.href = imageUrl;
+          link.download = `marcenapp_${currentProject.name.replace(/\s+/g, '_')}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+      }
+      setShowShareMenu(false);
   };
 
   const handleGetStyleSuggestions = async () => {
@@ -551,9 +580,33 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                 {currentProject.style}
                             </div>
                             
-                            <div className="absolute bottom-4 right-4 flex gap-2">
-                                <button onClick={() => toggleModal('ar', true)} className="bg-white/90 text-[#3e3535] p-2 rounded-full shadow-lg hover:bg-white transition" title="Realidade Aumentada"><CubeIcon /></button>
-                                <button onClick={() => toggleModal('newView', true)} className="bg-[#d4ac6e] text-[#3e3535] p-2 rounded-full shadow-lg hover:bg-[#c89f5e] transition" title="Nova Vista"><WandIcon /></button>
+                            <div className="absolute bottom-4 right-4 flex gap-2 items-end">
+                                {/* Share Menu */}
+                                <div className="relative">
+                                    {showShareMenu && (
+                                        <div className="absolute bottom-full right-0 mb-2 bg-white dark:bg-[#3e3535] rounded-xl shadow-xl border border-[#e6ddcd] dark:border-[#4a4040] p-2 flex flex-col gap-1 min-w-[160px] animate-fadeInUp z-20">
+                                            <button onClick={() => handleShareProject('whatsapp')} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040] rounded-lg transition-colors">
+                                                <WhatsappIcon className="w-4 h-4 text-green-500"/> WhatsApp
+                                            </button>
+                                            <button onClick={() => handleShareProject('copy')} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040] rounded-lg transition-colors">
+                                                <CopyIcon className="w-4 h-4"/> Copiar Imagem
+                                            </button>
+                                            <button onClick={() => handleShareProject('download')} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040] rounded-lg transition-colors">
+                                                <DownloadIcon className="w-4 h-4"/> Baixar PNG
+                                            </button>
+                                        </div>
+                                    )}
+                                    <button 
+                                        onClick={() => setShowShareMenu(!showShareMenu)} 
+                                        className="bg-white/90 text-[#3e3535] p-3 rounded-full shadow-lg hover:bg-white transition hover:scale-105 active:scale-95" 
+                                        title="Compartilhar Projeto"
+                                    >
+                                        <ShareIcon />
+                                    </button>
+                                </div>
+
+                                <button onClick={() => toggleModal('ar', true)} className="bg-white/90 text-[#3e3535] p-3 rounded-full shadow-lg hover:bg-white transition hover:scale-105 active:scale-95" title="Realidade Aumentada"><CubeIcon /></button>
+                                <button onClick={() => toggleModal('newView', true)} className="bg-[#d4ac6e] text-[#3e3535] p-3 rounded-full shadow-lg hover:bg-[#c89f5e] transition hover:scale-105 active:scale-95" title="Nova Vista"><WandIcon /></button>
                             </div>
                         </div>
                         
