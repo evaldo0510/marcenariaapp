@@ -301,15 +301,19 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           // Force 2K and Rich decoration if Pro mode is on (or forced), regardless of dropdown
           const effectiveResolution = usePro ? '2K' : imageResolution;
           const effectiveDecoration = usePro ? 'rich' : decorationLevel;
+          
+          // Force Safe Frame strategy when upgrading to Pro to ensure no cropping in high-value render
+          // This ensures high-quality renders are always safe-framed
+          const effectiveFramingStrategy = forcePro ? framingOptions[0].value : framingStrategy;
 
           if (forcePro) {
-              showAlert("Gerando versão em Alta Definição (2K)... Aguarde.", "Upgrade Pro", "info");
+              showAlert("Gerando versão em Alta Definição (2K) com Enquadramento Seguro...", "Upgrade Pro", "info");
           }
 
           const imageBase64 = await generateImage(
               fullPrompt, 
               uploadedImages, 
-              framingStrategy, 
+              effectiveFramingStrategy, 
               usePro, 
               effectiveResolution, 
               effectiveDecoration
