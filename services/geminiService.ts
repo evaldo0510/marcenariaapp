@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import type { ProjectHistoryItem, ProjectLead, Finish } from '../types';
 
@@ -660,11 +659,17 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
 }
 
 // 18. Generate Layout Suggestions
-export async function generateLayoutSuggestions(roomType: string, dimensions: any): Promise<{ title: string, description: string, pros: string }[]> {
+export async function generateLayoutSuggestions(roomType: string, dimensions: any, userIntent?: string): Promise<{ title: string, description: string, pros: string }[]> {
     const ai = getAiClient();
-    const prompt = `Para um ambiente do tipo "${roomType}" com dimensões ${dimensions.width}m x ${dimensions.depth}m.
-    Sugira 3 layouts de móveis planejados eficientes.
-    Retorne JSON Array: [{ title, description, pros }]`;
+    let prompt = `Para um ambiente do tipo "${roomType}" com dimensões ${dimensions.width}m x ${dimensions.depth}m.`;
+    
+    if (userIntent) {
+        prompt += `\nCONTEXTO DO USUÁRIO: "${userIntent}".\nIMPORTANTE: Gere sugestões que cubram TODOS os ambientes ou móveis solicitados na descrição acima.`;
+    } else {
+        prompt += `\nSugira 3 layouts de móveis planejados eficientes.`;
+    }
+
+    prompt += `\nRetorne JSON Array: [{ title, description, pros }]`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',

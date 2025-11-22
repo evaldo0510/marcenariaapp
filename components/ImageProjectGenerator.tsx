@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { CameraIcon, Spinner, MagicIcon } from './Shared';
 import { ImageUploader } from './ImageUploader';
@@ -143,7 +142,7 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                                     </select>
                                 </div>
                                 <FurnitureSuggestionEngine roomType={roomType} onSelectionChange={setSelectedFurniture} />
-                                <AutoLayoutGenerator roomType={roomType} dimensions={dimensions} onLayoutSelect={setSelectedLayout} />
+                                <AutoLayoutGenerator roomType={roomType} dimensions={dimensions} userIntent={userIntent} onLayoutSelect={setSelectedLayout} />
                             </div>
 
                             {/* Column 3: Generate */}

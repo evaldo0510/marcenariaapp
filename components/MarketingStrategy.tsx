@@ -7,20 +7,10 @@ import {
     LinkedinIcon, 
     EmailIcon, 
     CopyIcon, 
-    DownloadIcon,
     ChartBarIcon,
     RocketIcon,
-    TargetIcon,
-    CurrencyDollarIcon
+    TargetIcon
 } from './Shared';
-
-// Temporary icons for internal use if not in Shared
-const RocketIconTemp = ({className}:{className?: string}) => (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-);
-const TargetIconTemp = ({className}:{className?: string}) => (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-);
 
 export const MarketingStrategy: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'plan' | 'emails' | 'social' | 'lp' | 'roi'>('plan');
@@ -48,7 +38,7 @@ export const MarketingStrategy: React.FC = () => {
                     <div className="space-y-6 animate-fadeIn">
                         <div className="bg-[#fffefb] dark:bg-[#3e3535] p-6 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040]">
                             <h2 className="text-2xl font-bold text-[#b99256] dark:text-[#d4ac6e] mb-4 flex items-center gap-2">
-                                <RocketIconTemp className="w-6 h-6" /> Plano de Lançamento do Parceiro
+                                <RocketIcon className="w-6 h-6" /> Plano de Lançamento do Parceiro
                             </h2>
                             <p className="text-gray-600 dark:text-gray-300 mb-6">
                                 Siga este cronograma de 4 semanas para estabelecer sua autoridade e começar a vender o MarcenApp na sua região.
@@ -228,7 +218,7 @@ export const MarketingStrategy: React.FC = () => {
             case 'roi':
                 return (
                     <div className="animate-fadeIn max-w-3xl mx-auto bg-[#fffefb] dark:bg-[#3e3535] p-8 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040] shadow-lg">
-                        <h3 className="text-2xl font-bold text-[#b99256] dark:text-[#d4ac6e] mb-6 flex items-center gap-2"><TargetIconTemp className="w-6 h-6"/> Calculadora de ROI para Parceiros</h3>
+                        <h3 className="text-2xl font-bold text-[#b99256] dark:text-[#d4ac6e] mb-6 flex items-center gap-2"><TargetIcon className="w-6 h-6"/> Calculadora de ROI para Parceiros</h3>
                         <p className="text-gray-600 dark:text-gray-300 mb-8">
                             Simule quanto você pode ganhar construindo uma carteira de clientes recorrentes com o MarcenApp.
                         </p>
