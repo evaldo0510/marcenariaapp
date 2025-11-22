@@ -53,93 +53,67 @@ export async function generateImage(
 
     // Engenharia de prompt para estilo PROMOB/V-Ray com proteção contra alucinações
     let technicalPrompt = `
-    ATUE COMO: Um Arquiteto e Renderizador 3D Sênior (Expert em Marcenaria).
+    ATUE COMO: Um Arquiteto Sênior e Renderizador 3D Técnico.
     
-    SUA MISSÃO: 
-    Criar uma imagem 3D fotorrealista que satisfaça RIGOROSAMENTE a solicitação do usuário. 
-    Você deve ignorar instruções padrão se elas contradisserem a descrição específica do usuário.
+    MISSÃO CRÍTICA:
+    Gerar uma representação visual EXATA e PRECISA baseada na descrição fornecida.
+    Você NÃO deve ser "criativo" com a estrutura. Você deve ser um "tradutor visual" rigoroso do texto.
     
-    SOLICITAÇÃO DO USUÁRIO (MANDATÓRIO):
+    DESCRIÇÃO DO PROJETO (LEI ABSOLUTA):
     "${prompt}"
     
-    DIRETRIZES DE EXECUÇÃO:
-    1. **Fidelidade ao Texto:** O que está escrito na "Solicitação do Usuário" é a LEI. Se o usuário pede um armário vermelho, ele deve ser vermelho, independente do estilo.
-    2. **Atenção aos Detalhes:** Verifique cada item pedido (gavetas, portas, espelhos, leds) e garanta que estão presentes.
-    3. **Qualidade Visual:** Renderização V-Ray, texturas 4K, iluminação global realista.
+    DIRETRIZES DE INTEGRIDADE ARQUITETÔNICA (MUITO IMPORTANTE):
+    1. **TOPOLOGIA E CONTAGEM:** Se o texto menciona "3 quartos" e "2 banheiros", a imagem DEVE mostrar essa distribuição ou sugerir fortemente essa escala. Se a descrição for de uma casa inteira (planta completa), gere uma vista **ISOMÉTRICA DE CORTE (3D FLOOR PLAN / CUTAWAY)** ou uma vista aérea angular para que todos os cômodos descritos sejam visíveis. NÃO gere apenas uma sala se o usuário descreveu a casa toda.
+    2. **RESPEITO ÀS MEDIDAS:** Se o texto cita medidas específicas (ex: "21,77m²"), mantenha a proporção visual correta. Não faça o ambiente parecer um salão de baile se ele tem 20m², nem um cubículo.
+    3. **ELEMENTOS ESTRUTURAIS:** Se o texto diz "cozinha aberta" ou "integrada", NÃO coloque paredes dividindo. Se diz "garagem frontal", posicione-a corretamente.
+    
+    DIRETRIZES DE ESTILO E RENDERIZAÇÃO:
+    1. **Estilo Visual:** Fotorrealismo estilo V-Ray / Corona Render. Iluminação natural suave.
+    2. **Materiais:** Texturas PBR de alta fidelidade (madeira, concreto, tecido).
+    3. **Decoração:** ${decorationLevel === 'minimal' ? 'Minimalista, apenas o essencial.' : decorationLevel === 'rich' ? 'Rica em detalhes, humanizada (livros, plantas, objetos de uso diário).' : 'Padrão de mercado imobiliário, equilibrada.'}
     `;
 
     // --- BLOCO DE ENQUADRAMENTO E CÂMERA (CRÍTICO PARA EVITAR CORTES) ---
     technicalPrompt += `
-    \n**DIRETRIZES OBRIGATÓRIAS DE CÂMERA E ENQUADRAMENTO (ANTI-CORTE):**
+    \n**DIRETRIZES DE CÂMERA:**
     `;
 
     // Injeta a estratégia específica escolhida pelo usuário, se houver
     if (framingStrategy) {
         technicalPrompt += `\n**COMANDO PRIORITÁRIO DE ENQUADRAMENTO:** "${framingStrategy}"\n`;
-    }
-
-    technicalPrompt += `
-    1. **ZOOM OUT OBRIGATÓRIO:** Afaste a câmera virtual 20% a mais do que você acha necessário. O objeto deve "flutuar" no centro da imagem com espaço sobrando ao redor.
-    2. **ZONA DE SEGURANÇA (SAFE AREA):** Mantenha uma margem vazia (padding) generosa em todas as 4 bordas (topo, base, esquerda, direita). NENHUMA parte do móvel (pés, puxadores, sancas) pode tocar a borda da imagem.
-    3. **LENTE:** Use uma lente **Grande Angular (Wide Angle - 24mm)** para capturar todo o contexto sem distorcer demais.
-    4. **COMPOSIÇÃO:** Centralize o objeto principal matematicamente.
-    5. **RESPONSIVIDADE:** A imagem deve ser legível tanto em telas verticais quanto horizontais, por isso o espaço extra ao redor é vital.
-    6. **VISUALIZAÇÃO VOLUMÉTRICA:** Salvo especificado em contrário, use uma perspectiva levemente rotacionada (3/4 view) para mostrar a profundidade e as laterais do móvel, não apenas a frente chapada.
-    `;
-
-    // --- BLOCO DE DECORAÇÃO INTELIGENTE ---
-    if (decorationLevel !== 'minimal') {
-        technicalPrompt += `
-        \n**DIRETRIZES DE DECORAÇÃO INTELIGENTE (${decorationLevel.toUpperCase()}):**
-        `;
-        if (decorationLevel === 'standard') {
-            technicalPrompt += `Adicione elementos de decoração equilibrados que combinem com o estilo do móvel. Inclua 2-3 itens como: plantas, quadros, ou objetos decorativos nas prateleiras.`;
-        } else if (decorationLevel === 'rich') {
-            technicalPrompt += `Crie uma cena totalmente ambientada e decorada ("Lived-in Look"). Adicione tapetes texturizados, iluminação decorativa (abajures, pendentes), livros, plantas volumosas, quadros na parede e objetos de design sobre o móvel. A cena deve parecer pronta para uma revista de arquitetura.`;
-        }
     } else {
-        technicalPrompt += `\n**DIRETRIZES DE DECORAÇÃO:** Mantenha a cena limpa (Clean). Foco total no móvel, sem objetos decorativos que distraiam.`;
+        // Estratégia padrão inteligente baseada no texto
+        technicalPrompt += `
+        Se o texto descreve UM ÚNICO MÓVEL: Use câmera frontal ou 3/4, com margem de segurança (padding) ao redor.
+        Se o texto descreve UM CÔMODO: Use lente Grande Angular (24mm) para mostrar o máximo possível.
+        Se o texto descreve UMA CASA INTEIRA/PLANTA: Use vista Isométrica Aérea (Bird's Eye View) ou Corte de Perspectiva para mostrar a distribuição dos cômodos (Quartos, Banheiros, Sala) conforme descrito.
+        `;
     }
 
     if (referenceImages && referenceImages.length > 0) {
         technicalPrompt += `
         \n**PROTOCOLO DE ANÁLISE DE IMAGEM (GEMINI VISION):**
-        Você recebeu uma imagem de referência (Planta Baixa ou Foto do Local). ANTES DE RENDERIZAR, execute os passos:
-        1. **EXTRAÇÃO DE GEOMETRIA:** Analise as linhas de parede, posição de portas e janelas na imagem. Use isso como o "esqueleto" da cena 3D.
-        2. **ESTIMATIVA DE ESCALA:** Use elementos padrão (portas = 80cm, pé-direito = 2.60m) para inferir as dimensões do ambiente.
-        3. **DISTRIBUIÇÃO DE MÓVEIS:** Se for uma planta baixa, levante as paredes e coloque os móveis solicitados exatamente onde o desenho sugere.
+        Use a imagem anexa como a VERDADE ABSOLUTA para a geometria (paredes, portas, janelas).
+        1. **Fidelidade:** Mantenha exatamente a posição das paredes e aberturas da imagem.
+        2. **Preenchimento:** Apenas "vista" e "core" o layout existente com os materiais e móveis solicitados no texto.
+        3. **Escala:** Respeite a proporção visual da imagem fornecida.
         
         ${isMirrored ? 
         `**⚠️ ALERTA DE ESPELHAMENTO (PLANTA INVERTIDA) ⚠️**
-        O usuário indicou que esta é uma planta invertida (tipo apartamento espelhado).
-        VOCÊ DEVE INVERTER A LÓGICA ESPACIAL HORIZONTALMENTE:
-        - Se na imagem a parede do armário está à direita, no render 3D coloque-a à ESQUERDA.
-        - Se a janela está na esquerda, mova-a para a DIREITA.
-        - Mantenha as dimensões e estilo, apenas espelhe a posição dos elementos.` 
+        O usuário indicou que esta é uma planta invertida.
+        VOCÊ DEVE INVERTER A LÓGICA ESPACIAL HORIZONTALMENTE da imagem de referência.
+        O que está na direita, renderize na esquerda.` 
         : ''}
-
-        4. **ESTILO ARQUITETÔNICO:** Identifique pistas visuais de estilo na imagem e aplique no render final.
-        
-        **IMPORTANTE:** Use a imagem para definir a FORMA/ESPAÇO (considerando o espelhamento se solicitado), e o texto para definir os MATERIAIS/ACABAMENTOS.
         `;
     }
-
-    technicalPrompt += `
-    \n**DIRETRIZES VISUAIS (Fotorrealismo):**
-    1. **Materiais:** Texturas de alta definição. Madeira com veios naturais. Lacas com reflexo correto.
-    2. **Iluminação:** Iluminação Global (GI) suave. Sombras de contato (Ambient Occlusion) para "aterrar" o móvel no chão.
-    3. **Estilo:** Renderização limpa, comercial, pronta para catálogo.
-    4. **Qualidade:** 4K, nítida, sem distorções.
-    `;
 
     // --- BLOCO ESPECÍFICO PARA MODO PRO ---
     if (useProModel) {
         technicalPrompt += `
-        \n**💎 MODO PRO ATIVADO (Hiper-Realismo):**
-        - **Renderização:** Utilize técnicas de Path Tracing para simular fisicamente a luz.
-        - **Materiais PBR:** As superfícies devem interagir com a luz de forma complexa (rugosidade, especularidade, normal maps).
-        - **Fotografia:** Simule uma lente de câmera profissional (85mm para retratos de móveis ou 24mm para ambientes). Adicione profundidade de campo sutil (Bokeh) se apropriado.
-        - **Atmosfera:** A imagem deve ser indistinguível de uma fotografia real de revista de design (Architectural Digest).
+        \n**💎 QUALIDADE DE REVISTA (MODO PRO):**
+        - Iluminação Global (GI) perfeita.
+        - Sombras de contato (Ambient Occlusion) profundas.
+        - Reflexos e refrações realistas nos vidros e metais.
         `;
     }
 
@@ -193,7 +167,7 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
     const prompt = `Analise esta imagem de ambiente ou planta baixa como um Arquiteto Sênior.
     
     TAREFAS:
-    1. Identifique o tipo de ambiente (Cozinha, Quarto, Sala, Banheiro, Escritório).
+    1. Identifique o tipo de ambiente (Cozinha, Quarto, Sala, Planta Baixa Completa, etc).
     2. Estime as dimensões (Largura, Profundidade, Altura) baseando-se em padrões arquitetônicos (portas 80cm, janelas 120cm).
     3. Liste os elementos estruturais (paredes, portas, janelas).
     4. **ANÁLISE DE FLUXO:** Identifique mentalmente onde seria o local IDEAL para móveis planejados neste layout.
@@ -237,15 +211,19 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
 
 export async function generateLayoutSuggestions(roomType: string, dimensions: any, userIntent?: string): Promise<{ title: string, description: string, pros: string }[]> {
     const ai = getAiClient();
-    let prompt = `Para um ambiente do tipo "${roomType}" com dimensões ${dimensions.width}m x ${dimensions.depth}m.`;
+    let prompt = `ATUE COMO: Arquiteto Especialista em Otimização de Espaços.
+    AMBIENTE: "${roomType}"
+    DIMENSÕES APROXIMADAS: ${dimensions.width}m x ${dimensions.depth}m.
     
-    if (userIntent) {
-        prompt += `\nCONTEXTO DO USUÁRIO: "${userIntent}".\nIMPORTANTE: Gere sugestões que cubram TODOS os ambientes ou móveis solicitados na descrição acima.`;
-    } else {
-        prompt += `\nSugira 3 layouts de móveis planejados eficientes.`;
-    }
-
-    prompt += `\nRetorne JSON Array: [{ title, description, pros }]`;
+    SOLICITAÇÃO DO CLIENTE (PRIORIDADE MÁXIMA):
+    "${userIntent || 'Otimizar o espaço para melhor fluxo e funcionalidade.'}"
+    
+    TAREFA:
+    Com base ESTRITAMENTE na solicitação do cliente acima, sugira 3 layouts de móveis planejados.
+    Se o cliente descreveu uma casa inteira (ex: 3 quartos), sugira distribuições que caibam nessa descrição.
+    Se o cliente descreveu um móvel específico, foque nos detalhes desse móvel.
+    
+    Retorne JSON Array: [{ title, description, pros }]`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',

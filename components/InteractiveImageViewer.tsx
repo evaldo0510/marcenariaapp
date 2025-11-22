@@ -336,11 +336,11 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
                         <button onClick={handleCopyLink} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-blue-400 hover:bg-[#3e3535] transition font-medium">
                            <LinkIcon className="w-5 h-5" /> <span>Copiar Link</span>
                         </button>
-                        <button onClick={handleCopyImage} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-[#c7bca9] hover:bg-[#3e3535] transition font-medium">
-                            <CopyIcon className="w-5 h-5" /> <span>Copiar Imagem</span>
-                        </button>
                         <button onClick={handleEmailShare} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-[#c7bca9] hover:bg-[#3e3535] transition font-medium">
                             <EmailIcon className="w-5 h-5" /> <span>Enviar por E-mail</span>
+                        </button>
+                        <button onClick={handleCopyImage} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-[#c7bca9] hover:bg-[#3e3535] transition font-medium">
+                            <CopyIcon className="w-5 h-5" /> <span>Copiar Imagem</span>
                         </button>
                         <button onClick={handleDownload} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-[#c7bca9] hover:bg-[#3e3535] transition font-medium">
                             <DownloadIcon className="w-5 h-5" /> <span>Baixar PNG</span>

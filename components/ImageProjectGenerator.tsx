@@ -129,12 +129,12 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                             <div className="space-y-4">
                                 <div className="bg-white dark:bg-[#3e3535] p-4 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040]">
                                     <h3 className="font-bold mb-2 text-[#3e3535] dark:text-[#f5f1e8]">O que você quer fazer? (Importante)</h3>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Descreva onde e o que quer construir para a IA não "chutar". <br/>Ex: "Quero um armário na parede direita, do chão ao teto, com portas de vidro".</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Descreva DETALHADAMENTE o projeto para a IA ser precisa (medidas, cômodos, layout). <br/>Ex: "Casa com 3 quartos, sendo 1 suíte..."</p>
                                     <textarea 
                                         value={userIntent}
                                         onChange={(e) => setUserIntent(e.target.value)}
-                                        placeholder="Seja específico: 'Armário na parede do fundo...'"
-                                        className="w-full p-3 rounded border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f] h-24 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition text-[#3e3535] dark:text-[#f5f1e8]"
+                                        placeholder="Ex: Casa térrea com 3 quartos (sendo um casal espaçoso e dois menores iguais), 2 banheiros, sala de estar/jantar integrada de 21,77m²..."
+                                        className="w-full p-3 rounded border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f] h-32 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition text-[#3e3535] dark:text-[#f5f1e8] text-sm"
                                     />
                                     
                                     <div className="mt-3 flex items-center gap-2 p-2 bg-gray-100 dark:bg-[#2d2424] rounded-lg border border-gray-200 dark:border-[#5a4f4f]">
@@ -167,9 +167,9 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                                 <div className="bg-[#d4ac6e]/10 p-6 rounded-xl border border-[#d4ac6e]/30">
                                     <h3 className="font-bold text-lg mb-4 text-[#b99256] dark:text-[#d4ac6e]">Resumo do Projeto</h3>
                                     <ul className="text-sm space-y-2 mb-6 text-gray-700 dark:text-gray-300">
-                                        <li><strong>Ambiente:</strong> {roomType}</li>
+                                        <li><strong>Ambiente Detectado:</strong> {roomType}</li>
                                         <li><strong>Estilo:</strong> {style}</li>
-                                        <li><strong>Móveis:</strong> {selectedFurniture.length} itens selecionados</li>
+                                        <li><strong>Descrição Detalhada:</strong> {userIntent ? 'Sim' : 'Não informada'}</li>
                                         <li><strong>Orientação:</strong> {isMirrored ? 'Invertida/Espelhada' : 'Padrão'}</li>
                                     </ul>
                                     <Project3DGenerator 
@@ -177,7 +177,8 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                                             image: image!, 
                                             roomType, 
                                             furniture: selectedFurniture, 
-                                            layoutDescription: `${selectedLayout}. Objetivo específico do usuário: ${userIntent}`, 
+                                            // Force the detailed user intent to be the primary layout description
+                                            layoutDescription: userIntent ? userIntent : `Layout sugerido: ${selectedLayout}`, 
                                             style 
                                         }}
                                         isMirrored={isMirrored}
