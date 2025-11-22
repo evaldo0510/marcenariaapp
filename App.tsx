@@ -25,12 +25,14 @@ import { NotificationSystem } from './components/NotificationSystem';
 import { CommissionWallet } from './components/CommissionWallet'; 
 import { ImageProjectGenerator } from './components/ImageProjectGenerator';
 import { StoreDashboard } from './components/StoreDashboard';
-import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, ShareIcon, WhatsappIcon, CopyIcon, DownloadIcon } from './components/Shared';
+import { InteractiveImageViewer } from './components/InteractiveImageViewer';
+import { AlertModal, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, HighQualityIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
 import { suggestAlternativeStyles, generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D } from './services/geminiService';
 import type { ProjectHistoryItem, Client, Finish } from './types';
 import { initialStylePresets } from './services/presetService';
+import { createDemoFloorPlanBase64 } from './utils/helpers';
 
 interface AppProps {
   onLogout: () => void;
@@ -111,7 +113,7 @@ const FinishSuggestionsModal: React.FC<FinishSuggestionsModalProps> = ({ isOpen,
                                 <div className="h-24 w-full" style={{ backgroundColor: finish.hexCode }}></div>
                                 <div className="p-3 flex-grow">
                                     <h4 className="font-bold text-sm text-[#3e3535] dark:text-[#f5f1e8]">{finish.name}</h4>
-                                    <p className="text-xs text-[#6a5f5f] dark:text-[#c7bca9] mt-1">{finish.manufacturer}</p>
+                                    <p className="text-xs text-6a5f5f dark:text-[#c7bca9] mt-1">{finish.manufacturer}</p>
                                 </div>
                             </button>
                         ))}
@@ -136,7 +138,7 @@ const ToolButton: React.FC<{ icon: React.ReactNode; label: string; onClick: () =
 );
 
 const framingOptions = [
-    { label: 'Padrão (Margem Segura)', value: 'PRIORIDADE MÁXIMA DE ENQUADRAMENTO: Centralize o objeto ou ambiente. Ajuste o zoom (Zoom Out) para garantir que NADA seja cortado. Deve haver uma margem de segurança (espaço vazio) visível em todas as laterais (topo, fundo, esquerda, direita). O projeto deve estar 100% visível dentro do quadro.' },
+    { label: 'Padrão (Sem Cortes)', value: 'ATENÇÃO CRÍTICA AO ENQUADRAMENTO: Renderize o projeto 3D centralizado, aplicando um ZOOM OUT (afastamento da câmera) para garantir margens de segurança (padding) generosas em todas as 4 bordas. O objeto deve "flutuar" no centro da imagem. É ESTRITAMENTE PROIBIDO cortar qualquer extremidade do móvel ou do ambiente. O foco é a totalidade do projeto.' },
     { label: 'Grande Angular (Tudo Visível)', value: 'Gere uma imagem 3D do projeto, ajustando o enquadramento para que todo o espaço fique visível, inclusive as paredes, teto e piso.' },
     { label: 'Horizontal (Panorâmico)', value: 'Mostre o móvel ou ambiente completamente, em formato horizontal, detalhando todas as laterais e evitando cortes nos extremos.' },
     { label: 'Social Media (Proporção)', value: 'Crie uma visualização 3D centralizada e com proporção adequada ao quadro, pronta para compartilhamento nas redes sociais.' },
@@ -158,8 +160,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [selectedFinish, setSelectedFinish] = useState<{ manufacturer: string; finish: Finish; handleDetails?: string } | null>(null);
   const [withLedLighting, setWithLedLighting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showShareMenu, setShowShareMenu] = useState(false);
   
+  // Quality & Resolution States
+  const [qualityMode, setQualityMode] = useState<'standard' | 'pro'>('standard');
+  const [imageResolution, setImageResolution] = useState<'1K' | '2K' | '4K'>('1K');
+
   // Mobile Tab State
   const [mobileTab, setMobileTab] = useState<'create' | 'result'>('create');
 
@@ -225,41 +230,47 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const closeAlert = () => setAlert({ ...alert, show: false });
   const toggleModal = (key: keyof typeof modals, value: boolean) => setModals(prev => ({ ...prev, [key]: value }));
 
+  const loadDemoProject = () => {
+      // Generate a demo floor plan image
+      const demoFloorPlan = createDemoFloorPlanBase64();
+      const base64Data = demoFloorPlan.split(',')[1];
+      const mimeType = 'image/png';
+
+      setUploadedImages([{ data: base64Data, mimeType }]);
+      
+      setDescription("Utilize a IA Gemini Vision para analisar esta planta baixa. Identifique as paredes, a porta e a janela. Em seguida, levante as paredes e decore a sala de estar com um sofá confortável, rack para TV na parede oposta à janela, tapete central e plantas. Estilo moderno e aconchegante.");
+      setStylePreset("Moderno");
+      setWithLedLighting(true);
+      setFramingStrategy(framingOptions[0].value);
+      setSelectedFinish(null);
+      setQualityMode('standard');
+      
+      showAlert("Exemplo carregado! A planta baixa foi anexada. Ao clicar em 'GERAR PROJETO 3D', a IA analisará o desenho (medidas, portas, janelas) e criará o ambiente 3D sobre ele.", "Demo com Análise de Visão");
+  };
+
   // Handlers
   const handleGenerateProject = async () => {
       if (!description.trim()) return showAlert("Por favor, descreva seu projeto.", "Falta Descrição");
       setIsGenerating(true);
       try {
-          let fullPrompt = "";
+          // Simplify prompt construction - User description is the single source of truth
+          let fullPrompt = `PROJETO SOLICITADO: ${description}`;
 
-          if (uploadedImages && uploadedImages.length > 0) {
-              fullPrompt = `Atue como um Renderizador 3D Especialista em Marcenaria.
-              Sua tarefa é transformar as imagens de referência fornecidas em uma renderização 3D fotorrealista.
-
-              **DIRETRIZ PRINCIPAL (GEOMETRIA):**
-              Siga ESTRITAMENTE a geometria, layout, divisões, portas e gavetas visíveis na imagem de referência. NÃO INVENTE elementos estruturais novos.
-
-              **DIRETRIZ SECUNDÁRIA (ESTILO E ACABAMENTO):**
-              Use a seguinte descrição para materiais e cores: "${description}".`;
-          } else {
-              fullPrompt = `Atue como um Designer de Móveis e Renderizador 3D.
-              Crie um projeto de marcenaria fotorrealista (render 3D) seguindo EXATAMENTE esta descrição: "${description}".
-              O móvel deve estar no foco.`;
-          }
-
-          fullPrompt += `\n\n**Estilo:** ${stylePreset}.`;
+          fullPrompt += `\n\nDETALHES TÉCNICOS:`;
+          fullPrompt += `\n- Estilo Visual: ${stylePreset}`;
           
           if (selectedFinish) {
-              fullPrompt += `\n**Acabamento:** ${selectedFinish.finish.name} (${selectedFinish.manufacturer}).`;
-              if (selectedFinish.handleDetails) fullPrompt += ` Puxadores: ${selectedFinish.handleDetails}.`;
+              fullPrompt += `\n- Acabamento Principal: ${selectedFinish.finish.name} (${selectedFinish.manufacturer})`;
+              if (selectedFinish.handleDetails) fullPrompt += `\n- Detalhes/Puxadores: ${selectedFinish.handleDetails}`;
           }
           
           if (withLedLighting) {
-              fullPrompt += `\n**Iluminação:** Inclua LEDs em nichos/prateleiras.`;
+              fullPrompt += `\n- Iluminação: Incluir iluminação LED para valorizar o móvel.`;
           }
 
-          // Pass explicit framing strategy
-          const imageBase64 = await generateImage(fullPrompt, uploadedImages, framingStrategy);
+          // Use Pro Model if selected, passing resolution
+          const usePro = qualityMode === 'pro';
+          const imageBase64 = await generateImage(fullPrompt, uploadedImages, framingStrategy, usePro, imageResolution);
           
           const projectData: Omit<ProjectHistoryItem, 'id' | 'timestamp'> = {
               name: `Projeto ${stylePreset} - ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
@@ -269,7 +280,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
               views3d: [`data:image/png;base64,${imageBase64}`],
               image2d: null,
               bom: null, 
-              withLedLighting: withLedLighting
+              withLedLighting: withLedLighting,
+              uploadedReferenceImageUrls: uploadedImages ? uploadedImages.map(i => `data:${i.mimeType};base64,${i.data}`) : null
           };
           
           const updatedHistory = await addProjectToHistory(projectData);
@@ -279,8 +291,16 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           // Switch to result tab on mobile
           setMobileTab('result');
           
-      } catch (e) {
+      } catch (e: any) {
           console.error(e);
+          const errorMsg = e.message || JSON.stringify(e);
+          if (errorMsg.includes('403') || errorMsg.includes('PERMISSION_DENIED') || errorMsg.includes('The caller does not have permission')) {
+               if ((window as any).aistudio?.openSelectKey) {
+                   await (window as any).aistudio.openSelectKey();
+                   showAlert("Permissão atualizada. Por favor, tente gerar o projeto novamente.", "Acesso");
+                   return;
+               }
+          }
           showAlert("Erro ao gerar projeto: " + (e instanceof Error ? e.message : "Erro desconhecido"));
       } finally {
           setIsGenerating(false);
@@ -308,34 +328,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     }
 
     toggleModal('history', false);
-  };
-
-  const handleShareProject = async (platform: 'whatsapp' | 'copy' | 'download') => {
-      if (!currentProject || !currentProject.views3d[0]) return;
-      
-      const imageUrl = currentProject.views3d[0];
-      
-      if (platform === 'whatsapp') {
-          const text = encodeURIComponent(`Veja este projeto que criei no MarcenApp: ${currentProject.name}\n\n${currentProject.description}`);
-          window.open(`whatsapp://send?text=${text}`, '_blank');
-      } else if (platform === 'copy') {
-          try {
-              const response = await fetch(imageUrl);
-              const blob = await response.blob();
-              await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-              showAlert("Imagem copiada para a área de transferência!", "Sucesso");
-          } catch (e) {
-              showAlert("Erro ao copiar imagem. Tente baixar.", "Erro");
-          }
-      } else if (platform === 'download') {
-          const link = document.createElement('a');
-          link.href = imageUrl;
-          link.download = `marcenapp_${currentProject.name.replace(/\s+/g, '_')}.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-      }
-      setShowShareMenu(false);
   };
 
   const handleGetStyleSuggestions = async () => {
@@ -454,9 +446,17 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                 
                 {/* Descrição */}
                 <section className="bg-white dark:bg-[#3e3535] p-5 rounded-2xl shadow-sm border border-[#e6ddcd] dark:border-[#4a4040]">
-                    <h2 className="text-lg font-bold mb-3 text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
-                        <BookIcon className="w-5 h-5"/> O que vamos criar hoje?
-                    </h2>
+                    <div className="flex justify-between items-center mb-3">
+                        <h2 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
+                            <BookIcon className="w-5 h-5"/> O que vamos criar hoje?
+                        </h2>
+                        <button 
+                            onClick={loadDemoProject}
+                            className="text-xs font-bold text-[#d4ac6e] hover:text-[#c89f5e] bg-[#f0e9dc] dark:bg-[#4a4040] px-3 py-1 rounded-full transition"
+                        >
+                            Exemplo c/ Planta
+                        </button>
+                    </div>
                     <div className="relative">
                         <textarea
                             ref={descriptionTextAreaRef}
@@ -514,17 +514,55 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                     <option key={option.label} value={option.value}>{option.label}</option>
                                 ))}
                             </select>
-                            <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 px-1">
-                                ✅ <strong>Modo Padrão Ativo:</strong> A IA ajustará automaticamente o zoom para garantir que o projeto apareça inteiro, com margens de segurança e sem cortes nas bordas.
-                            </p>
+                            <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 px-1">✅ O modo padrão centraliza o objeto e aplica margens para evitar cortes.</p>
                         </div>
                     </div>
 
-                    <ImageUploader onImagesChange={setUploadedImages} showAlert={showAlert} initialImageUrls={currentProject?.uploadedReferenceImageUrls} />
+                    <ImageUploader onImagesChange={setUploadedImages} showAlert={showAlert} initialImageUrls={currentProject?.uploadedReferenceImageUrls || (uploadedImages && uploadedImages.length > 0 ? [`data:${uploadedImages[0].mimeType};base64,${uploadedImages[0].data}`] : null)} />
                 </section>
                 
-                {/* Acabamentos */}
+                {/* Qualidade & Acabamentos */}
                 <section className="bg-white dark:bg-[#3e3535] p-5 rounded-2xl shadow-sm border border-[#e6ddcd] dark:border-[#4a4040]">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
+                            <HighQualityIcon className="w-5 h-5"/> Qualidade & Detalhes
+                        </h2>
+                    </div>
+
+                    <div className="flex gap-4 mb-6">
+                        <div className="flex-1">
+                            <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] block mb-1">Motor de Renderização</label>
+                            <div className="flex bg-[#f0e9dc] dark:bg-[#2d2424] rounded-lg p-1">
+                                <button 
+                                    onClick={() => setQualityMode('standard')}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-md transition ${qualityMode === 'standard' ? 'bg-white dark:bg-[#4a4040] shadow text-[#3e3535] dark:text-white' : 'text-gray-500'}`}
+                                >
+                                    Rápido (Flash)
+                                </button>
+                                <button 
+                                    onClick={() => setQualityMode('pro')}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-md transition flex items-center justify-center gap-1 ${qualityMode === 'pro' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow' : 'text-gray-500'}`}
+                                >
+                                    Pro (Realista)
+                                </button>
+                            </div>
+                        </div>
+                        {qualityMode === 'pro' && (
+                            <div className="flex-1 animate-fadeIn">
+                                <label className="text-xs text-xs text-[#8a7e7e] dark:text-[#a89d8d] block mb-1">Resolução</label>
+                                <select 
+                                    value={imageResolution}
+                                    onChange={(e) => setImageResolution(e.target.value as '1K' | '2K' | '4K')}
+                                    className="w-full p-2 rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-bold text-sm"
+                                >
+                                    <option value="1K">1K (HD)</option>
+                                    <option value="2K">2K (Full HD)</option>
+                                    <option value="4K">4K (Ultra HD)</option>
+                                </select>
+                            </div>
+                        )}
+                    </div>
+
                     <FinishesSelector 
                         value={selectedFinish} 
                         onFinishSelect={setSelectedFinish} 
@@ -552,10 +590,10 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                 <button 
                     onClick={handleGenerateProject}
                     disabled={isGenerating}
-                    className="w-full py-4 bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] font-extrabold text-lg rounded-2xl shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed group relative"
+                    className={`w-full py-4 font-extrabold text-lg rounded-2xl shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed group relative ${qualityMode === 'pro' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:opacity-90' : 'bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535]'}`}
                 >
                     {isGenerating ? <Spinner /> : <WandIcon className="w-6 h-6" />}
-                    {isGenerating ? 'Criando Projeto...' : 'GERAR PROJETO 3D'}
+                    {isGenerating ? 'Criando Projeto...' : qualityMode === 'pro' ? `GERAR PROJETO PRO (${imageResolution})` : 'GERAR PROJETO 3D'}
                     
                     {!isGenerating && (
                         <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max px-3 py-2 text-xs font-medium text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-xl z-10">
@@ -575,40 +613,21 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                     <div className="bg-white dark:bg-[#3e3535] rounded-2xl shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] overflow-hidden sticky top-24">
                         {/* 3D View */}
                         <div className="relative aspect-[4/3] md:aspect-video bg-gray-100 dark:bg-[#2d2424]">
-                            <img src={currentProject.views3d[0]} alt={currentProject.name} className="w-full h-full object-contain bg-neutral-900" />
+                            <InteractiveImageViewer 
+                                src={currentProject.views3d[0]} 
+                                alt={currentProject.name} 
+                                projectName={currentProject.name}
+                                className="w-full h-full bg-neutral-900 relative overflow-hidden touch-none"
+                            />
                             
                             {/* Overlays */}
-                            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold">
+                            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold pointer-events-none">
                                 {currentProject.style}
                             </div>
                             
-                            <div className="absolute bottom-4 right-4 flex gap-2 items-end">
-                                {/* Share Menu */}
-                                <div className="relative">
-                                    {showShareMenu && (
-                                        <div className="absolute bottom-full right-0 mb-2 bg-white dark:bg-[#3e3535] rounded-xl shadow-xl border border-[#e6ddcd] dark:border-[#4a4040] p-2 flex flex-col gap-1 min-w-[160px] animate-fadeInUp z-20">
-                                            <button onClick={() => handleShareProject('whatsapp')} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040] rounded-lg transition-colors">
-                                                <WhatsappIcon className="w-4 h-4 text-green-500"/> WhatsApp
-                                            </button>
-                                            <button onClick={() => handleShareProject('copy')} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040] rounded-lg transition-colors">
-                                                <CopyIcon className="w-4 h-4"/> Copiar Imagem
-                                            </button>
-                                            <button onClick={() => handleShareProject('download')} className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm font-medium text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040] rounded-lg transition-colors">
-                                                <DownloadIcon className="w-4 h-4"/> Baixar PNG
-                                            </button>
-                                        </div>
-                                    )}
-                                    <button 
-                                        onClick={() => setShowShareMenu(!showShareMenu)} 
-                                        className="bg-white/90 text-[#3e3535] p-3 rounded-full shadow-lg hover:bg-white transition hover:scale-105 active:scale-95" 
-                                        title="Compartilhar Projeto"
-                                    >
-                                        <ShareIcon />
-                                    </button>
-                                </div>
-
-                                <button onClick={() => toggleModal('ar', true)} className="bg-white/90 text-[#3e3535] p-3 rounded-full shadow-lg hover:bg-white transition hover:scale-105 active:scale-95" title="Realidade Aumentada"><CubeIcon /></button>
-                                <button onClick={() => toggleModal('newView', true)} className="bg-[#d4ac6e] text-[#3e3535] p-3 rounded-full shadow-lg hover:bg-[#c89f5e] transition hover:scale-105 active:scale-95" title="Nova Vista"><WandIcon /></button>
+                            <div className="absolute bottom-4 left-4 flex gap-2">
+                                <button onClick={() => toggleModal('ar', true)} className="bg-white/90 text-[#3e3535] p-2 rounded-full shadow-lg hover:bg-white transition" title="Realidade Aumentada"><CubeIcon /></button>
+                                <button onClick={() => toggleModal('newView', true)} className="bg-[#d4ac6e] text-[#3e3535] p-2 rounded-full shadow-lg hover:bg-[#c89f5e] transition" title="Nova Vista"><WandIcon /></button>
                             </div>
                         </div>
                         
@@ -719,6 +738,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       <DistributorPortal isOpen={modals.partnerPortal} onClose={() => toggleModal('partnerPortal', false)} />
       <ImageProjectGenerator isOpen={modals.projectGenerator} onClose={() => toggleModal('projectGenerator', false)} showAlert={showAlert} />
       <StoreDashboard isOpen={modals.storeMode} onClose={() => toggleModal('storeMode', false)} /> 
+      {currentProject && <ImageEditor isOpen={modals.imageEditor} imageSrc={currentProject.views3d[0]} projectDescription={currentProject.description} onClose={() => toggleModal('imageEditor', false)} onSave={async (newImage) => {
+          const newViewUrl = `data:image/png;base64,${newImage}`;
+          const updatedViews = [...currentProject.views3d, newViewUrl];
+          await updateProjectInHistory(currentProject.id, { views3d: updatedViews });
+          setHistory(await getHistory());
+          toggleModal('imageEditor', false);
+          showAlert("Edição salva como nova vista!");
+      }} showAlert={showAlert} />}
       
       {/* Notifications & Wallet Modals Wrapper */}
         {modals.notifications && (

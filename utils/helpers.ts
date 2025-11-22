@@ -1,3 +1,4 @@
+
 import type { ProjectHistoryItem } from '../types';
 import type { Blob } from '@google/genai';
 
@@ -209,3 +210,82 @@ export function createBlob(data: Float32Array): Blob {
     mimeType: 'audio/pcm;rate=16000',
   };
 }
+
+// --- DEMO HELPERS ---
+
+// Creates a simple floor plan image on the fly using Canvas
+export const createDemoFloorPlanBase64 = (): string => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 600;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) return '';
+
+    // Background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Grid lines
+    ctx.strokeStyle = '#f0f0f0';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < canvas.width; i += 40) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+    }
+    for (let i = 0; i < canvas.height; i += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(canvas.width, i);
+        ctx.stroke();
+    }
+
+    // Walls (Simple Rectangular Room)
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 5;
+    ctx.strokeRect(150, 100, 500, 400);
+
+    // Door (Bottom wall)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(350, 495, 80, 10); // Clear wall for door
+    
+    // Door Swing
+    ctx.beginPath();
+    ctx.moveTo(350, 500);
+    ctx.lineTo(350, 420);
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(350, 500, 80, 1.5 * Math.PI, 0);
+    ctx.strokeStyle = '#999999';
+    ctx.setLineDash([5, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Window (Top wall)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(300, 95, 150, 10); // Clear wall
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(300, 95, 150, 10); // Frame
+    ctx.beginPath();
+    ctx.moveTo(300, 100);
+    ctx.lineTo(450, 100);
+    ctx.stroke();
+
+    // Dimensions Text
+    ctx.font = '16px monospace';
+    ctx.fillStyle = '#000000';
+    ctx.fillText('5.00m', 380, 80);
+    ctx.fillText('4.00m', 100, 300);
+
+    // Label
+    ctx.font = 'bold 20px Arial';
+    ctx.fillStyle = '#333333';
+    ctx.fillText('SALA DE ESTAR', 320, 300);
+
+    return canvas.toDataURL('image/png');
+};

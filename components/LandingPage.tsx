@@ -231,7 +231,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         
                         <div className="relative animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
                             <img 
-                                src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80" 
+                                src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80" 
                                 alt="Cozinha Planejada MarcenApp" 
                                 className="rounded-2xl shadow-2xl border-4 border-white dark:border-[#4a4040] w-full object-cover transform rotate-2 hover:rotate-0 transition-transform duration-500"
                             />

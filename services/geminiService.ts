@@ -2,8 +2,10 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import type { ProjectHistoryItem, ProjectLead, Finish } from '../types';
 
-// Initialize the Gemini API client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Helper to get a fresh AI client instance
+const getAiClient = () => {
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+};
 
 // Helper to create GenerativePart from base64
 export const fileToGenerativePart = (data: string, mimeType: string) => {
@@ -32,16 +34,36 @@ export function cleanAndParseJson<T>(text: string): T {
     }
 }
 
-// --- GENERATE IMAGE FUNCTION (Estilo PROMOB / V-Ray) ---
-export async function generateImage(prompt: string, referenceImages?: { data: string, mimeType: string }[] | null, framingStrategy?: string): Promise<string> {
+// --- GENERATE IMAGE FUNCTION (Gemini 2.5 Flash & Gemini 3 Pro) ---
+export async function generateImage(
+    prompt: string, 
+    referenceImages?: { data: string, mimeType: string }[] | null, 
+    framingStrategy?: string,
+    useProModel: boolean = false,
+    imageResolution: '1K' | '2K' | '4K' = '1K'
+): Promise<string> {
+    
+    const ai = getAiClient();
+    // Select Model
+    // Standard: gemini-2.5-flash-image (Nano Banana)
+    // Pro: gemini-3-pro-image-preview (Nano Banana Pro)
+    const modelName = useProModel ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
+
     // Engenharia de prompt para estilo PROMOB/V-Ray com proteção contra alucinações
     let technicalPrompt = `
-    ATUE COMO: Um fotógrafo de arquitetura e renderizador 3D profissional (V-Ray/Corona).
+    ATUE COMO: Um Arquiteto e Renderizador 3D Sênior (Expert em Marcenaria).
     
-    TAREFA: Gerar visualização fotorrealista de móveis planejados.
+    SUA MISSÃO: 
+    Criar uma imagem 3D fotorrealista que satisfaça RIGOROSAMENTE a solicitação do usuário. 
+    Você deve ignorar instruções padrão se elas contradisserem a descrição específica do usuário.
     
-    ENTRADA DO USUÁRIO:
+    SOLICITAÇÃO DO USUÁRIO (MANDATÓRIO):
     "${prompt}"
+    
+    DIRETRIZES DE EXECUÇÃO:
+    1. **Fidelidade ao Texto:** O que está escrito na "Solicitação do Usuário" é a LEI. Se o usuário pede um armário vermelho, ele deve ser vermelho, independente do estilo.
+    2. **Atenção aos Detalhes:** Verifique cada item pedido (gavetas, portas, espelhos, leds) e garanta que estão presentes.
+    3. **Qualidade Visual:** Renderização V-Ray, texturas 4K, iluminação global realista.
     `;
 
     // --- BLOCO DE ENQUADRAMENTO E CÂMERA (CRÍTICO PARA EVITAR CORTES) ---
@@ -61,13 +83,19 @@ export async function generateImage(prompt: string, referenceImages?: { data: st
     4. **COMPOSIÇÃO:** Centralize o objeto principal. Se for um móvel alto, mostre do chão ao teto com folga. Se for comprido, mostre as duas laterais.
     5. **NUNCA CORTE:** É estritamente proibido cortar partes do móvel (pés, topo, laterais). A imagem deve ser um "Full Shot" (Plano Inteiro).
     6. **VISUALIZAÇÃO VOLUMÉTRICA:** Salvo especificado em contrário, use uma perspectiva levemente rotacionada (3/4 view) para mostrar a profundidade e as laterais do móvel, não apenas a frente chapada.
+    7. **PROPORÇÃO E ESCALA:** Se dimensões forem fornecidas (ex: 2.5m largura x 2.4m altura), MANTENHA a proporção visual correta (Aspect Ratio) do objeto.
     `;
 
     if (referenceImages && referenceImages.length > 0) {
         technicalPrompt += `
-        \n**REGRAS DE PRECISÃO GEOMÉTRICA:**
-        1. **BLUEPRINT:** Use a imagem fornecida como planta/base obrigatória. Mantenha a estrutura da sala, paredes, janelas e piso EXATAMENTE como na foto.
-        2. **INTEGRAÇÃO:** O móvel deve parecer construído no local da foto original, respeitando a perspectiva da foto.
+        \n**PROTOCOLO DE ANÁLISE DE IMAGEM (GEMINI VISION):**
+        Você recebeu uma imagem de referência (Planta Baixa ou Foto do Local). ANTES DE RENDERIZAR, execute os passos:
+        1. **EXTRAÇÃO DE GEOMETRIA:** Analise as linhas de parede, posição de portas e janelas na imagem. Use isso como o "esqueleto" da cena 3D.
+        2. **ESTIMATIVA DE ESCALA:** Use elementos padrão (portas = 80cm, pé-direito = 2.60m) para inferir as dimensões do ambiente.
+        3. **DISTRIBUIÇÃO DE MÓVEIS:** Se for uma planta baixa, levante as paredes e coloque os móveis solicitados exatamente onde o desenho sugere.
+        4. **ESTILO ARQUITETÔNICO:** Identifique pistas visuais de estilo na imagem e aplique no render final.
+        
+        **IMPORTANTE:** Use a imagem para definir a FORMA/ESPAÇO, e o texto para definir os MATERIAIS/ACABAMENTOS.
         `;
     }
 
@@ -88,12 +116,22 @@ export async function generateImage(prompt: string, referenceImages?: { data: st
     }
 
     try {
+        // Configure based on model capabilities
+        const config: any = {
+            responseModalities: [Modality.IMAGE],
+        };
+
+        // Only Gemini 3 Pro supports explicit imageSize configuration
+        if (useProModel) {
+            config.imageConfig = {
+                imageSize: imageResolution // '1K', '2K', '4K'
+            };
+        }
+
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image', // Modelo otimizado para geração de imagem
+            model: modelName,
             contents: { parts },
-            config: {
-                responseModalities: [Modality.IMAGE],
-            }
+            config: config
         });
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
@@ -111,6 +149,7 @@ export async function generateImage(prompt: string, referenceImages?: { data: st
 
 // 1. Suggest Alternative Styles
 export async function suggestAlternativeStyles(projectDescription: string, currentStyle: string, base64Image?: string): Promise<string[]> {
+    const ai = getAiClient();
     const prompt = `Atue como um Diretor de Arte de Interiores.
     Projeto: "${projectDescription}"
     Estilo Atual: "${currentStyle}"
@@ -145,6 +184,7 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
 
 // 1.1 Suggest Alternative Finishes
 export async function suggestAlternativeFinishes(projectDescription: string, style: string): Promise<Finish[]> {
+    const ai = getAiClient();
     const prompt = `Atue como um Especialista em Materiais de Marcenaria.
     Projeto: "${projectDescription}"
     Estilo: "${style}"
@@ -187,6 +227,7 @@ export async function suggestAlternativeFinishes(projectDescription: string, sty
 
 // 2. Search Finishes
 export async function searchFinishes(query: string): Promise<Finish[]> {
+    const ai = getAiClient();
     const prompt = `Sugira 4 acabamentos de marcenaria reais (MDF, pedras, metais) para: "${query}".
     Retorne JSON array.`;
 
@@ -220,8 +261,9 @@ export async function searchFinishes(query: string): Promise<Finish[]> {
     return [];
 }
 
-// 3. Edit Image
+// 3. Edit Image (Nano Banana / Gemini 2.5 Flash Image)
 export async function editImage(base64Data: string, mimeType: string, prompt: string): Promise<string> {
+    const ai = getAiClient();
     try {
         // Adicionando reforço de enquadramento também na edição
         const enhancedPrompt = `${prompt}
@@ -230,7 +272,7 @@ export async function editImage(base64Data: string, mimeType: string, prompt: st
         Ao editar, NÃO dê zoom in. Mantenha o enquadramento original ou afaste a câmera (Zoom Out) se necessário para mostrar o objeto inteiro. Mantenha margens de segurança nas bordas.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
+            model: 'gemini-2.5-flash-image', // Explicitly using Flash Image for editing tasks
             contents: {
                 parts: [
                     fileToGenerativePart(base64Data, mimeType),
@@ -255,6 +297,7 @@ export async function editImage(base64Data: string, mimeType: string, prompt: st
 
 // 4. Suggest Image Edits
 export async function suggestImageEdits(projectDescription: string, imageSrc: string): Promise<string[]> {
+    const ai = getAiClient();
     const base64Data = imageSrc.split(',')[1];
     const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
 
@@ -285,10 +328,11 @@ export async function suggestImageEdits(projectDescription: string, imageSrc: st
 
 // 5. Generate Grounded Response
 export async function generateGroundedResponse(prompt: string, location: { latitude: number, longitude: number } | null): Promise<{ text: string, sources: any[] }> {
+    const ai = getAiClient();
     const tools: any[] = [{ googleSearch: {} }];
     
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-pro-preview', // Using Pro for better reasoning on grounded tasks
         contents: prompt,
         config: {
             tools: tools,
@@ -310,18 +354,18 @@ export async function generateGroundedResponse(prompt: string, location: { latit
 export async function editFloorPlan(base64Data: string, mimeType: string, prompt: string): Promise<string> {
     // Prompt reforçado para manter estilo técnico AutoCAD com cotas
     const technicalPrompt = `
-    ATUE COMO: Um software CAD (AutoCAD).
-    TAREFA: Editar esta planta baixa técnica.
+    ATUE COMO: Um software CAD (AutoCAD) em modo de exportação.
+    TAREFA: Editar esta planta baixa técnica mantendo o rigoroso padrão de desenho técnico.
     
     INSTRUÇÃO DE EDIÇÃO: ${prompt}
     
-    DIRETRIZES DE ESTILO (AUTOCAD 2D):
-    1. Mantenha o fundo BRANCO PURO ou PRETO CAD (se a original for escura).
-    2. Use linhas de alta precisão e contraste.
-    3. Mantenha a vista ORTOGRÁFICA SUPERIOR (Top View) plana. Sem perspectiva.
-    4. **COTAS:** É IMPRESCINDÍVEL desenhar linhas de cota (dimension lines) nas laterais da imagem, com setas e números indicando medidas aproximadas, simulando um desenho técnico real.
-    5. **SÍMBOLOS:** Use arcos para abertura de portas.
-    6. Não adicione sombras, texturas realistas ou cores 3D. Mantenha o estilo vetorial técnico.
+    DIRETRIZES DE ESTILO (AUTOCAD 2D / DWG):
+    1. **Fundo:** BRANCO PURO (#FFFFFF).
+    2. **Linhas:** PRETO SÓLIDO (#000000). Traço fino e vetorial.
+    3. **Vista:** Ortográfica Superior (Top View) estrita. Zero perspectiva.
+    4. **Cotas:** Mantenha ou adicione linhas de cota (dimension lines) nas laterais.
+    5. **Simbologia:** Use arcos para portas e linhas duplas para paredes.
+    6. **Clean:** Sem sombras, sem cores, sem texturas realistas. Apenas geometria técnica.
     `;
     
     return editImage(base64Data, mimeType, technicalPrompt);
@@ -329,6 +373,7 @@ export async function editFloorPlan(base64Data: string, mimeType: string, prompt
 
 // 7. Estimate Project Costs
 export async function estimateProjectCosts(project: ProjectHistoryItem): Promise<{ materialCost: number, laborCost: number }> {
+    const ai = getAiClient();
     const parts: any[] = [];
     const prompt = `Orce este projeto de marcenaria (Material e Mão de Obra) no Brasil.
     Projeto: ${project.name}
@@ -370,6 +415,7 @@ export async function estimateProjectCosts(project: ProjectHistoryItem): Promise
 
 // 8. Generate Text (BOM)
 export async function generateText(prompt: string, images?: { data: string, mimeType: string }[] | null): Promise<string> {
+    const ai = getAiClient();
     const parts: any[] = [{ text: prompt }];
     if (images) {
         images.forEach(img => {
@@ -378,7 +424,7 @@ export async function generateText(prompt: string, images?: { data: string, mime
     }
 
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview', // Use Pro for better reasoning on BOMs
+        model: 'gemini-3-pro-preview', // Use Pro for better reasoning on BOMS
         contents: { parts }
     });
 
@@ -387,6 +433,7 @@ export async function generateText(prompt: string, images?: { data: string, mime
 
 // 9. Generate Cutting Plan (Corrigido e Melhorado)
 export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidth: number, sheetHeight: number): Promise<{ text: string, image: string, optimization: string }> {
+    const ai = getAiClient();
     const parts: any[] = [];
     
     // 1. Texto e Otimização
@@ -453,6 +500,7 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
 
 // 10. Find Project Leads
 export async function findProjectLeads(city: string): Promise<ProjectLead[]> {
+    const ai = getAiClient();
     const prompt = `Gere 3 leads fictícios de marcenaria em ${city}. JSON Array.`;
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
@@ -491,6 +539,7 @@ export async function generateAssemblyDetails(project: ProjectHistoryItem): Prom
 }
 
 export async function parseBomToList(bomText: string): Promise<any[]> {
+    const ai = getAiClient();
     // Simplified logic for brevity, assuming same functionality as before
     const prompt = `Extraia itens da BOM para JSON Array [{item, qty, dimensions}]. BOM: ${bomText}`;
     const response = await ai.models.generateContent({
@@ -516,16 +565,19 @@ export async function generateFloorPlanFrom3D(project: ProjectHistoryItem): Prom
     
     // Engenharia de prompt para converter 3D -> 2D Técnico (Estilo AutoCAD)
     const technicalPrompt = `
-    ATUE COMO: Um arquiteto técnico usando AutoCAD.
-    TAREFA: Converter esta visualização 3D de um móvel/ambiente em uma PLANTA BAIXA TÉCNICA 2D (Vista Superior).
-    
-    REGRAS RÍGIDAS DE ESTILO (Blueprint/CAD):
-    1. **Perspectiva:** ORTOGRÁFICA ESTRITA (90 graus, vista de cima). Nenhuma perspectiva 3D.
-    2. **Linhas:** Linhas pretas finas e precisas para contornos.
-    3. **Fundo:** BRANCO ABSOLUTO (High Contrast).
-    4. **Detalhes:** Inclua representação esquemática de portas (arcos de abertura), gavetas e divisórias internas.
-    5. **Cotas:** Adicione linhas de cota (dimensões) esquemáticas nas laterais para parecer um desenho técnico real.
-    6. **Limpeza:** Sem texturas realistas, sem sombras, sem cores. Apenas desenho técnico vetorial P&B.
+    ATUE COMO: Um software CAD (AutoCAD/Revit) exportando para PDF/PNG.
+    TAREFA: Converter esta visualização 3D em uma PLANTA BAIXA TÉCNICA 2D (Vista Superior/Top View).
+
+    ESTILO VISUAL OBRIGATÓRIO (DWG/CAD):
+    1. **Fundo:** BRANCO PURO (#FFFFFF).
+    2. **Linhas:** PRETO SÓLIDO (#000000). Traço fino, preciso e vetorial.
+    3. **Perspectiva:** ORTOGRÁFICA (2D Flat). Zero profundidade ou 3D.
+    4. **Elementos Técnicos:**
+       - Represente portas com arcos de abertura.
+       - Represente paredes com linhas duplas ou hachura sólida.
+       - Móveis devem ser contornos geométricos simples (retângulos).
+    5. **Cotas (Dimensões):** É OBRIGATÓRIO desenhar linhas de cota com setas e números nas laterais externas (Largura e Profundidade), simulando um desenho técnico aprovado.
+    6. **Proibido:** Sombras, texturas realistas, cores, degradês ou perspectiva cônica.
     `;
     
     return editImage(data, mimeType, technicalPrompt);
@@ -560,6 +612,7 @@ export async function generate3Dfrom2D(project: ProjectHistoryItem, style: strin
 
 // 17. Analyze Room Image (Vision API)
 export async function analyzeRoomImage(base64Image: string): Promise<{ roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }> {
+    const ai = getAiClient();
     const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';
     const data = base64Image.split(',')[1];
 
@@ -608,6 +661,7 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
 
 // 18. Generate Layout Suggestions
 export async function generateLayoutSuggestions(roomType: string, dimensions: any): Promise<{ title: string, description: string, pros: string }[]> {
+    const ai = getAiClient();
     const prompt = `Para um ambiente do tipo "${roomType}" com dimensões ${dimensions.width}m x ${dimensions.depth}m.
     Sugira 3 layouts de móveis planejados eficientes.
     Retorne JSON Array: [{ title, description, pros }]`;

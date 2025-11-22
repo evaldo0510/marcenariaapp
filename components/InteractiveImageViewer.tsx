@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, WheelEvent, MouseEvent, TouchEvent, useCallback, useEffect } from 'react';
 import { ZoomInIcon, ZoomOutIcon, ResetZoomIcon, ShareIcon, CopyIcon, EmailIcon, DownloadIcon, CheckIcon, WhatsappIcon } from './Shared';
 
@@ -5,6 +6,7 @@ interface InteractiveImageViewerProps {
   src: string;
   alt: string;
   projectName: string;
+  className?: string;
 }
 
 const ZOOM_SPEED = 0.1;
@@ -20,7 +22,7 @@ const getTouchDistance = (touches: React.TouchList) => {
 };
 
 
-export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ src, alt, projectName }) => {
+export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ src, alt, projectName, className }) => {
   const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
   const [isInteracting, setIsInteracting] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -264,10 +266,12 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     resetTransform();
   }, [src, resetTransform]);
   
+  const containerClass = className || "relative w-full h-auto bg-[#fffefb] dark:bg-[#3e3535] p-2 rounded-lg overflow-hidden select-none touch-manipulation border border-[#e6ddcd] dark:border-[#4a4040]";
+
   return (
     <div 
         ref={containerRef} 
-        className="relative w-full h-auto bg-[#fffefb] dark:bg-[#3e3535] p-2 rounded-lg overflow-hidden select-none touch-manipulation border border-[#e6ddcd] dark:border-[#4a4040]"
+        className={`${containerClass} flex items-center justify-center`}
         onWheel={handleWheel}
         aria-label="Visualizador de imagem interativo. Use a roda do mouse/gesto de pinça para zoom e arraste para mover."
     >
@@ -281,16 +285,19 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
           onTouchMove={handleTouchMove}
           onTouchEnd={handleInteractionEnd}
           style={{
-              width: '100%',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              width: 'auto',
               height: 'auto',
+              objectFit: 'contain',
               display: 'block',
               cursor: isInteracting ? 'grabbing' : 'grab',
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
               transition: 'transform 0.1s ease-out',
-              transformOrigin: '0 0'
+              transformOrigin: 'center center'
           }}
       />
-      <div ref={controlsRef} className="absolute bottom-2 right-2 flex gap-1 bg-[#3e3535]/80 dark:bg-black/70 p-1 sm:p-1.5 rounded-lg backdrop-blur-sm">
+      <div ref={controlsRef} className="absolute bottom-2 right-2 flex gap-1 bg-[#3e3535]/80 dark:bg-black/70 p-1.5 rounded-lg backdrop-blur-sm z-10">
         {shareFeedback ? (
             <div className="flex items-center gap-2 px-3 py-2 text-white text-sm animate-fadeIn">
               <div className="text-green-400"><CheckIcon /></div>
@@ -298,11 +305,11 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
             </div>
         ) : (
           <>
-            <button onClick={() => manualZoom('in')} className="p-1 sm:p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Aproximar"><ZoomInIcon /></button>
-            <button onClick={() => manualZoom('out')} className="p-1 sm:p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Afastar"><ZoomOutIcon /></button>
-            <button onClick={resetTransform} className="p-1 sm:p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Resetar Zoom"><ResetZoomIcon /></button>
+            <button onClick={() => manualZoom('in')} className="p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Aproximar"><ZoomInIcon /></button>
+            <button onClick={() => manualZoom('out')} className="p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Afastar"><ZoomOutIcon /></button>
+            <button onClick={resetTransform} className="p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Resetar Zoom"><ResetZoomIcon /></button>
             <div className="relative">
-                <button onClick={() => setShowShareMenu(prev => !prev)} className="p-1 sm:p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Compartilhar"><ShareIcon /></button>
+                <button onClick={() => setShowShareMenu(prev => !prev)} className="p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Compartilhar"><ShareIcon /></button>
                 {showShareMenu && (
                     <div className="absolute bottom-full right-0 mb-2 w-48 bg-[#2d2424] border border-[#4a4040] rounded-lg shadow-lg p-2 flex flex-col gap-1 animate-fadeInUp" style={{ animationDuration: '0.2s'}}>
                         <button onClick={handleWhatsappShare} className="w-full flex items-center gap-3 text-left p-2 rounded text-green-400 hover:bg-[#3e3535] transition">

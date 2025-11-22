@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, ChartBarIcon, BellIcon, WalletIcon, MagicIcon } from './Shared';
+import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, ChartBarIcon, BellIcon, WalletIcon, MagicIcon, CogIcon } from './Shared';
 
 interface HeaderProps {
     userEmail: string;
@@ -53,6 +53,13 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
     const handleThemeToggle = () => {
         setTheme(theme === 'light' ? 'dark' : 'light');
     };
+
+    const handleOpenApiKey = async () => {
+        if ((window as any).aistudio?.openSelectKey) {
+            await (window as any).aistudio.openSelectKey();
+            setIsMenuOpen(false);
+        }
+    }
     
     return (
         <header className="bg-[#f5f1e8]/80 dark:bg-[#2d2424]/80 backdrop-blur-sm sticky top-0 z-30 border-b border-[#e6ddcd] dark:border-[#4a4040]">
@@ -140,6 +147,9 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                                     <button onClick={() => {onOpenCuttingPlanGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><ToolsIcon /> Plano de Corte</button>
                                     <button onClick={() => {onOpenCostEstimator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><CurrencyDollarIcon /> Estimativa de Custos</button>
                                     <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
+                                    <button onClick={handleOpenApiKey} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]">
+                                        <CogIcon /> Configurar Chave API
+                                    </button>
                                     <button onClick={handleThemeToggle} className="w-full flex items-center justify-between px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]">
                                         <span className="flex items-center gap-3">{theme === 'light' ? <MoonIcon /> : <SunIcon />} Tema {theme === 'light' ? 'Escuro' : 'Claro'}</span>
                                         <div className={`w-10 h-5 flex items-center rounded-full p-1 transition-colors ${theme === 'dark' ? 'bg-[#d4ac6e]' : 'bg-[#dcd6c8]'}`}>
