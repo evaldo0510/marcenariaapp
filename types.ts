@@ -20,6 +20,7 @@ export interface AlertState {
   show: boolean;
   title: string;
   message: string;
+  type?: 'success' | 'error' | 'info' | 'warning';
 }
 
 export interface ImageModalState {
@@ -36,8 +37,6 @@ export interface Client {
   address?: string;
   notes?: string;
   status: 'lead' | 'active' | 'completed' | 'on-hold';
-  lastContactDate?: string; // Novo campo
-  followUpStatus?: 'pending' | 'scheduled' | 'completed' | 'no-action'; // Novo campo
 }
 
 export type ProjectStatus = 'orcamento' | 'aprovado' | 'producao' | 'montagem' | 'finalizado';

@@ -2,13 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { getInventory, saveInventoryItem, deleteInventoryItem } from '../services/historyService';
 import type { InventoryItem } from '../types';
-import { Spinner, PlusIcon, TrashIcon, ExclamationCircleIcon, ConfirmationModal } from './Shared';
+import { Spinner, PlusIcon, TrashIcon, ExclamationCircleIcon } from './Shared';
 
 export const InventoryModule: React.FC = () => {
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [newItem, setNewItem] = useState<Partial<InventoryItem>>({ unit: 'un', minStock: 5, quantity: 0 });
-    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
     const loadInventory = async () => {
         setLoading(true);
@@ -42,9 +41,9 @@ export const InventoryModule: React.FC = () => {
         loadInventory();
     };
 
-    const confirmDelete = async () => {
-        if (itemToDelete) {
-            await deleteInventoryItem(itemToDelete);
+    const handleDelete = async (id: string) => {
+        if(confirm("Remover item do estoque?")) {
+            await deleteInventoryItem(id);
             loadInventory();
         }
     }
@@ -121,7 +120,7 @@ export const InventoryModule: React.FC = () => {
                                     )}
                                 </td>
                                 <td className="px-4 py-3">
-                                    <button onClick={() => setItemToDelete(item.id)} className="text-red-500 hover:text-red-700"><TrashIcon /></button>
+                                    <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700"><TrashIcon /></button>
                                 </td>
                             </tr>
                         ))}
@@ -130,15 +129,6 @@ export const InventoryModule: React.FC = () => {
                  {loading && <div className="p-4 text-center"><Spinner /></div>}
                  {!loading && inventory.length === 0 && <div className="p-4 text-center text-gray-500">Estoque vazio. Adicione materiais.</div>}
             </div>
-            <ConfirmationModal
-                isOpen={!!itemToDelete}
-                onClose={() => setItemToDelete(null)}
-                onConfirm={confirmDelete}
-                title="Remover Item"
-                message="Tem certeza que deseja remover este item do estoque?"
-                confirmText="Remover"
-                isDangerous={true}
-            />
         </div>
     );
 };

@@ -8,8 +8,7 @@ interface LoginScreenProps {
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   // Strict email regex validation
@@ -18,33 +17,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     return re.test(String(email).toLowerCase());
   };
 
-  const validatePassword = (password: string) => {
-      return password.length >= 6;
-  };
-
-  const handleInputChange = (field: 'email' | 'password', value: string) => {
-      if (field === 'email') setEmail(value);
-      if (field === 'password') setPassword(value);
-
-      // Clear specific error on change
-      setErrors(prev => ({ ...prev, [field]: undefined, general: undefined }));
-  };
-
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors: { email?: string; password?: string; general?: string } = {};
+    setError('');
 
     if (!validateEmail(email)) {
-      newErrors.email = 'Por favor, insira um e-mail válido.';
-    }
-
-    if (!validatePassword(password)) {
-        newErrors.password = 'A senha deve ter pelo menos 6 caracteres.';
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-        setErrors(newErrors);
-        return;
+      setError('Por favor, insira um e-mail válido (ex: nome@dominio.com).');
+      return;
     }
 
     setIsLoading(true);
@@ -55,18 +34,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       if (email.trim().toLowerCase() === 'evaldo0510@gmail.com' || validateEmail(email)) {
         onLoginSuccess(email);
       } else {
-        setErrors({ general: 'Credenciais inválidas.' });
+        setError('Por favor, insira um e-mail válido.');
       }
       setIsLoading(false);
     }, 1000);
-  };
-
-  const getInputClass = (hasError: boolean) => {
-      const base = "mt-1 block w-full bg-[#f0e9dc] border-2 rounded-lg p-3 text-[#3e3535] focus:outline-none focus:ring-2 transition";
-      if (hasError) {
-          return `${base} border-red-500 focus:ring-red-500 focus:border-red-500`;
-      }
-      return `${base} border-[#e6ddcd] focus:ring-[#d4ac6e] focus:border-[#d4ac6e]`;
   };
 
   return (
@@ -92,32 +63,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 autoComplete="email"
                 required
                 value={email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className={getInputClass(!!errors.email)}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1 block w-full bg-[#f0e9dc] border-2 border-[#e6ddcd] rounded-lg p-3 text-[#3e3535] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
                 placeholder="seu@email.com"
               />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#6a5f5f]">
-                Senha
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                className={getInputClass(!!errors.password)}
-                placeholder="******"
-              />
-              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
             
-            {errors.general && <p className="text-red-500 text-sm text-center font-bold animate-fadeIn bg-red-50 p-2 rounded">{errors.general}</p>}
+            {error && <p className="text-red-500 text-sm text-center font-bold animate-fadeIn">{error}</p>}
 
             <div>
               <button

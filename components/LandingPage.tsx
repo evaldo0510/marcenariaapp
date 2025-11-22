@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { LogoIcon, CubeIcon, BlueprintIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, StarIcon, CheckIcon, StoreIcon, ChartBarIcon, HandshakeIcon, ShieldIcon, BriefcaseIcon } from './Shared';
+import { LogoIcon, CubeIcon, BlueprintIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, StarIcon, CheckIcon, StoreIcon, ChartBarIcon, HandshakeIcon } from './Shared';
 
 interface LandingPageProps {
   onLoginSuccess: (email: string, role?: 'user' | 'partner') => void;
@@ -48,31 +48,32 @@ const plans = [
     features: [
       'Tudo do Profissional',
       'Gestão Financeira & Estoque',
+      // 'Modo Loja (Showroom Virtual)', // STANDBY
       'Gestão de Equipe (Multi-usuário)',
       'Relatórios de Produtividade',
       'Contratos Digitais',
-      'Modo Loja',
     ],
     cta: 'Migrar para Oficina',
     planId: 'business',
     highlight: false,
   },
   {
-    name: 'Enterprise',
-    price: 'Sob Consulta',
-    priceDescription: 'personalizado',
-    description: 'Para redes de franquias e grandes indústrias.',
+    name: 'Parceiro',
+    price: 'R$ 390,00',
+    priceDescription: '/mês',
+    description: 'Para distribuidores e redes de fornecedores.',
     features: [
-      'API de Integração (ERP)',
-      'Treinamento de Equipe Dedicado',
-      'Customização da Marca (White-label)',
-      'Servidor Dedicado',
-      'Gerente de Sucesso do Cliente',
+      'Portal do Distribuidor Exclusivo',
+      'Gestão de Comissões e Vendas',
+      'Painel de Múltiplos Clientes',
+      'Materiais de Marketing White-label',
+      'API de Integração',
+      'Gerente de Conta Dedicado',
     ],
-    cta: 'Falar com Vendas',
-    planId: 'enterprise',
+    cta: 'Tornar-se Parceiro',
+    planId: 'partner',
     highlight: false,
-    badge: 'Corporativo'
+    badge: 'B2B'
   },
 ];
 
@@ -131,7 +132,7 @@ const TestimonialCard: React.FC<{ quote: string; name: string; role: string; ima
         </div>
         <p className="text-[#6a5f5f] dark:text-[#c7bca9] italic mb-6 text-sm flex-grow">"{quote}"</p>
         <div className="flex items-center gap-3 mt-auto">
-            <img src={imageSrc} alt={name} loading="lazy" className="w-10 h-10 rounded-full object-cover border-2 border-[#d4ac6e]" />
+            <img src={imageSrc} alt={name} className="w-10 h-10 rounded-full object-cover border-2 border-[#d4ac6e]" />
             <div>
                 <p className="font-bold text-[#3e3535] dark:text-[#f5f1e8] text-sm">{name}</p>
                 <p className="text-xs text-8a7e7e dark:text-[#a89d8d]">{role}</p>
@@ -145,7 +146,6 @@ const GalleryImage: React.FC<{ src: string; alt: string; title: string }> = ({ s
         <img 
             src={src} 
             alt={alt} 
-            loading="lazy"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
@@ -163,38 +163,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [isLoginMode, setIsLoginMode] = useState(false); // State to toggle between Login/Signup
     
-    // Validation States
-    const [touched, setTouched] = useState({ name: false, email: false, phone: false });
-    
     const loginRef = useRef<HTMLDivElement>(null);
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        setTouched({ name: true, email: true, phone: true }); // Mark all as touched
-
-        if (isLoginMode) {
-             if (!email || !email.includes('@')) {
-                 setError('E-mail inválido.');
-                 return;
-             }
-        } else {
-             if (!name.trim() || !email.includes('@') || !phone.trim()) {
-                 setError('Preencha todos os campos obrigatórios corretamente.');
-                 return;
-             }
-        }
-
         setIsLoading(true);
 
         setTimeout(() => {
             if (isLoginMode) {
+                // Login Mode: Just needs email (passwordless demo)
                 if (email.trim() && email.includes('@')) {
-                    onLoginSuccess(email, 'user');
+                    onLoginSuccess(email, 'user'); // Default role for login unless we have a backend
                 } else {
                     setError('Por favor, insira um e-mail válido.');
                 }
             } else {
+                // Signup Mode: Needs full details
                 if (email.trim() && email.includes('@') && name.trim()) {
                     onLoginSuccess(email, accountType);
                 } else {
@@ -208,23 +193,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
     const scrollToSection = (mode: 'login' | 'signup') => {
         setIsLoginMode(mode === 'login');
         loginRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    const getInputClass = (field: 'name' | 'email' | 'phone') => {
-        const baseClass = "w-full p-3 rounded-xl border bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 transition";
-        
-        // Only show validation errors if field has been touched
-        if (touched[field]) {
-            if (field === 'email' && (!email || !email.includes('@'))) return `${baseClass} border-red-500 focus:ring-red-500`;
-            if (field === 'name' && !name.trim()) return `${baseClass} border-red-500 focus:ring-red-500`;
-            if (field === 'phone' && !phone.trim()) return `${baseClass} border-red-500 focus:ring-red-500`;
-            
-            // Only show success state if explicitly typed something valid (optional)
-            if ((field === 'name' && name.trim()) || (field === 'phone' && phone.trim()) || (field === 'email' && email.includes('@'))) {
-                 return `${baseClass} border-green-500 focus:ring-green-500`; 
-            }
-        }
-        return `${baseClass} border-[#e6ddcd] dark:border-[#5a4f4f] focus:ring-[#d4ac6e]`;
     };
 
     return (
@@ -284,10 +252,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         </div>
                         
                         <div className="relative animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
+                            {/* REPLACED WITH HIGH RELIABILITY URL */}
                             <img 
-                                src="https://images.unsplash.com/photo-1631679706909-1844bbd07221?q=80&w=1000&auto=format&fit=crop" 
+                                src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1000&auto=format&fit=crop" 
                                 alt="Cozinha Planejada MarcenApp" 
-                                loading="lazy"
                                 className="rounded-2xl shadow-2xl border-4 border-white dark:border-[#4a4040] w-full object-cover transform rotate-2 hover:rotate-0 transition-transform duration-500"
                             />
                             <div className="absolute -bottom-6 -left-6 bg-white dark:bg-[#3e3535] p-4 rounded-xl shadow-xl border border-[#e6ddcd] dark:border-[#4a4040] flex items-center gap-3 animate-scaleIn" style={{ animationDelay: '0.6s' }}>
@@ -336,17 +304,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1556910103-1c02745a30bf?q=80&w=600&auto=format&fit=crop" 
+                                src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=600&auto=format&fit=crop" 
                                 alt="Cozinha Moderna" 
                                 title="Cozinhas" 
                             />
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=600&auto=format&fit=crop" 
+                                src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=600&auto=format&fit=crop" 
                                 alt="Sala de Estar" 
                                 title="Salas de Estar" 
                             />
                             <GalleryImage 
-                                src="https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?q=80&w=600&auto=format&fit=crop" 
+                                src="https://images.unsplash.com/photo-1617325247661-675ab4b64ae2?q=80&w=600&auto=format&fit=crop" 
                                 alt="Dormitório" 
                                 title="Dormitórios" 
                             />
@@ -395,7 +363,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                             <h2 className="text-3xl md:text-4xl font-bold font-serif mb-4">Escolha o Plano Ideal</h2>
                             <p className="text-lg text-[#6a5f5f] dark:text-[#c7bca9]">Investimento que se paga no primeiro projeto.</p>
                         </div>
-                        {/* Plan Grid: 4 items */}
+                        {/* Plan Grid: Adjusted for 4 items */}
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
                             {plans.map(plan => (
                                 <PlanCard key={plan.name} plan={plan} onSelect={() => scrollToSection('signup')} />
@@ -415,7 +383,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                     </div>
                 </section>
                 
-                {/* Login/CTA Section - UPDATED WITH TABS & VALIDATION STYLES */}
+                {/* Login/CTA Section - UPDATED WITH TABS */}
                 <section id="login" ref={loginRef} className="py-20 px-6 bg-[#fffefb] dark:bg-[#3e3535]">
                     <div className="w-full max-w-md mx-auto">
                         <div className="flex flex-col items-center mb-8">
@@ -433,14 +401,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                 <button
                                     type="button"
                                     className={`flex-1 pb-3 text-sm font-bold transition-colors border-b-2 ${!isLoginMode ? 'border-[#d4ac6e] text-[#d4ac6e]' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-[#3e3535] dark:hover:text-[#f5f1e8]'}`}
-                                    onClick={() => { setIsLoginMode(false); setError(''); setTouched({name: false, email: false, phone: false}) }}
+                                    onClick={() => setIsLoginMode(false)}
                                 >
                                     Criar Conta
                                 </button>
                                 <button
                                     type="button"
                                     className={`flex-1 pb-3 text-sm font-bold transition-colors border-b-2 ${isLoginMode ? 'border-[#d4ac6e] text-[#d4ac6e]' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-[#3e3535] dark:hover:text-[#f5f1e8]'}`}
-                                    onClick={() => { setIsLoginMode(true); setError(''); setTouched({name: false, email: false, phone: false}) }}
+                                    onClick={() => setIsLoginMode(true)}
                                 >
                                     Já tenho conta
                                 </button>
@@ -474,23 +442,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
 
                                         <div className="animate-fadeIn">
                                             <label htmlFor="name-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-1">
-                                                Nome Completo <span className="text-red-500">*</span>
+                                                Nome Completo
                                             </label>
                                             <input
                                                 id="name-landing"
                                                 name="name"
                                                 type="text"
+                                                required={!isLoginMode}
                                                 value={name}
                                                 onChange={(e) => setName(e.target.value)}
-                                                onBlur={() => setTouched(prev => ({ ...prev, name: true }))}
-                                                className={getInputClass('name')}
+                                                className="w-full p-3 rounded-xl border border-[#e6ddcd] dark:border-[#5a4f4f] bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] transition"
                                                 placeholder="Seu nome"
                                             />
                                         </div>
 
                                         <div className="animate-fadeIn">
                                             <label htmlFor="phone-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-1">
-                                                Telefone / WhatsApp <span className="text-red-500">*</span>
+                                                Telefone / WhatsApp
                                             </label>
                                             <input
                                                 id="phone-landing"
@@ -498,8 +466,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                                 type="tel"
                                                 value={phone}
                                                 onChange={(e) => setPhone(e.target.value)}
-                                                onBlur={() => setTouched(prev => ({ ...prev, phone: true }))}
-                                                className={getInputClass('phone')}
+                                                className="w-full p-3 rounded-xl border border-[#e6ddcd] dark:border-[#5a4f4f] bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] transition"
                                                 placeholder="(XX) XXXXX-XXXX"
                                             />
                                         </div>
@@ -508,17 +475,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
 
                                 <div>
                                     <label htmlFor="email-landing" className="block text-sm font-bold text-[#6a5f5f] dark:text-[#c7bca9] mb-1">
-                                        E-mail {isLoginMode ? '' : 'Profissional'} <span className="text-red-500">*</span>
+                                        E-mail {isLoginMode ? '' : 'Profissional'}
                                     </label>
                                     <input
                                         id="email-landing"
                                         name="email"
                                         type="email"
                                         autoComplete="email"
+                                        required
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        onBlur={() => setTouched(prev => ({ ...prev, email: true }))}
-                                        className={getInputClass('email')}
+                                        className="w-full p-3 rounded-xl border border-[#e6ddcd] dark:border-[#5a4f4f] bg-white dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] transition"
                                         placeholder="seu@email.com"
                                     />
                                 </div>

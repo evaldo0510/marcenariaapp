@@ -23,8 +23,8 @@ export const ProjectGallery: React.FC<ProjectGalleryProps> = ({ originalImage, g
             </div>
 
             <div className="relative aspect-video bg-gray-200 dark:bg-[#2d2424] rounded-lg overflow-hidden">
-                {view === 'original' && <img src={originalImage} className="w-full h-full object-contain" alt="Original" loading="lazy" />}
-                {view === 'generated' && <img src={generatedImage} className="w-full h-full object-cover" alt="Gerado" loading="lazy" />}
+                {view === 'original' && <img src={originalImage} className="w-full h-full object-contain" alt="Original" />}
+                {view === 'generated' && <img src={generatedImage} className="w-full h-full object-cover" alt="Gerado" />}
             </div>
         </div>
     );

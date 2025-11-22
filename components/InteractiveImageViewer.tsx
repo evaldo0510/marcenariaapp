@@ -82,7 +82,7 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     interactionStartRef.current = { 
       startX: e.clientX, 
       startY: e.clientY, 
-      initialX: transformRef.current.x,
+      initialX: transformRef.current.x, 
       initialY: transformRef.current.y,
       initialDistance: 0
     };
@@ -207,18 +207,18 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
     }
   };
 
-  const handleEmailShare = () => {
-    const subject = encodeURIComponent(`Visualização do Projeto: ${projectName} - MarcenApp`);
-    const body = encodeURIComponent(`Olá,\n\nVeja esta visualização do projeto "${projectName}" que gerei com o MarcenApp. O que acha?\n\n(Para compartilhar a imagem, você pode baixá-la e anexar a este e-mail).`);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-    setShowShareMenu(false);
-  };
-
   const handleWhatsappShare = () => {
     if (!projectName) return;
     const url = shareUrl ? ` ${shareUrl}` : '';
     const text = encodeURIComponent(`Confira esta visualização do projeto "${projectName}" gerada com o MarcenApp!${url}`);
     window.open(`whatsapp://send?text=${text}`);
+    setShowShareMenu(false);
+  };
+
+  const handleEmailShare = () => {
+    const subject = encodeURIComponent(`Visualização do Projeto: ${projectName} - MarcenApp`);
+    const body = encodeURIComponent(`Olá,\n\nVeja esta visualização do projeto "${projectName}" que gerei com o MarcenApp. O que acha?\n\n(Para compartilhar a imagem, você pode baixá-la e anexar a este e-mail).`);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
     setShowShareMenu(false);
   };
 
@@ -275,12 +275,13 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
         style={{ touchAction: 'none', overscrollBehavior: 'contain' }} // CRITICAL: Prevents browser scrolling and pull-to-refresh on mobile
         aria-label="Visualizador interativo. Use dois dedos para zoom/pan ou duplo toque para resetar."
     >
+      {/* Image with clean Tailwind animation class */}
       <img
           ref={imageRef}
           src={src}
           alt={alt}
           draggable="false"
-          className="select-none"
+          className="select-none animate-fadeIn" 
           style={{
               maxWidth: '100%',
               maxHeight: '100%',
@@ -292,7 +293,16 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
               transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
               transition: isInteracting ? 'none' : 'transform 0.2s ease-out',
               transformOrigin: 'center center',
-              pointerEvents: 'none' // Allow events to bubble to container for robust gesture handling
+              pointerEvents: 'none', // Allow events to bubble to container for robust gesture handling
+              animationDuration: '0.5s',
+              animationTimingFunction: 'ease-out'
+          }}
+          onLoad={(e) => {
+              // Optional: Handle loading state if needed, but CSS animation handles visual fade
+          }}
+          onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+              // We could show a fallback icon here
           }}
       />
       
@@ -326,8 +336,13 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
             <button onClick={() => manualZoom('out')} className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95" title="Afastar"><ZoomOutIcon /></button>
             <button onClick={resetTransform} className="w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95" title="Resetar Zoom"><ResetZoomIcon /></button>
             <div className="w-px h-8 bg-white/20 self-center mx-1"></div>
+            
+            {/* Share Button with Dropdown */}
             <div className="relative">
-                <button onClick={() => setShowShareMenu(prev => !prev)} className={`w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95 ${showShareMenu ? 'bg-white/20' : ''}`} title="Compartilhar"><ShareIcon /></button>
+                <button onClick={() => setShowShareMenu(prev => !prev)} className={`w-12 h-12 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition active:scale-95 ${showShareMenu ? 'bg-white/20' : ''}`} title="Compartilhar">
+                    <ShareIcon />
+                </button>
+                
                 {showShareMenu && (
                     <div className="absolute bottom-full right-0 mb-3 w-56 bg-[#2d2424] border border-[#4a4040] rounded-xl shadow-2xl p-2 flex flex-col gap-1 animate-fadeInUp z-30" style={{ animationDuration: '0.2s'}}>
                         <button onClick={handleWhatsappShare} className="w-full flex items-center gap-3 text-left p-3 rounded-lg text-green-400 hover:bg-[#3e3535] transition font-medium">

@@ -37,7 +37,7 @@ export const DistributorLinkSystem: React.FC = () => {
                             type="text" 
                             value={referralLink} 
                             readOnly 
-                            className="w-full p-3 pr-12 bg-gray-50 dark:bg-[#2d2424] border border-gray-300 dark:border-[#5a4f4f] rounded-lg text-gray-700 dark:text-gray-200 font-mono text-sm"
+                            className="w-full p-3 pr-12 bg-gray-50 dark:bg-[#2d2424] border border-gray-300 dark:border-[#5a4f4f] rounded-lg text-gray-700 dark:text-gray-200 font-mono text-sm outline-none focus:ring-2 focus:ring-[#d4ac6e]"
                         />
                         <button 
                             onClick={handleCopy}
@@ -47,7 +47,7 @@ export const DistributorLinkSystem: React.FC = () => {
                             {copied ? <CheckIcon className="w-5 h-5 text-green-500" /> : <CopyIcon className="w-5 h-5" />}
                         </button>
                     </div>
-                    <button onClick={() => setShowQR(true)} className="flex items-center justify-center gap-2 bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-3 px-6 rounded-lg hover:opacity-90 transition">
+                    <button onClick={() => setShowQR(true)} className="flex items-center justify-center gap-2 bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-3 px-6 rounded-lg hover:opacity-90 transition shadow-md">
                         <QRCodeIcon /> Gerar QR Code
                     </button>
                 </div>
@@ -79,18 +79,18 @@ export const DistributorLinkSystem: React.FC = () => {
             </div>
 
             {showQR && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => setShowQR(false)}>
-                    <div className="bg-white p-6 rounded-xl shadow-2xl flex flex-col items-center text-center max-w-sm w-full" onClick={e => e.stopPropagation()}>
-                        <h3 className="text-lg font-bold text-gray-800 mb-4">Seu QR Code de Parceiro</h3>
-                        <div className="bg-white p-2 rounded border border-gray-200 mb-4">
+                <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={() => setShowQR(false)}>
+                    <div className="bg-white dark:bg-[#3e3535] p-6 rounded-xl shadow-2xl flex flex-col items-center text-center max-w-sm w-full border border-[#e6ddcd] dark:border-[#4a4040]" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-lg font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-4">Seu QR Code de Parceiro</h3>
+                        <div className="bg-white p-4 rounded border border-gray-200 mb-4 shadow-inner">
                             <img 
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(referralLink)}`} 
                                 alt="QR Code" 
-                                className="w-64 h-64"
+                                className="w-64 h-64 object-contain"
                             />
                         </div>
-                        <p className="text-sm text-gray-600 mb-4">Mostre este código para o cliente escanear com a câmera do celular.</p>
-                        <button onClick={() => setShowQR(false)} className="w-full bg-[#3e3535] text-white font-bold py-2 rounded-lg hover:bg-black transition">Fechar</button>
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Mostre este código para o cliente escanear com a câmera do celular.</p>
+                        <button onClick={() => setShowQR(false)} className="w-full bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-3 rounded-lg hover:opacity-90 transition">Fechar</button>
                     </div>
                 </div>
             )}
