@@ -19,7 +19,7 @@ export const DistributorPortal: React.FC<DistributorPortalProps> = ({ isOpen, on
     
     // Check if current user is Super Admin (Evaldo)
     const userEmail = sessionStorage.getItem('userEmail');
-    const isSuperAdmin = userEmail === 'evaldo0510@gmail.com';
+    const isSuperAdmin = (userEmail || '').trim().toLowerCase() === 'evaldo0510@gmail.com';
 
     useEffect(() => {
         if (isOpen) {

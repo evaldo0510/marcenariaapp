@@ -1,4 +1,22 @@
 
+// ... existing imports ...
+
+// --- ARCVISION TYPES ---
+
+export interface MaterialCollection {
+  label: string;
+  desc: string;
+  colors: string[];
+}
+
+export interface ProjectLevel {
+  label: string;
+  desc: string;
+  searchTerm: string;
+}
+
+// ... existing types ...
+
 export interface Comment {
   id: string;
   user: string;

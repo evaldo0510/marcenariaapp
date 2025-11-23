@@ -51,6 +51,124 @@ export function cleanAndParseJson<T>(text: string): T {
     }
 }
 
+// --- ARCVISION SPECIFIC FUNCTIONS ---
+
+export async function detectEnvironments(imageBase64: { data: string, mimeType: string } | null): Promise<string[]> {
+    const ai = getAiClient();
+    const prompt = `
+      Você é um Assistente de Arquiteto.
+      Analise a imagem fornecida (Planta Baixa ou Foto).
+      IDENTIFIQUE todos os ambientes/cômodos distintos presentes na imagem.
+      Responda APENAS um JSON:
+      { "ambientes": ["Nome Ambiente 1", "Nome Ambiente 2"] }
+    `;
+
+    const parts: any[] = [{ text: prompt }];
+    if (imageBase64) {
+        parts.push(fileToGenerativePart(imageBase64.data, imageBase64.mimeType));
+    }
+
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: { parts },
+        config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    ambientes: { type: Type.ARRAY, items: { type: Type.STRING } }
+                }
+            }
+        }
+    }));
+
+    if (response.text) {
+        const parsed = cleanAndParseJson<{ ambientes: string[] }>(response.text);
+        return parsed.ambientes || [];
+    }
+    return [];
+}
+
+export async function generateArcVisionProject(
+    description: string,
+    selectedEnvs: string[],
+    levelInfo: any,
+    collectionInfo: any,
+    imageBase64: { data: string, mimeType: string } | null
+): Promise<any> {
+    const ai = getAiClient();
+    const envsList = selectedEnvs.join(", ");
+    
+    const promptText = `
+      Você é um Mestre Marceneiro e Arquiteto de Interiores Sênior.
+      
+      TAREFA:
+      Analise a imagem e o pedido: "${description}".
+      
+      CONTEXTO:
+      - Ambientes: ${envsList}.
+      - Nível de Projeto: ${levelInfo.label} (${levelInfo.desc}).
+      
+      DIRETRIZES DE ESTILO (CRÍTICO):
+      
+      1. Se "Minimalismo Moderno":
+         - Crie móveis com Design Escandinavo/Industrial Leve.
+         - NÃO PAREÇA BARATO. Use puxadores cava ou perfil slim.
+         - Proporções elegantes.
+      
+      2. Se "Design Alto Padrão":
+         - Luxo, LEDs, Ripados, Vidros Reflecta.
+      
+      3. MATERIAL ESPECÍFICO (OBRIGATÓRIO):
+         - O cliente escolheu o material: "${collectionInfo.label}".
+         - No prompt de render, descreva EXATAMENTE este material (ex: madeira tom ${collectionInfo.colors[0]}).
+      
+      IMPORTANTE:
+      1. SEGUIR O LAYOUT DA PLANTA RIGOROSAMENTE.
+      2. Ficha de corte realista.
+      
+      SAÍDA (JSON) com o seguinte schema:
+      {
+        "resumo_simples": "Resumo do projeto.",
+        "ambientes": [
+          {
+            "nome": "Nome do Ambiente",
+            "lista_corte": {
+               "movel": "Nome do Móvel",
+               "medidas_totais": "Ex: 2.60m (Alt) x 1.80m (Larg)",
+               "material_corpo": "MDF Branco TX 15mm",
+               "material_frente": "MDF CorEscolhida 18mm",
+               "lista_ferragens": ["Ferragem 1", "Ferragem 2"],
+               "obs_montagem": "Dica técnica."
+            },
+            "vistas": [
+              { "titulo": "Vista Principal", "prompt_tecnico": "Photorealistic render..." },
+              { "titulo": "Detalhe Funcional", "prompt_tecnico": "Close up render..." }
+            ]
+          }
+        ]
+      }
+    `;
+
+    const parts: any[] = [{ text: promptText }];
+    if (imageBase64) {
+        parts.push(fileToGenerativePart(imageBase64.data, imageBase64.mimeType));
+    }
+
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+        model: 'gemini-2.5-flash', // Using Flash for complex JSON reasoning
+        contents: { parts },
+        config: {
+            responseMimeType: 'application/json'
+        }
+    }));
+
+    if (response.text) {
+        return cleanAndParseJson<any>(response.text);
+    }
+    throw new Error("Falha ao gerar projeto ArcVision.");
+}
+
 // --- GENERATE IMAGE FUNCTION (Gemini 2.5 Flash & Gemini 3 Pro) ---
 export async function generateImage(
     prompt: string, 

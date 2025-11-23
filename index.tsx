@@ -25,7 +25,8 @@ const AuthWrapper = () => {
     }
   }, []);
 
-  const handleLoginSuccess = (email: string, role: 'user' | 'partner' = 'user') => {
+  const handleLoginSuccess = (emailInput: string, role: 'user' | 'partner' = 'user') => {
+    const email = emailInput.trim().toLowerCase();
     // If logging in as a partner, set plan to 'partner'. Otherwise default to 'hobby'.
     // If Evaldo, he will override this in App.tsx anyway, but 'business' is a safe default for him here.
     let plan = role === 'partner' ? 'partner' : 'hobby';

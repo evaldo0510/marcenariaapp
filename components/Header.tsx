@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, ChartBarIcon, BellIcon, WalletIcon, MagicIcon, CogIcon, ShieldIcon, EmailIcon, DownloadIcon, ShareIcon, WhatsappIcon, CopyIcon, CheckIcon, ClipboardListIcon, LinkIcon } from './Shared';
+import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, ChartBarIcon, BellIcon, WalletIcon, MagicIcon, CogIcon, ShieldIcon, EmailIcon, DownloadIcon, ShareIcon, WhatsappIcon, CopyIcon, CheckIcon, ClipboardListIcon, LinkIcon, ActivityIcon } from './Shared';
 import type { ProjectHistoryItem } from '../types';
 
 interface HeaderProps {
@@ -34,11 +34,13 @@ interface HeaderProps {
     onOpenWallet: () => void;
     onOpenProjectGenerator: () => void;
     onOpenStoreMode: () => void;
+    onOpenSmartWorkshop: () => void;
+    onOpenAdmin?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
     userEmail, isAdmin, isPartner, isCarpenter, isStoreOwner, currentProject,
-    onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onLogout, theme, setTheme, onOpenManagement, onOpenPartnerPortal, onOpenNotifications, onOpenWallet, onOpenProjectGenerator, onOpenStoreMode 
+    onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onLogout, theme, setTheme, onOpenManagement, onOpenPartnerPortal, onOpenNotifications, onOpenWallet, onOpenProjectGenerator, onOpenStoreMode, onOpenSmartWorkshop, onOpenAdmin
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isShareOpen, setIsShareOpen] = useState(false);
@@ -49,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
     const menuRef = useRef<HTMLDivElement>(null);
     const shareRef = useRef<HTMLDivElement>(null);
     const quickMenuRef = useRef<HTMLDivElement>(null);
-    const isSuperAdmin = userEmail === 'evaldo0510@gmail.com';
+    const isSuperAdmin = (userEmail || '').trim().toLowerCase() === 'evaldo0510@gmail.com';
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -278,7 +280,7 @@ export const Header: React.FC<HeaderProps> = ({
                                     </div>
                                     
                                     {isSuperAdmin && (
-                                        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 mb-2 text-sm transition-colors shadow-sm">
+                                        <button onClick={() => { if(onOpenAdmin) onOpenAdmin(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 mb-2 text-sm transition-colors shadow-sm">
                                             <ShieldIcon className="w-4 h-4"/> Painel Super Admin
                                         </button>
                                     )}
@@ -320,6 +322,9 @@ export const Header: React.FC<HeaderProps> = ({
                                             <button onClick={() => {onOpenBomGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors"><BookIcon className="w-4 h-4 text-[#8a7e7e]"/> Gerador BOM</button>
                                             <button onClick={() => {onOpenCuttingPlanGenerator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors"><ToolsIcon className="w-4 h-4 text-[#8a7e7e]"/> Plano de Corte</button>
                                             <button onClick={() => {onOpenCostEstimator(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors"><CurrencyDollarIcon className="w-4 h-4 text-[#8a7e7e]"/> Custos</button>
+                                            {isStoreOwner && (
+                                                <button onClick={() => {onOpenSmartWorkshop(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#d4ac6e] bg-[#2d2424]/50 hover:bg-[#2d2424] text-sm transition-colors border border-[#4a4040]"><ActivityIcon className="w-4 h-4"/> Oficina 4.0</button>
+                                            )}
                                         </div>
                                     )}
 
