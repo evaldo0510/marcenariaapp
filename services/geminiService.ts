@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Modality, GenerateContentResponse } from "@google/genai";
 import type { ProjectHistoryItem, ProjectLead, Finish } from '../types';
 
@@ -686,6 +685,34 @@ export async function generateGroundedResponse(prompt: string, location: { latit
     }).filter((s: any) => s !== null);
 
     return { text, sources };
+}
+
+export async function findLocalSuppliers(location: { latitude: number, longitude: number }): Promise<any[]> {
+    const ai = getAiClient();
+    
+    // Use Google Maps tool to find specific places near the location
+    const prompt = `Encontre madeireiras e fornecedores de MDF próximos a esta localização (Lat: ${location.latitude}, Long: ${location.longitude}). Liste nome, endereço e se possível website.`;
+    
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+            tools: [{ googleMaps: {} }],
+        }
+    }));
+
+    // Extract grounding chunks that contain map data
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    
+    const suppliers = groundingChunks
+        .filter((chunk: any) => chunk.maps) // Filter for chunks with map data
+        .map((chunk: any) => ({
+            title: chunk.maps.title,
+            uri: chunk.maps.uri,
+            // Add a placeholder for distance or other metadata if available in future APIs
+        }));
+
+    return suppliers;
 }
 
 export async function editFloorPlan(base64Data: string, mimeType: string, prompt: string): Promise<string> {
