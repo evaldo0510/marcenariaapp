@@ -4,7 +4,10 @@ import type { ProjectHistoryItem, ProjectLead, Finish } from '../types';
 
 // Helper to get a fresh AI client instance
 const getAiClient = () => {
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const apiKey = process.env.API_KEY;
+    // If API Key is missing, we pass an empty string which causes the SDK to throw a specific error
+    // that we can catch in the UI components to trigger the key selection dialog.
+    return new GoogleGenAI({ apiKey: apiKey || '' });
 };
 
 // Helper for retrying operations with exponential backoff
@@ -12,13 +15,40 @@ async function retryOperation<T>(operation: () => Promise<T>, retries = 3, delay
     try {
         return await operation();
     } catch (error: any) {
-        if (retries > 0) {
-            const isNetworkError = error.message?.includes('xhr') || error.message?.includes('fetch') || error.message?.includes('500') || error.status === 500;
-            if (isNetworkError) {
-                console.warn(`Retrying operation... attempts left: ${retries}. Error: ${error.message}`);
-                await new Promise(resolve => setTimeout(resolve, delay));
-                return retryOperation(operation, retries - 1, delay * 2);
+        const status = error.status || error.code;
+        const message = error.message || '';
+        
+        const isRateLimit = status === 429 || status === 'RESOURCE_EXHAUSTED' || message.includes('429') || message.includes('quota') || message.includes('RESOURCE_EXHAUSTED');
+        const isNetworkError = message.includes('xhr') || message.includes('fetch') || status === 500 || status === 503;
+
+        if (retries > 0 && (isNetworkError || isRateLimit)) {
+            let waitTime = delay;
+            
+            if (isRateLimit) {
+                // Try to parse retry time from message (e.g., "Please retry in 42.68s")
+                const retryMatch = message.match(/retry in ([0-9.]+)(s|ms)/);
+                if (retryMatch) {
+                    const val = parseFloat(retryMatch[1]);
+                    const unit = retryMatch[2];
+                    const parsedWait = unit === 's' ? val * 1000 : val;
+                    
+                    // If wait time is reasonable (e.g. < 15s), we wait. Otherwise throw to let UI handle it.
+                    if (parsedWait < 15000) {
+                        waitTime = parsedWait + 1000; // Add 1s buffer
+                        console.warn(`Rate limit hit. Retrying automatically in ${waitTime}ms...`);
+                    } else {
+                        // Too long to wait automatically in background, throw so UI can show timer
+                        throw error;
+                    }
+                } else {
+                    waitTime = delay * 2; // Default exponential backoff
+                }
+            } else {
+                waitTime = delay * 2;
             }
+
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            return retryOperation(operation, retries - 1, isRateLimit ? waitTime : delay * 2);
         }
         throw error;
     }
@@ -336,8 +366,6 @@ export async function describeImageFor3D(base64Data: string, mimeType: string): 
     return response.text || "Não foi possível descrever a imagem.";
 }
 
-// ... (Rest of the functions remain mostly the same, but we can wrap heavy ones with retryOperation)
-
 export async function analyzeRoomImage(base64Image: string): Promise<{ roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }> {
     const ai = getAiClient();
     const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';
@@ -425,7 +453,6 @@ export async function generateLayoutSuggestions(roomType: string, dimensions: an
     return [];
 }
 
-// 19. Generate Decoration List (Shopping List)
 export async function generateDecorationList(projectDescription: string, style: string): Promise<{ item: string, category: string, estimatedPrice: string, suggestion: string }[]> {
     const ai = getAiClient();
     const prompt = `Atue como um Designer de Interiores.
@@ -464,10 +491,6 @@ export async function generateDecorationList(projectDescription: string, style: 
     return [];
 }
 
-// Placeholder functions imports fix
-export async function calculateFinancialSummary(project: any) { return {}; }
-export async function fetchSupplierCatalog() { return []; }
-export async function calculateShippingCost() { return 0; }
 export async function suggestAlternativeStyles(projectDescription: string, currentStyle: string, base64Image?: string): Promise<string[]> {
     const ai = getAiClient();
     const prompt = `Atue como um Diretor de Arte de Interiores.

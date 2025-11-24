@@ -334,6 +334,16 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       } catch (e: any) {
           console.error(e);
           const errorMsg = e.message || JSON.stringify(e);
+          
+          // HANDLE MISSING API KEY ERROR SPECIFICALLY
+          if (errorMsg.includes('API Key') || errorMsg.includes('API key') || errorMsg.includes('Auth')) {
+               if ((window as any).aistudio?.openSelectKey) {
+                   await (window as any).aistudio.openSelectKey();
+                   showAlert("Chave de API configurada. Por favor, tente gerar o projeto novamente.", "Configuração", "success");
+                   return;
+               }
+          }
+
           if (errorMsg.includes('403') || errorMsg.includes('PERMISSION_DENIED') || errorMsg.includes('The caller does not have permission')) {
                if ((window as any).aistudio?.openSelectKey) {
                    await (window as any).aistudio.openSelectKey();
@@ -341,7 +351,13 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                    return;
                }
           }
-          if (errorMsg.includes('500') || errorMsg.includes('xhr')) {
+          
+          // HANDLE QUOTA LIMITS (429)
+          if (errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('quota')) {
+              const retryMatch = errorMsg.match(/retry in ([0-9.]+)(s|ms)/);
+              const timeMsg = retryMatch ? ` (${retryMatch[0]})` : '';
+              showAlert(`Limite de uso da IA atingido (Quota). Por favor, aguarde alguns instantes${timeMsg} e tente novamente.`, "Muitos Pedidos", "warning");
+          } else if (errorMsg.includes('500') || errorMsg.includes('xhr')) {
               showAlert("Erro de conexão com o servidor de IA (500). Tente reduzir o tamanho da imagem ou tente novamente em instantes.", "Erro de Rede", "error");
           } else {
               showAlert("Erro ao gerar projeto: " + (e instanceof Error ? e.message : "Erro desconhecido"), "Erro", "error");
@@ -368,8 +384,18 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
               showAlert("Planta Baixa 2D gerada com sucesso!", "Sucesso", "success");
               toggleModal('layoutEditor', true); 
           }
-      } catch (e) {
+      } catch (e: any) {
           console.error(e);
+          const errorMsg = e.message || '';
+          if (errorMsg.includes('API Key') || errorMsg.includes('API key')) {
+               if ((window as any).aistudio?.openSelectKey) await (window as any).aistudio.openSelectKey();
+               showAlert("Chave API solicitada. Tente novamente.", "Configuração");
+               return;
+          }
+          if (errorMsg.includes('429') || errorMsg.includes('quota')) {
+              showAlert("Limite de requisições atingido. Aguarde um momento.", "Erro de Cota", "warning");
+              return;
+          }
           showAlert("Erro ao gerar planta baixa: " + (e instanceof Error ? e.message : "Erro desconhecido"), "Erro", "error");
       } finally {
           setIsGenerating(false);
@@ -399,6 +425,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           setCurrentProject(updatedProject);
           
       } catch (e: any) {
+          const errorMsg = e.message || '';
+          if (errorMsg.includes('API Key') || errorMsg.includes('API key')) {
+               if ((window as any).aistudio?.openSelectKey) await (window as any).aistudio.openSelectKey();
+               showAlert("Chave API solicitada. Tente novamente.", "Configuração");
+               return;
+          }
           showAlert("Erro ao trocar ambiente: " + e.message, "Erro", "error");
       } finally {
           setIsGenerating(false);
@@ -614,7 +646,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         </div>
                         
                         <div className="col-span-2 md:col-span-1">
-                            <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] flex items-center gap-1 mb-1">
+                            <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] flex items-center gap-1">
                                 <VideoCameraIcon className="w-3 h-3" /> Enquadramento
                             </label>
                             <select 
@@ -715,328 +747,4 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                     <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#4a4040] flex items-center gap-3">
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" checked={withLedLighting} onChange={(e) => setWithLedLighting(e.target.checked)} className="sr-only peer" />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#d4ac6e]"></div>
-                            <span className="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">Adicionar LEDs</span>
-                        </label>
-                    </div>
-                </section>
-                
-                <button 
-                    onClick={() => handleGenerateProject(false)}
-                    disabled={isGenerating}
-                    className={`w-full py-4 font-extrabold text-lg rounded-2xl shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed group relative ${qualityMode === 'pro' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:opacity-90' : 'bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535]'}`}
-                >
-                    {isGenerating ? <Spinner /> : <WandIcon className="w-6 h-6" />}
-                    {isGenerating ? 'Criando Projeto...' : qualityMode === 'pro' ? `GERAR PROJETO PRO (${imageResolution})` : 'GERAR PROJETO 3D'}
-                    
-                    {!isGenerating && (
-                        <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-max px-3 py-2 text-xs font-medium text-white bg-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-xl z-10">
-                            A ação pode levar alguns segundos
-                            <span className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></span>
-                        </span>
-                    )}
-                </button>
-                
-                <div className="h-10 lg:hidden"></div>
-            </div>
-
-            {/* Right Column: Result */}
-            <div className={`${mobileTab === 'result' ? 'block' : 'hidden'} lg:block space-y-6 animate-fadeIn`}>
-                {currentProject ? (
-                    <div className="bg-white dark:bg-[#3e3535] rounded-2xl shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] overflow-hidden sticky top-24">
-                        {/* 3D View */}
-                        <div className="relative h-[60vh] md:h-auto md:aspect-video bg-gray-100 dark:bg-[#2d2424]">
-                            {isGenerating && (
-                                <div className="absolute inset-0 bg-black/50 z-20 flex flex-col items-center justify-center text-white backdrop-blur-sm">
-                                    <Spinner size="lg" />
-                                    <p className="mt-4 font-bold">Gerando Variação...</p>
-                                </div>
-                            )}
-                            <InteractiveImageViewer 
-                                src={currentProject.views3d[currentProject.views3d.length - 1]} 
-                                alt={currentProject.name} 
-                                projectName={currentProject.name}
-                                className="w-full h-full bg-neutral-900 relative overflow-hidden select-none touch-none"
-                                onGenerateNewView={() => toggleModal('newView', true)} 
-                                shareUrl={currentProject ? `https://marcenapp.com/p/${currentProject.id}` : undefined}
-                            />
-                            
-                            <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold pointer-events-none">
-                                {currentProject.style}
-                            </div>
-                            
-                            <div className="absolute top-4 right-4 pointer-events-auto flex flex-col gap-2 items-end">
-                                <button 
-                                    onClick={handleGenerateFloorPlan}
-                                    className="bg-white/90 text-[#3e3535] px-3 py-1.5 rounded-lg shadow-lg hover:bg-white transition flex items-center gap-2 text-xs font-bold border border-[#d4ac6e]/50"
-                                    title="Gerar Planta Baixa 2D"
-                                >
-                                    <RulerIcon className="w-4 h-4" /> Gerar Planta Baixa
-                                </button>
-                                
-                                <button 
-                                    onClick={() => handleGenerateProject(true)}
-                                    className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-1.5 rounded-lg shadow-lg hover:opacity-90 transition flex items-center gap-2 text-xs font-bold border border-white/20"
-                                    title="Renderizar em Alta Definição (2K)"
-                                >
-                                    <HighQualityIcon className="w-4 h-4" /> Renderizar Pro (2K)
-                                </button>
-                            </div>
-                            
-                            <div className="absolute bottom-4 left-4 flex gap-2 pointer-events-auto">
-                                <button onClick={() => toggleModal('ar', true)} className="bg-white/90 text-[#3e3535] p-2 rounded-full shadow-lg hover:bg-white transition" title="Realidade Aumentada"><CubeIcon /></button>
-                                <button onClick={handleShareProject} className="bg-white/90 text-[#3e3535] p-2 rounded-full shadow-lg hover:bg-white transition" title="Compartilhar Projeto"><ShareIcon /></button>
-                            </div>
-                        </div>
-                        
-                        <div className="px-6 py-3 border-b border-[#e6ddcd] dark:border-[#4a4040] bg-[#f9f5eb] dark:bg-[#2d2424]/50 overflow-x-auto">
-                            <p className="text-xs font-bold text-[#8a7e7e] dark:text-[#a89d8d] uppercase tracking-wider mb-2">Transformar Ambiente</p>
-                            <div className="flex gap-2">
-                                {['Sala', 'Cozinha', 'Quarto', 'Dormitório 1', 'Dormitório 2', 'Banheiro'].map(roomType => (
-                                    <button
-                                        key={roomType}
-                                        onClick={() => handleQuickRoomSwap(roomType)}
-                                        disabled={isGenerating}
-                                        className="px-3 py-1 rounded-full text-xs font-bold bg-white dark:bg-[#3e3535] border border-[#dcd6c8] dark:border-[#5a4f4f] hover:border-[#d4ac6e] text-[#3e3535] dark:text-[#f5f1e8] whitespace-nowrap transition disabled:opacity-50"
-                                    >
-                                        {roomType}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        
-                        <div className="p-6">
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <h3 className="text-2xl font-bold text-[#3e3535] dark:text-[#f5f1e8] line-clamp-1">{currentProject.name}</h3>
-                                    <p className="text-xs text-gray-500 mt-1">{new Date(currentProject.timestamp).toLocaleDateString()}</p>
-                                </div>
-                                <div className="flex flex-col items-end gap-2">
-                                    <button onClick={() => toggleModal('proposal', true)} className="text-[#d4ac6e] font-bold text-sm underline">
-                                        Ver Proposta
-                                    </button>
-                                    <button onClick={() => toggleModal('decorationList', true)} className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#d4ac6e] transition">
-                                        <ShoppingBagIcon className="w-3 h-3"/> Lista de Decoração
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-5 gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
-                                 <ToolButton icon={<BookIcon className="w-5 h-5" />} label="BOM" onClick={() => toggleModal('bom', true)} />
-                                 <ToolButton icon={<ToolsIcon className="w-5 h-5" />} label="Corte" onClick={() => toggleModal('cutting', true)} />
-                                 <ToolButton icon={<CurrencyDollarIcon className="w-5 h-5" />} label="Custos" onClick={() => toggleModal('cost', true)} />
-                                 <ToolButton icon={<BlueprintIcon className="w-5 h-5" />} label="Planta" onClick={handleOpenLayoutEditor} />
-                                 <ToolButton icon={<WandIcon className="w-5 h-5" />} label="Editar" onClick={() => toggleModal('imageEditor', true)} />
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="bg-[#fffefb] dark:bg-[#3e3535] rounded-2xl shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] p-8 text-center flex flex-col items-center justify-center h-96 sticky top-24">
-                        <WandIcon className="w-16 h-16 text-[#e6ddcd] dark:text-[#4a4040] mb-4" />
-                        <h3 className="text-xl font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-2">Seu projeto 3D aparecerá aqui</h3>
-                        <p className="text-[#8a7e7e] dark:text-[#a89d8d] max-w-xs mx-auto">Preencha os detalhes ao lado e clique em "Gerar Projeto" para ver a mágica acontecer.</p>
-                    </div>
-                )}
-            </div>
-        </div>
-
-        {/* Modals */}
-        <HistoryPanel 
-            isOpen={modals.history} 
-            onClose={() => toggleModal('history', false)} 
-            history={history} 
-            onViewProject={handleViewProject}
-            onAddNewView={() => { toggleModal('history', false); toggleModal('newView', true); }}
-            onDeleteProject={async (id) => {
-                const updatedHistory = await removeProjectFromHistory(id);
-                setHistory(updatedHistory);
-                if (currentProject?.id === id) setCurrentProject(null);
-            }}
-        />
-        
-        <ClientPanel 
-            isOpen={modals.clients} 
-            onClose={() => toggleModal('clients', false)} 
-            clients={clients}
-            projects={history}
-            onSaveClient={async (client) => {
-                const updatedClients = await saveClient(client);
-                setClients(updatedClients);
-            }}
-            onDeleteClient={async (id) => {
-                const updatedClients = await removeClient(id);
-                setClients(updatedClients);
-            }}
-            onViewProject={handleViewProject}
-        />
-
-        <DistributorFinder isOpen={modals.distributors} onClose={() => toggleModal('distributors', false)} showAlert={showAlert} />
-        <ResearchAssistant isOpen={modals.research} onClose={() => toggleModal('research', false)} showAlert={showAlert} />
-        <LiveAssistant isOpen={modals.live} onClose={() => toggleModal('live', false)} showAlert={showAlert} />
-        <AboutModal isOpen={modals.about} onClose={() => toggleModal('about', false)} />
-        <BomGeneratorModal isOpen={modals.bom} onClose={() => toggleModal('bom', false)} showAlert={showAlert} />
-        <CuttingPlanGeneratorModal isOpen={modals.cutting} onClose={() => toggleModal('cutting', false)} showAlert={showAlert} />
-        <CostEstimatorModal isOpen={modals.cost} onClose={() => toggleModal('cost', false)} showAlert={showAlert} />
-        <EncontraProModal isOpen={modals.encontraPro} onClose={() => toggleModal('encontraPro', false)} showAlert={showAlert} />
-        
-        {currentProject && modals.ar && (
-            <ARViewer 
-                isOpen={modals.ar} 
-                onClose={() => toggleModal('ar', false)} 
-                imageSrc={currentProject.views3d[currentProject.views3d.length - 1]} 
-                showAlert={showAlert} 
-            />
-        )}
-
-        {currentProject && modals.proposal && (
-            <ProposalModal 
-                isOpen={modals.proposal} 
-                onClose={() => toggleModal('proposal', false)} 
-                project={currentProject} 
-                client={clients.find(c => c.id === currentProject.clientId)}
-                showAlert={showAlert}
-            />
-        )}
-
-        {currentProject && modals.imageEditor && (
-            <ImageEditor
-                isOpen={modals.imageEditor}
-                imageSrc={currentProject.views3d[currentProject.views3d.length - 1]}
-                projectDescription={currentProject.description}
-                onClose={() => toggleModal('imageEditor', false)}
-                onSave={async (newImageBase64) => {
-                    const newViewUrl = `data:image/png;base64,${newImageBase64}`;
-                    const updatedViews = [...currentProject.views3d, newViewUrl];
-                    const updatedProject = await updateProjectInHistory(currentProject.id, { views3d: updatedViews });
-                    if (updatedProject) {
-                        setHistory(await getHistory());
-                        setCurrentProject(updatedProject);
-                        toggleModal('imageEditor', false);
-                        showAlert("Imagem editada salva como nova vista!", "Sucesso", "success");
-                    }
-                }}
-                showAlert={showAlert}
-            />
-        )}
-
-        {currentProject && modals.layoutEditor && (
-            <LayoutEditor
-                isOpen={modals.layoutEditor}
-                floorPlanSrc={currentProject.image2d || ''}
-                projectDescription={currentProject.description}
-                onClose={() => toggleModal('layoutEditor', false)}
-                onSave={handleSaveLayout}
-                showAlert={showAlert}
-            />
-        )}
-
-        {currentProject && modals.newView && (
-            <NewViewGenerator 
-                isOpen={modals.newView}
-                project={currentProject}
-                onClose={() => toggleModal('newView', false)}
-                onSaveComplete={async () => {
-                    setHistory(await getHistory());
-                    const updated = (await getHistory()).find(p => p.id === currentProject.id);
-                    if (updated) setCurrentProject(updated);
-                    showAlert("Nova vista gerada com sucesso!", "Sucesso", "success");
-                }}
-                showAlert={showAlert}
-            />
-        )}
-
-        <ManagementDashboard isOpen={modals.management} onClose={() => toggleModal('management', false)} />
-        <DistributorPortal isOpen={modals.partnerPortal} onClose={() => toggleModal('partnerPortal', false)} />
-        
-        {modals.notifications && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => toggleModal('notifications', false)}>
-                <div onClick={e => e.stopPropagation()}>
-                    <NotificationSystem />
-                </div>
-            </div>
-        )}
-
-        {modals.wallet && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => toggleModal('wallet', false)}>
-                <div className="bg-[#fffefb] dark:bg-[#4a4040] p-6 rounded-xl w-full max-w-2xl shadow-2xl border border-[#e6ddcd] dark:border-[#4a4040]" onClick={e => e.stopPropagation()}>
-                    <div className="flex justify-between mb-4">
-                        <h3 className="text-xl font-bold text-[#3e3535] dark:text-[#f5f1e8]">Minha Carteira</h3>
-                        <button onClick={() => toggleModal('wallet', false)}>&times;</button>
-                    </div>
-                    <CommissionWallet />
-                </div>
-            </div>
-        )}
-
-        {modals.projectGenerator && (
-            <ArcVisionModule 
-                isOpen={modals.projectGenerator} 
-                onClose={() => toggleModal('projectGenerator', false)} 
-                showAlert={showAlert}
-            />
-        )}
-
-        <StoreDashboard isOpen={modals.storeMode} onClose={() => toggleModal('storeMode', false)} />
-        
-        <SmartWorkshopModal 
-            isOpen={modals.smartWorkshop} 
-            onClose={() => toggleModal('smartWorkshop', false)} 
-        />
-
-        {modals.admin && (
-            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 animate-fadeIn" onClick={() => toggleModal('admin', false)}>
-                <div className="bg-[#fffefb] dark:bg-[#3e3535] w-full max-w-6xl h-[85vh] rounded-xl shadow-2xl border border-[#e6ddcd] dark:border-[#4a4040] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-                    <div className="flex justify-end p-2 border-b border-[#e6ddcd] dark:border-[#4a4040]">
-                        <button onClick={() => toggleModal('admin', false)} className="text-2xl px-2 text-[#8a7e7e] hover:text-red-500">&times;</button>
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                        <DistributorAdmin />
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {currentProject && modals.decorationList && (
-            <DecorationListModal 
-                isOpen={modals.decorationList}
-                onClose={() => toggleModal('decorationList', false)}
-                projectDescription={currentProject.description}
-                style={currentProject.style}
-                showAlert={showAlert}
-            />
-        )}
-
-        <AlertNotification 
-            show={alert.show} 
-            title={alert.title} 
-            message={alert.message} 
-            type={alert.type}
-            onClose={closeAlert} 
-        />
-        
-        <StyleSuggestionsModal
-            isOpen={styleSuggestions.isOpen}
-            isLoading={styleSuggestions.isLoading}
-            suggestions={styleSuggestions.suggestions}
-            onClose={() => setStyleSuggestions({ ...styleSuggestions, isOpen: false })}
-            onSelectStyle={(style) => {
-                setStylePreset(style);
-                setStyleSuggestions({ ...styleSuggestions, isOpen: false });
-            }}
-        />
-
-        <FinishSuggestionsModal
-            isOpen={finishSuggestions.isOpen}
-            isLoading={finishSuggestions.isLoading}
-            suggestions={finishSuggestions.suggestions}
-            onClose={() => setFinishSuggestions({ ...finishSuggestions, isOpen: false })}
-            onSelectFinish={(finish) => {
-                setSelectedFinish({ manufacturer: finish.manufacturer, finish: finish });
-                setFinishSuggestions({ ...finishSuggestions, isOpen: false });
-            }}
-        />
-
-      </main>
-    </div>
-  );
-};
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:

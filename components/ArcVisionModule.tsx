@@ -351,9 +351,16 @@ export const ArcVisionModule: React.FC<ArcVisionModuleProps> = ({ isOpen, onClos
       setStep('results');
       setActiveTab('woodwork'); 
 
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      showAlert("Erro ao gerar o projeto final.", "Erro");
+      const errorMsg = err.message || '';
+      if (errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('quota')) {
+          const retryMatch = errorMsg.match(/retry in ([0-9.]+)(s|ms)/);
+          const timeMsg = retryMatch ? ` (${retryMatch[0]})` : '';
+          showAlert(`Limite de uso da IA atingido. Por favor, aguarde${timeMsg} e tente novamente.`, "Muitos Pedidos");
+      } else {
+          showAlert("Erro ao gerar o projeto final.", "Erro");
+      }
     } finally {
         setLoading(false);
     }
@@ -366,8 +373,15 @@ export const ArcVisionModule: React.FC<ArcVisionModuleProps> = ({ isOpen, onClos
       const base64Image = await generateImage(promptToUse, null, undefined, true, '2K', 'rich'); // Using Pro settings for high quality
       const imageUrl = `data:image/png;base64,${base64Image}`;
       setGalleryImages(prev => ({ ...prev, [viewId]: imageUrl }));
-    } catch (imgErr) {
-      showAlert("Erro ao criar imagem. Tente de novo.", "Erro");
+    } catch (imgErr: any) {
+      const errorMsg = imgErr.message || '';
+      if (errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('quota')) {
+          const retryMatch = errorMsg.match(/retry in ([0-9.]+)(s|ms)/);
+          const timeMsg = retryMatch ? ` (${retryMatch[0]})` : '';
+          showAlert(`Limite de uso da IA atingido. Por favor, aguarde${timeMsg} e tente novamente.`, "Muitos Pedidos");
+      } else {
+          showAlert("Erro ao criar imagem. Tente de novo.", "Erro");
+      }
     } finally {
       setLoadingViews(prev => ({ ...prev, [viewId]: false }));
     }
