@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   HammerIcon, 
   RulerIcon, 
-  DashboardIcon, 
   ArrowRightIcon, 
   PlayCircleIcon, 
   MenuIcon, 
@@ -18,7 +17,6 @@ import {
   Maximize2Icon,
   DocumentTextIcon,
   CalculatorIcon,
-  CalendarIcon,
   UsersIcon,
   LogoIcon,
   ClockIcon,
@@ -124,7 +122,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
   }, [selectedFeature, selectedImage]);
 
   // Dados Completos das Funcionalidades para o Modal
-  // ATUALIZADO: Refletindo exatamente o que tem no App
+  // ATUALIZADO: Refletindo exatamente o que tem no App e imagens novas
   const services = [
     {
       id: 1,
@@ -138,7 +136,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         { icon: <SmartphoneIcon className="w-5 h-5" />, text: "Funciona direto no celular" },
         { icon: <DocumentTextIcon className="w-5 h-5" />, text: "Várias opções de estilo e acabamento" }
       ],
-      image: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=1200"
+      image: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=1200" // Modern Interior Render
     },
     {
       id: 2,
@@ -152,7 +150,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         { icon: <CheckIcon className="w-5 h-5" />, text: "Lista de peças detalhada" },
         { icon: <SmartphoneIcon className="w-5 h-5" />, text: "Leve o plano para a esquadrejadeira" }
       ],
-      image: "https://images.unsplash.com/photo-1623923708070-a03093fb0031?auto=format&fit=crop&q=80&w=1200"
+      image: "https://images.unsplash.com/photo-1622372738946-e215733cb96b?auto=format&fit=crop&q=80&w=1200" // Workshop / Woodworking
     },
     {
       id: 3,
@@ -166,7 +164,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         { icon: <CheckIcon className="w-5 h-5" />, text: "Sugestão de preço de venda ideal" },
         { icon: <MessageCircleIcon className="w-5 h-5" />, text: "Geração de proposta em PDF" }
       ],
-      image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=1200"
+      image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=1200" // Planning / Calculation
     }
   ];
 
@@ -191,11 +189,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
   const galleryImages = [
     "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800", // Cozinha Moderna
     "https://images.unsplash.com/photo-1595515106967-14348984f548?auto=format&fit=crop&q=80&w=800", // Closet
-    "https://images.unsplash.com/photo-1616486338812-3dadae4b4f9d?auto=format&fit=crop&q=80&w=800", // Sala
-    "https://images.unsplash.com/photo-1600566752355-35792bedcfe1?auto=format&fit=crop&q=80&w=800", // Banheiro Luxo
-    "https://images.unsplash.com/photo-1505691938895-1cd58ab3b2a8?auto=format&fit=crop&q=80&w=800", // Quarto
-    "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=800"  // Home Office
+    "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=800", // Sala
+    "https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&q=80&w=800", // Banheiro
+    "https://images.unsplash.com/photo-1616594039964-40891f913c53?auto=format&fit=crop&q=80&w=800", // Quarto
+    "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=800"  // Escritório
   ];
+
+  // Fallback image handler
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    e.currentTarget.src = "https://images.unsplash.com/photo-1622372738946-e215733cb96b?auto=format&fit=crop&q=80&w=800"; // Fallback to wood texture
+  };
 
   return (
     <div className="min-h-screen bg-[#f5f1e8] text-[#3e3535] font-sans selection:bg-[#d4ac6e] selection:text-[#3e3535]">
@@ -309,7 +312,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
             <div className="md:w-1/2 relative perspective-1000">
               <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl transform md:rotate-y-12 hover:rotate-y-0 transition-all duration-700 ease-out group border-[6px] border-[#fffefb]">
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-300 z-10"></div>
-                <img src="https://images.unsplash.com/photo-1622372738946-e215733cb96b?auto=format&fit=crop&q=80&w=800" alt="Marceneiro usando tecnologia" className="w-full h-[500px] object-cover hover:scale-105 transition-transform duration-700"/>
+                <img 
+                    src="https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&q=80&w=800" 
+                    alt="Marcenaria Moderna" 
+                    className="w-full h-[500px] object-cover hover:scale-105 transition-transform duration-700"
+                    onError={handleImageError}
+                />
                 
                 {/* Floating Card */}
                 <div className="absolute bottom-6 left-6 right-6 bg-[#fffefb]/90 backdrop-blur p-4 rounded-xl shadow-lg z-20 flex items-center gap-4 animate-fadeInUp">
@@ -395,7 +403,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                 onClick={() => setSelectedImage(img)}
                 className={`relative group overflow-hidden rounded-2xl cursor-zoom-in border border-[#4a4040] shadow-2xl ${idx === 0 ? 'md:col-span-2 md:row-span-2' : ''}`}
               >
-                <img src={img} alt={`Feature ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 min-h-[250px] opacity-90 group-hover:opacity-100" />
+                <img 
+                    src={img} 
+                    alt={`Feature ${idx + 1}`} 
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 min-h-[250px] opacity-90 group-hover:opacity-100" 
+                    onError={handleImageError}
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#2d2424] via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
                 <div className="absolute bottom-0 left-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                   <span className="text-[#d4ac6e] text-xs font-bold uppercase tracking-wider mb-1 block">Projeto {idx + 1}</span>
@@ -651,7 +664,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
             
             {/* Imagem do Modal */}
             <div className="md:w-2/5 h-64 md:h-auto relative">
-                <img src={selectedFeature.image} alt={selectedFeature.title} className="w-full h-full object-cover" />
+                <img 
+                    src={selectedFeature.image} 
+                    alt={selectedFeature.title} 
+                    className="w-full h-full object-cover" 
+                    onError={handleImageError}
+                />
                 <div className="absolute inset-0 bg-[#3e3535]/20"></div>
                 <div className="absolute bottom-6 left-6 bg-[#fffefb]/90 backdrop-blur p-3 rounded-2xl shadow-lg border border-[#e6ddcd]">
                   {selectedFeature.icon}
@@ -690,7 +708,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
           <button className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2">
             <XIcon className="w-10 h-10" />
           </button>
-          <img src={selectedImage} alt="Zoom" className="max-w-full max-h-[85vh] rounded-lg shadow-2xl border-4 border-[#3e3535]" onClick={(e) => e.stopPropagation()} />
+          <img 
+            src={selectedImage} 
+            alt="Zoom" 
+            className="max-w-full max-h-[85vh] rounded-lg shadow-2xl border-4 border-[#3e3535]" 
+            onClick={(e) => e.stopPropagation()} 
+            onError={handleImageError}
+          />
           <p className="absolute bottom-8 text-white/70 text-sm">Toque fora para fechar</p>
         </div>
       )}
