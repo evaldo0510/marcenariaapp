@@ -1,4 +1,4 @@
-const CACHE_NAME = 'marcenapp-cache-v3';
+const CACHE_NAME = 'marcenapp-cache-v4';
 
 const STATIC_ASSETS_TO_PRECACHE = [
   '/',
@@ -13,7 +13,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache and caching app shell v3');
+        console.log('Opened cache and caching app shell v4');
         return cache.addAll(STATIC_ASSETS_TO_PRECACHE);
       })
       .catch(error => {
