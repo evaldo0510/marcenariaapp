@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
@@ -15,6 +14,15 @@ const AuthWrapper = () => {
   const [userPlan, setUserPlan] = useState<string | null>(null);
 
   useEffect(() => {
+    // Capture Referral Code form URL if present
+    const params = new URLSearchParams(window.location.search);
+    const refCode = params.get('ref');
+    if (refCode) {
+        sessionStorage.setItem('referrerCode', refCode);
+        // Optional: Clear URL to keep it clean
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     // Check session storage on initial load
     const storedEmail = sessionStorage.getItem('userEmail');
     const storedPlan = sessionStorage.getItem('userPlan');

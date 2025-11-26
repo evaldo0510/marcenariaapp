@@ -32,11 +32,13 @@ import { DistributorAdmin } from './components/DistributorAdmin';
 import { ToolsHubModal } from './components/ToolsHubModal';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { InstallPwaModal } from './components/InstallPwaModal'; 
+import { UserProfileModal } from './components/UserProfileModal';
+import { DistributorOnboarding } from './components/DistributorOnboarding'; // IMPORTED
 import { AlertNotification, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, ShoppingBagIcon, ShareIcon, CubeIcon, ArrowLeftIcon } from './components/Shared';
-import { SmartInputAssistant } from './components/SmartInputAssistant'; // Changed import
+import { SmartInputAssistant } from './components/SmartInputAssistant'; 
 import { RefinementPanel } from './components/RefinementPanel';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
-import { generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D, describeImageFor3D, enhancePrompt } from './services/geminiService'; // Added enhancePrompt import
+import { generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D, describeImageFor3D, enhancePrompt } from './services/geminiService'; 
 import type { ProjectHistoryItem, Client, Finish, AlertState } from './types';
 import { initialStylePresets } from './services/presetService';
 
@@ -46,6 +48,7 @@ interface AppProps {
   userPlan: string;
 }
 
+// ... existing FinishSuggestionsModal component ...
 interface FinishSuggestionsModalProps {
     isOpen: boolean;
     isLoading: boolean;
@@ -110,11 +113,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const isStoreOwner = isSuperAdmin;
 
   // PWA State
+  // ... existing PWA Logic ...
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
-  // PWA Logic
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
@@ -137,7 +140,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     };
   }, []);
 
-  // Main Input States
+  // ... Input States ...
   const [description, setDescription] = useState('');
   const [stylePreset, setStylePreset] = useState('Moderno');
   const [framingStrategy, setFramingStrategy] = useState(framingOptions[0].value);
@@ -146,7 +149,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [withLedLighting, setWithLedLighting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
-  const [isEnhancingText, setIsEnhancingText] = useState(false); // New state
+  const [isEnhancingText, setIsEnhancingText] = useState(false); 
   const [decorationLevel, setDecorationLevel] = useState<'minimal' | 'standard' | 'rich'>('standard');
   
   // Quality & Resolution States
@@ -163,7 +166,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
   // Modal States
   const [modals, setModals] = useState({
-      toolsHub: true, // APP STARTS ON TOOLS HUB
+      toolsHub: true, 
       research: false,
       live: false,
       distributors: false,
@@ -189,7 +192,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       decorationList: false,
       smartWorkshop: false,
       apiKey: false,
-      finishSelector: false
+      finishSelector: false,
+      userProfile: false,
+      distributorOnboarding: false // ADDED
   });
   
   const [finishSuggestions, setFinishSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as Finish[] });
@@ -198,7 +203,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const descriptionTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const [currentProject, setCurrentProject] = useState<ProjectHistoryItem | null>(null);
 
-  // Effects
+  // ... Effects ...
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
@@ -216,7 +221,20 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         }
     };
     loadData();
-  }, []);
+    
+    // Check if user profile is complete
+    const profile = localStorage.getItem('userProfile');
+    if (!profile && !isSuperAdmin) {
+        setModals(prev => ({ ...prev, userProfile: true }));
+    }
+    
+    // Check if came from "Sou Parceiro" link
+    const isDistributorRef = sessionStorage.getItem('userPlan') === 'partner';
+    if (isDistributorRef && !localStorage.getItem('distributorProfile')) {
+        setModals(prev => ({ ...prev, distributorOnboarding: true }));
+    }
+
+  }, [isSuperAdmin]);
 
   const showAlert = (message: string, title = 'Aviso', type: AlertState['type'] = 'info') => setAlert({ show: true, title, message, type });
   const closeAlert = () => setAlert({ ...alert, show: false });
@@ -250,13 +268,13 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       }
   };
 
+  // ... loadDemoProject, handleDescribeImage, handleEnhanceDescription ...
   const loadDemoProject = () => {
       setDescription("Móvel com 3 portas verticais em madeira clara, 2 gavetas centrais com puxadores metálicos, acabamento fosco, pés retos e estilo moderno minimalista. Inclua nichos abertos na lateral e prateleiras internas.");
       setStylePreset("Moderno");
       setFramingStrategy(framingOptions[0].value);
       setQualityMode('standard');
       setUploadedImages(null); 
-      
       showAlert("Exemplo carregado! Descrição de armário moderno preenchida.", "Demo de Armário", "success");
   };
 
@@ -291,7 +309,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       }
   };
 
-  // Handlers
+  // ... handleGenerateProject (Updated to restrict access) ...
   const handleGenerateProject = async (forcePro = false) => {
       // Only Admin can generate
       if (!isSuperAdmin) {
@@ -390,13 +408,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       }
   };
 
+  // ... other handlers (handleGenerateFloorPlan, handleViewProject, etc) ...
   const handleGenerateFloorPlan = async () => {
-      // Only Admin check
       if (!isSuperAdmin) {
           showAlert("Recurso Premium exclusivo para administradores.", "Acesso Restrito", "warning");
           return;
       }
-
       if (!currentProject) return;
       if (!currentProject.views3d || currentProject.views3d.length === 0) return showAlert("Nenhuma imagem 3D disponível para gerar planta.", "Aviso", "warning");
 
@@ -404,9 +421,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       try {
           const floorPlanBase64 = await generateFloorPlanFrom3D(currentProject);
           const newImage2d = `data:image/png;base64,${floorPlanBase64}`;
-          
           const updatedProject = await updateProjectInHistory(currentProject.id, { image2d: newImage2d });
-          
           if (updatedProject) {
               setHistory(await getHistory());
               setCurrentProject(updatedProject);
@@ -415,21 +430,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           }
       } catch (e: any) {
           console.error(e);
-          const errorMsg = e.message || '';
-          if (errorMsg.includes('API Key') || errorMsg.includes('API key')) {
-               if ((window as any).aistudio?.openSelectKey) {
-                   await (window as any).aistudio.openSelectKey();
-                   showAlert("Chave API solicitada. Tente novamente.", "Configuração");
-               } else {
-                   toggleModal('apiKey', true);
-               }
-               return;
-          }
-          if (errorMsg.includes('429') || errorMsg.includes('quota')) {
-              showAlert("Limite de requisições atingido. Aguarde um momento.", "Erro de Cota", "warning");
-              return;
-          }
-          showAlert("Erro ao gerar planta baixa: " + (e instanceof Error ? e.message : "Erro desconhecido"), "Erro", "error");
+          showAlert("Erro ao gerar planta baixa.", "Erro", "error");
       } finally {
           setIsGenerating(false);
       }
@@ -442,7 +443,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     setSelectedFinish(project.selectedFinish || null);
     setWithLedLighting(!!project.withLedLighting);
     setMobileTab('result');
-    
     if (project.uploadedReferenceImageUrls) {
         const images = project.uploadedReferenceImageUrls.map(url => {
             const parts = url.split(',');
@@ -454,23 +454,16 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     } else {
         setUploadedImages(null);
     }
-
     toggleModal('history', false);
   };
 
   const handleShareProject = async () => {
       if (!currentProject) return;
       const link = `https://marcenapp.com/p/${currentProject.id}`;
-      
       if (navigator.share) {
           try {
-              await navigator.share({
-                  title: currentProject.name,
-                  text: `Confira o projeto ${currentProject.name} criado no MarcenApp!`,
-                  url: link
-              });
-          } catch (err) {
-          }
+              await navigator.share({ title: currentProject.name, text: `Confira o projeto ${currentProject.name} criado no MarcenApp!`, url: link });
+          } catch (err) {}
       } else {
           navigator.clipboard.writeText(link);
           showAlert("Link do projeto copiado para a área de transferência!", "Link Copiado", "success");
@@ -491,7 +484,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
   const handleOpenLayoutEditor = async () => {
     if (!currentProject) return;
-
     if (!currentProject.image2d) {
         if (!confirm("Gerar planta baixa agora?")) return;
         handleGenerateFloorPlan();
@@ -614,7 +606,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         </button>
                     </div>
                     
-                    {/* SMART INPUT ASSISTANT (Replaces old chips) */}
+                    {/* SMART INPUT ASSISTANT */}
                     <div className="mt-4">
                         <SmartInputAssistant 
                             currentText={description}
@@ -691,7 +683,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                             </div>
                         </div>
 
-                        {/* REFINEMENT PANEL (POST GENERATION CONTROLS) */}
+                        {/* REFINEMENT PANEL */}
                         <RefinementPanel 
                             currentStyle={stylePreset}
                             onStyleChange={setStylePreset}
@@ -743,8 +735,18 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         onInstallClick={handleInstallApp}
       />
       <InstallPwaModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} installPrompt={installPrompt} isIOS={isIOS} />
+      <UserProfileModal isOpen={modals.userProfile} onClose={() => toggleModal('userProfile', false)} userEmail={userEmail} />
+      <DistributorOnboarding 
+        isOpen={modals.distributorOnboarding} 
+        onClose={() => toggleModal('distributorOnboarding', false)}
+        onComplete={(profile) => {
+            toggleModal('distributorOnboarding', false);
+            toggleModal('partnerPortal', true);
+            showAlert("Credenciamento realizado com sucesso! Bem-vindo à rede.", "Sucesso", "success");
+        }}
+      />
       
-      {/* MODAL FOR SELECTING FINISHES (MOVED FROM LEFT PANEL) */}
+      {/* ... Other modals (FinishSelector, Research, Live, etc) ... */}
       <div className={`fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4 animate-fadeIn ${!modals.finishSelector ? 'hidden' : ''}`} onClick={() => toggleModal('finishSelector', false)}>
           <div className="bg-[#fffefb] dark:bg-[#4a4040] rounded-lg w-full max-w-3xl p-6 shadow-xl border border-[#e6ddcd] dark:border-[#4a4040] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-4">Selecionar Acabamento</h3>

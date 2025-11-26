@@ -1,4 +1,5 @@
 
+// ... existing imports
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   HammerIcon, 
@@ -30,6 +31,7 @@ interface LandingPageProps {
 
 // Componente Principal
 export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
+  // ... existing state ...
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
@@ -41,7 +43,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
   // Estado para PWA
   const [installPrompt, setInstallPrompt] = useState<any>(null);
 
-  // Efeito para detectar scroll e mudar a navbar
+  // ... existing effects ...
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -50,7 +52,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // PWA Logic
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
@@ -112,7 +113,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
       }, 1000);
   };
 
-  // Bloqueia o scroll do corpo quando um modal está aberto
+  // ... existing modal lock effect ...
   useEffect(() => {
     if (selectedFeature || selectedImage) {
       document.body.style.overflow = 'hidden';
@@ -121,8 +122,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
     }
   }, [selectedFeature, selectedImage]);
 
-  // Dados Completos das Funcionalidades para o Modal
-  // ATUALIZADO: Refletindo exatamente o que tem no App e imagens novas
+  // ... existing services data ...
   const services = [
     {
       id: 1,
@@ -136,7 +136,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         { icon: <SmartphoneIcon className="w-5 h-5" />, text: "Funciona direto no celular" },
         { icon: <DocumentTextIcon className="w-5 h-5" />, text: "Várias opções de estilo e acabamento" }
       ],
-      image: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=1200" // Modern Interior Render
+      image: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=1200"
     },
     {
       id: 2,
@@ -150,7 +150,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         { icon: <CheckIcon className="w-5 h-5" />, text: "Lista de peças detalhada" },
         { icon: <SmartphoneIcon className="w-5 h-5" />, text: "Leve o plano para a esquadrejadeira" }
       ],
-      image: "https://images.unsplash.com/photo-1622372738946-e215733cb96b?auto=format&fit=crop&q=80&w=1200" // Workshop / Woodworking
+      image: "https://images.unsplash.com/photo-1622372738946-e215733cb96b?auto=format&fit=crop&q=80&w=1200"
     },
     {
       id: 3,
@@ -164,10 +164,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         { icon: <CheckIcon className="w-5 h-5" />, text: "Sugestão de preço de venda ideal" },
         { icon: <MessageCircleIcon className="w-5 h-5" />, text: "Geração de proposta em PDF" }
       ],
-      image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=1200" // Planning / Calculation
+      image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=1200"
     }
   ];
 
+  // ... existing testimonials and gallery ...
   const testimonials = [
     {
       text: "Antes eu perdia horas desenhando no papel. Com o MarcenApp, gero o 3D na frente do cliente e fecho a venda na hora!",
@@ -187,17 +188,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
   ];
 
   const galleryImages = [
-    "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800", // Cozinha Moderna
-    "https://images.unsplash.com/photo-1595515106967-14348984f548?auto=format&fit=crop&q=80&w=800", // Closet
-    "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=800", // Sala
-    "https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&q=80&w=800", // Banheiro
-    "https://images.unsplash.com/photo-1616594039964-40891f913c53?auto=format&fit=crop&q=80&w=800", // Quarto
-    "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=800"  // Escritório
+    "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800", 
+    "https://images.unsplash.com/photo-1595515106967-14348984f548?auto=format&fit=crop&q=80&w=800", 
+    "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=800", 
+    "https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&q=80&w=800", 
+    "https://images.unsplash.com/photo-1616594039964-40891f913c53?auto=format&fit=crop&q=80&w=800", 
+    "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=800" 
   ];
 
-  // Fallback image handler
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.src = "https://images.unsplash.com/photo-1622372738946-e215733cb96b?auto=format&fit=crop&q=80&w=800"; // Fallback to wood texture
+    e.currentTarget.src = "https://images.unsplash.com/photo-1622372738946-e215733cb96b?auto=format&fit=crop&q=80&w=800"; 
   };
 
   return (
@@ -261,7 +261,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
 
       {/* Hero Section */}
       <section id="início" className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
-        {/* Background Elements */}
+        {/* ... existing hero content ... */}
         <div className="absolute top-0 right-0 w-1/2 h-full bg-[#d4ac6e]/10 rounded-bl-[100px] -z-10"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#d4ac6e]/5 rounded-full blur-3xl -z-10"></div>
         
@@ -319,7 +319,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                     onError={handleImageError}
                 />
                 
-                {/* Floating Card */}
                 <div className="absolute bottom-6 left-6 right-6 bg-[#fffefb]/90 backdrop-blur p-4 rounded-xl shadow-lg z-20 flex items-center gap-4 animate-fadeInUp">
                     <div className="bg-green-100 p-3 rounded-full text-green-600">
                         <ClockIcon />
@@ -331,7 +330,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                 </div>
               </div>
               
-              {/* Decorative Elements behind image */}
               <div className="absolute -top-6 -right-6 w-24 h-24 bg-[#d4ac6e] rounded-full opacity-20 blur-2xl"></div>
               <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#3e3535] rounded-full opacity-10 blur-3xl"></div>
             </div>
@@ -339,8 +337,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         </div>
       </section>
 
-      {/* Seção Funcionalidades (Com Modais) */}
+      {/* ... existing functionality, gallery and testimonials sections ... */}
       <section id="funcionalidades" className="py-24 bg-[#fffefb]">
+        {/* Content maintained same as before */}
         <div className="container mx-auto px-6">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-black text-[#3e3535] mb-4">Ferramentas Poderosas</h2>
@@ -380,11 +379,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         </div>
       </section>
 
-      {/* Galeria Interativa */}
       <section id="app" className="py-24 bg-[#3e3535] text-[#f5f1e8] relative overflow-hidden">
-        {/* Pattern Background */}
+        {/* Content maintained same as before */}
         <div className="absolute inset-0 opacity-5" style={{backgroundImage: 'radial-gradient(#d4ac6e 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
-        
         <div className="container mx-auto px-6 relative z-10">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
             <div>
@@ -395,7 +392,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                 Ver Galeria Completa <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {galleryImages.map((img, idx) => (
               <div 
@@ -403,12 +399,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                 onClick={() => setSelectedImage(img)}
                 className={`relative group overflow-hidden rounded-2xl cursor-zoom-in border border-[#4a4040] shadow-2xl ${idx === 0 ? 'md:col-span-2 md:row-span-2' : ''}`}
               >
-                <img 
-                    src={img} 
-                    alt={`Feature ${idx + 1}`} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 min-h-[250px] opacity-90 group-hover:opacity-100" 
-                    onError={handleImageError}
-                />
+                <img src={img} alt={`Feature ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 min-h-[250px] opacity-90 group-hover:opacity-100" onError={handleImageError}/>
                 <div className="absolute inset-0 bg-gradient-to-t from-[#2d2424] via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
                 <div className="absolute bottom-0 left-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                   <span className="text-[#d4ac6e] text-xs font-bold uppercase tracking-wider mb-1 block">Projeto {idx + 1}</span>
@@ -423,23 +414,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         </div>
       </section>
 
-      {/* Depoimentos */}
       <section id="depoimentos" className="py-24 bg-[#d4ac6e] relative overflow-hidden">
+        {/* Content maintained same as before */}
         <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-[#3e3535]/10 to-transparent"></div>
-        
         <div className="container mx-auto px-6 text-center relative z-10">
           <h2 className="text-3xl md:text-4xl font-black text-[#3e3535] mb-16">Marceneiros que aprovam</h2>
-          
           <div className="max-w-4xl mx-auto">
             <div className="bg-[#fffefb] p-10 md:p-14 rounded-[2.5rem] shadow-2xl relative">
                <div className="text-6xl text-[#d4ac6e] absolute -top-8 left-10 font-serif">"</div>
-               
                <div className="min-h-[180px] flex flex-col justify-center">
                    <p className="text-xl md:text-2xl text-[#3e3535] font-medium italic leading-relaxed">
                      {testimonials[activeTestimonial].text}
                    </p>
                </div>
-
                <div className="mt-8 flex items-center justify-center gap-4">
                    <div className="w-14 h-14 bg-[#f5f1e8] rounded-full overflow-hidden border-2 border-[#d4ac6e]">
                        <img src={`https://i.pravatar.cc/150?img=${activeTestimonial + 50}`} alt="Avatar" className="w-full h-full object-cover" />
@@ -450,15 +437,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                    </div>
                </div>
             </div>
-
             <div className="flex justify-center gap-3 mt-8">
               {testimonials.map((_, idx) => (
-                <button 
-                    key={idx} 
-                    onClick={() => setActiveTestimonial(idx)} 
-                    className={`h-3 rounded-full transition-all duration-300 ${idx === activeTestimonial ? 'bg-[#3e3535] w-8' : 'bg-[#3e3535]/30 w-3 hover:bg-[#3e3535]/50'}`} 
-                    aria-label={`Depoimento ${idx + 1}`}
-                />
+                <button key={idx} onClick={() => setActiveTestimonial(idx)} className={`h-3 rounded-full transition-all duration-300 ${idx === activeTestimonial ? 'bg-[#3e3535] w-8' : 'bg-[#3e3535]/30 w-3 hover:bg-[#3e3535]/50'}`} />
               ))}
             </div>
           </div>
@@ -519,7 +500,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                           onClick={() => setAccountType('partner')}
                                           className={`py-3 px-3 rounded-xl text-sm font-bold transition border-2 flex flex-col items-center gap-2 ${accountType === 'partner' ? 'bg-[#fffefb] border-[#3e3535] text-[#3e3535]' : 'bg-[#fffefb] border-transparent text-gray-400 hover:border-[#e6ddcd]'}`}
                                       >
-                                          <UsersIcon className="w-5 h-5" /> Parceiro
+                                          <UsersIcon className="w-5 h-5" /> Sou Parceiro
                                       </button>
                                   </div>
                               </div>
@@ -575,7 +556,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                               className="w-full flex justify-center items-center gap-2 py-4 px-4 rounded-xl shadow-lg text-base font-bold text-[#3e3535] bg-[#d4ac6e] hover:bg-[#c89f5e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4ac6e] transition disabled:opacity-70 hover:-translate-y-1"
                           >
                               {isLoading ? <span className="w-5 h-5 border-2 border-[#3e3535] border-t-transparent rounded-full animate-spin"></span> : null}
-                              {isLoading ? (isLoginMode ? 'Entrando...' : 'Criando conta...') : (isLoginMode ? 'Acessar Sistema' : (accountType === 'partner' ? 'Criar Conta de Parceiro' : 'Começar Grátis'))}
+                              {isLoading 
+                                ? (isLoginMode ? 'Entrando...' : 'Criando conta...') 
+                                : (isLoginMode ? 'Acessar Sistema' : (accountType === 'partner' ? 'Credenciar Distribuidor' : 'Começar Grátis'))}
                           </button>
                       </div>
                       
@@ -587,8 +570,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
           </div>
       </section>
 
+      {/* ... existing footer and modals ... */}
       {/* Footer */}
       <footer className="bg-[#2d2424] text-[#a89d8d] py-12 border-t border-[#4a4040]">
+        {/* ... same content ... */}
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             <div>
@@ -605,6 +590,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                 Transformando a marcenaria tradicional com o poder da inteligência artificial.
               </p>
             </div>
+            {/* ... other footer cols ... */}
             <div>
               <h4 className="text-[#f5f1e8] font-bold mb-4 text-sm uppercase tracking-wider">Produto</h4>
               <ul className="space-y-2 text-sm">
@@ -650,7 +636,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         </div>
       </footer>
 
-      {/* MODAL DE FUNCIONALIDADES (Detalhes) */}
       {selectedFeature && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
           <div className="absolute inset-0 bg-[#2d2424]/80 backdrop-blur-sm" onClick={() => setSelectedFeature(null)}></div>
@@ -662,7 +647,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
               <XIcon className="w-6 h-6" />
             </button>
             
-            {/* Imagem do Modal */}
             <div className="md:w-2/5 h-64 md:h-auto relative">
                 <img 
                     src={selectedFeature.image} 
@@ -676,7 +660,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                 </div>
             </div>
 
-            {/* Conteúdo do Modal */}
             <div className="md:w-3/5 p-8 md:p-12 flex flex-col justify-center text-[#3e3535] bg-[#fffefb]">
                 <h3 className="text-3xl font-black mb-4">{selectedFeature.title}</h3>
                 <p className="text-[#6a5f5f] text-lg mb-8 leading-relaxed">
@@ -702,7 +685,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
         </div>
       )}
 
-      {/* MODAL DE IMAGEM (Lightbox) */}
       {selectedImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md animate-fadeIn" onClick={() => setSelectedImage(null)}>
           <button className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2">
