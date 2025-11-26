@@ -403,6 +403,35 @@ export async function describeImageFor3D(base64Data: string, mimeType: string): 
     return response.text || "Não foi possível descrever a imagem.";
 }
 
+export async function enhancePrompt(originalText: string): Promise<string> {
+    const ai = getAiClient();
+    const prompt = `
+    Atue como um Mestre Marceneiro e Designer de Interiores Sênior.
+    
+    TAREFA:
+    Reescreva a seguinte solicitação informal de um cliente/marceneiro em um PROMPT TÉCNICO DETALHADO para geração de imagem 3D.
+    
+    ENTRADA ORIGINAL:
+    "${originalText}"
+    
+    REGRAS:
+    1. Corrija português e erros de digitação.
+    2. Substitua termos vagos por especificações técnicas (ex: "madeira" -> "MDF Carvalho Hanover"; "armário" -> "Armário planejado com tamponamento").
+    3. Adicione detalhes implícitos essenciais: espessura de chapas (18mm/15mm), tipos de puxadores, iluminação LED, rodapés.
+    4. Mantenha a intenção original do usuário, mas profissionalize a linguagem.
+    5. O texto final deve estar pronto para ser inserido em um gerador de imagem IA.
+    
+    Retorne APENAS o texto reescrito, sem introduções ou aspas.
+    `;
+
+    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt
+    }));
+
+    return response.text?.trim() || originalText;
+}
+
 export async function analyzeRoomImage(base64Image: string): Promise<{ roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }> {
     const ai = getAiClient();
     const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';

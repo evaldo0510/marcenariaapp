@@ -33,10 +33,10 @@ import { ToolsHubModal } from './components/ToolsHubModal';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { InstallPwaModal } from './components/InstallPwaModal'; 
 import { AlertNotification, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, ShoppingBagIcon, ShareIcon, CubeIcon, ArrowLeftIcon } from './components/Shared';
-import { StyleAssistant } from './components/StyleAssistant';
+import { SmartInputAssistant } from './components/SmartInputAssistant'; // Changed import
 import { RefinementPanel } from './components/RefinementPanel';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
-import { generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D, describeImageFor3D } from './services/geminiService';
+import { generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D, describeImageFor3D, enhancePrompt } from './services/geminiService'; // Added enhancePrompt import
 import type { ProjectHistoryItem, Client, Finish, AlertState } from './types';
 import { initialStylePresets } from './services/presetService';
 
@@ -146,6 +146,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [withLedLighting, setWithLedLighting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [isEnhancingText, setIsEnhancingText] = useState(false); // New state
   const [decorationLevel, setDecorationLevel] = useState<'minimal' | 'standard' | 'rich'>('standard');
   
   // Quality & Resolution States
@@ -272,6 +273,23 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           setIsAnalyzingImage(false);
       }
   }
+
+  const handleEnhanceDescription = async () => {
+      if (!description.trim()) {
+          showAlert("Digite algo para a IA melhorar.", "Aviso");
+          return;
+      }
+      setIsEnhancingText(true);
+      try {
+          const enhanced = await enhancePrompt(description);
+          setDescription(enhanced);
+          showAlert("Texto melhorado com termos técnicos!", "Sucesso", "success");
+      } catch (e) {
+          showAlert("Erro ao melhorar texto.", "Erro", "error");
+      } finally {
+          setIsEnhancingText(false);
+      }
+  };
 
   // Handlers
   const handleGenerateProject = async (forcePro = false) => {
@@ -596,9 +614,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         </button>
                     </div>
                     
-                    {/* Dynamic Chips */}
+                    {/* SMART INPUT ASSISTANT (Replaces old chips) */}
                     <div className="mt-4">
-                        <StyleAssistant onSelect={(text) => setDescription(prev => (prev ? prev + " " : "") + text)} />
+                        <SmartInputAssistant 
+                            currentText={description}
+                            onUpdateText={setDescription}
+                            onEnhance={handleEnhanceDescription}
+                            isEnhancing={isEnhancingText}
+                        />
                     </div>
                 </section>
 
