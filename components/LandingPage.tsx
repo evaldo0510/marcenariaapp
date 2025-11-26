@@ -1,88 +1,143 @@
 
-// ... existing imports
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   HammerIcon, 
   RulerIcon, 
   ArrowRightIcon, 
-  PlayCircleIcon, 
   MenuIcon, 
   XIcon, 
   CheckIcon,
   SmartphoneIcon, 
-  EmailIcon,
   ZapIcon,
-  MessageCircleIcon,
-  PhoneIcon,
-  MapPinIcon,
-  Maximize2Icon,
+  ChartBarIcon,
   DocumentTextIcon,
   CalculatorIcon,
   UsersIcon,
   LogoIcon,
-  ClockIcon,
   MagicIcon,
-  BookIcon
+  BookIcon,
+  StarIcon,
+  SparklesIcon,
+  FacebookIcon,
+  InstagramIcon,
+  LinkedinIcon
 } from './Shared';
 
 interface LandingPageProps {
   onLoginSuccess: (email: string, role?: 'user' | 'partner') => void;
 }
 
-// Componente Principal
-export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
-  // ... existing state ...
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [activeTestimonial, setActiveTestimonial] = useState(0);
-  
-  // Estado para controlar qual modal está aberto (Funcionalidade ou Imagem)
-  const [selectedFeature, setSelectedFeature] = useState<any>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+// --- COMPONENTE SLIDER ANTES/DEPOIS ---
+const BeforeAfterSlider = () => {
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Estado para PWA
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
-
-  // ... existing effects ...
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-    };
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
-
-  const handleInstallApp = () => {
-      if (installPrompt) {
-          installPrompt.prompt();
-      } else {
-          // Fallback para iOS ou se não houver prompt
-          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-          if (isIOS) {
-             alert("Para instalar no iPhone:\n1. Toque no botão Compartilhar (quadrado com seta)\n2. Selecione 'Adicionar à Tela de Início'");
-          } else {
-             alert("Para instalar, use o menu do seu navegador e selecione 'Instalar Aplicativo' ou 'Adicionar à Tela Inicial'.");
-          }
-      }
+  const handleMove = (clientX: number) => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+      const percentage = (x / rect.width) * 100;
+      setSliderPosition(percentage);
+    }
   };
 
-  // Login/Signup Scroll Logic
-  const loginRef = useRef<HTMLDivElement>(null);
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    handleMove(e.clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    handleMove(e.touches[0].clientX);
+  };
+
+  const stopDragging = () => setIsDragging(false);
+
+  return (
+    <div 
+      ref={containerRef}
+      className="relative w-full h-[300px] md:h-[500px] rounded-2xl overflow-hidden cursor-col-resize select-none shadow-2xl border-4 border-white group"
+      onMouseDown={() => setIsDragging(true)}
+      onMouseUp={stopDragging}
+      onMouseLeave={stopDragging}
+      onTouchStart={() => setIsDragging(true)}
+      onTouchEnd={stopDragging}
+      onMouseMove={onMouseMove}
+      onTouchMove={onTouchMove}
+    >
+      {/* Imagem DEPOIS (Fundo) */}
+      <img 
+        src="https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=1600" 
+        alt="Projeto 3D Renderizado" 
+        className="absolute inset-0 w-full h-full object-cover"
+        draggable="false"
+      />
+      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-xs font-bold border border-white/20 shadow-lg">
+        ✨ Render Iara 3D
+      </div>
+
+      {/* Imagem ANTES (Sobreposta com clip-path) */}
+      <div 
+        className="absolute inset-0 w-full h-full overflow-hidden border-r-2 border-[#d4ac6e] bg-[#f5f1e8]"
+        style={{ width: `${sliderPosition}%` }}
+      >
+        <img 
+          src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=1600" 
+          alt="Rascunho no Papel" 
+          className="absolute inset-0 w-full h-full object-cover filter sepia contrast-125"
+          style={{ width: containerRef.current ? containerRef.current.offsetWidth : '100vw' }} 
+          draggable="false"
+        />
+        <div className="absolute top-4 left-4 bg-white/90 text-[#3e3535] px-4 py-1.5 rounded-full text-xs font-bold border border-[#d4ac6e] shadow-lg">
+          ✏️ Rascunho
+        </div>
+      </div>
+
+      {/* Manipulador (Handle) */}
+      <div 
+        className="absolute top-0 bottom-0 w-1 bg-[#d4ac6e] cursor-col-resize z-10 shadow-[0_0_20px_rgba(0,0,0,0.5)]"
+        style={{ left: `${sliderPosition}%` }}
+      >
+        <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-12 h-12 bg-[#d4ac6e] rounded-full flex items-center justify-center shadow-xl border-4 border-white transform transition-transform group-hover:scale-110">
+          <div className="flex gap-1">
+              <div className="w-0.5 h-4 bg-[#3e3535]/50"></div>
+              <div className="w-0.5 h-4 bg-[#3e3535]/50"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [isLoginMode, setIsLoginMode] = useState(false);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [accountType, setAccountType] = useState<'user' | 'partner'>('user');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+
+  const loginRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
   const scrollToLogin = (mode: 'login' | 'signup') => {
       setIsLoginMode(mode === 'login');
@@ -96,611 +151,473 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
       setIsLoading(true);
 
       setTimeout(() => {
-          if (isLoginMode) {
-              if (email.trim() && email.includes('@')) {
-                  onLoginSuccess(email, 'user');
-              } else {
-                  setError('Por favor, insira um e-mail válido.');
-              }
+          if (email.trim() && email.includes('@')) {
+              onLoginSuccess(email, isLoginMode ? 'user' : accountType);
           } else {
-              if (email.trim() && email.includes('@') && name.trim()) {
-                  onLoginSuccess(email, accountType);
-              } else {
-                  setError('Por favor, preencha todos os campos.');
-              }
+              setError('Insira um e-mail válido.');
           }
           setIsLoading(false);
       }, 1000);
   };
 
-  // ... existing modal lock effect ...
-  useEffect(() => {
-    if (selectedFeature || selectedImage) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-  }, [selectedFeature, selectedImage]);
-
-  // ... existing services data ...
-  const services = [
-    {
-      id: 1,
-      icon: <MagicIcon className="w-8 h-8 text-[#d4ac6e]" />,
-      title: "Projetos 3D com IA",
-      shortDesc: "Transforme ideias em imagens fotorrealistas em segundos usando inteligência artificial.",
-      fullDesc: "Não perca tempo desenhando do zero. Descreva o móvel ou tire uma foto do ambiente, e nossa IA gera visualizações 3D impressionantes para você apresentar ao cliente e fechar a venda na hora.",
-      benefits: [
-        { icon: <ZapIcon className="w-5 h-5" />, text: "Geração instantânea via texto ou voz" },
-        { icon: <CheckIcon className="w-5 h-5" />, text: "Renderização fotorrealista automática" },
-        { icon: <SmartphoneIcon className="w-5 h-5" />, text: "Funciona direto no celular" },
-        { icon: <DocumentTextIcon className="w-5 h-5" />, text: "Várias opções de estilo e acabamento" }
-      ],
-      image: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=1200"
-    },
-    {
-      id: 2,
-      icon: <RulerIcon className="w-8 h-8 text-[#d4ac6e]" />,
-      title: "Planos de Corte",
-      shortDesc: "Otimize o uso das chapas de MDF e evite desperdícios na produção.",
-      fullDesc: "Nosso sistema calcula a melhor disposição das peças na chapa. Você economiza material, dinheiro e tempo de serra. Exporte o plano direto para a produção.",
-      benefits: [
-        { icon: <ZapIcon className="w-5 h-5" />, text: "Redução de até 30% no desperdício" },
-        { icon: <DocumentTextIcon className="w-5 h-5" />, text: "Diagrama de corte visual" },
-        { icon: <CheckIcon className="w-5 h-5" />, text: "Lista de peças detalhada" },
-        { icon: <SmartphoneIcon className="w-5 h-5" />, text: "Leve o plano para a esquadrejadeira" }
-      ],
-      image: "https://images.unsplash.com/photo-1622372738946-e215733cb96b?auto=format&fit=crop&q=80&w=1200"
-    },
-    {
-      id: 3,
-      icon: <CalculatorIcon className="w-8 h-8 text-[#d4ac6e]" />,
-      title: "Orçamentos e Listas",
-      shortDesc: "Gere preços precisos e listas de materiais (BOM) automaticamente.",
-      fullDesc: "Nunca mais tenha prejuízo por esquecer ferragens ou errar no cálculo de horas. O app gera a lista de compras técnica e calcula o preço final de venda baseado na sua margem de lucro.",
-      benefits: [
-        { icon: <BookIcon className="w-5 h-5" />, text: "Lista de Materiais (BOM) automática" },
-        { icon: <ZapIcon className="w-5 h-5" />, text: "Cálculo de custo de material + mão de obra" },
-        { icon: <CheckIcon className="w-5 h-5" />, text: "Sugestão de preço de venda ideal" },
-        { icon: <MessageCircleIcon className="w-5 h-5" />, text: "Geração de proposta em PDF" }
-      ],
-      image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=1200"
-    }
-  ];
-
-  // ... existing testimonials and gallery ...
-  const testimonials = [
-    {
-      text: "Antes eu perdia horas desenhando no papel. Com o MarcenApp, gero o 3D na frente do cliente e fecho a venda na hora!",
-      author: "João Ferreira",
-      role: "Marceneiro Autônomo"
-    },
-    {
-      text: "A lista de materiais automática me salvou de vários prejuízos. Agora compro exatamente o que preciso.",
-      author: "Ricardo Oliveira",
-      role: "Dono da Oliveira Móveis"
-    },
-    {
-      text: "O plano de corte no celular é muito prático. Consigo ver como cortar a chapa direto na oficina.",
-      author: "Marcos Santos",
-      role: "Marcenaria Fina Santos"
-    }
-  ];
-
-  const galleryImages = [
-    "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800", 
-    "https://images.unsplash.com/photo-1595515106967-14348984f548?auto=format&fit=crop&q=80&w=800", 
-    "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&q=80&w=800", 
-    "https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&q=80&w=800", 
-    "https://images.unsplash.com/photo-1616594039964-40891f913c53?auto=format&fit=crop&q=80&w=800", 
-    "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&q=80&w=800" 
-  ];
-
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.src = "https://images.unsplash.com/photo-1622372738946-e215733cb96b?auto=format&fit=crop&q=80&w=800"; 
+  const handleInstallApp = () => {
+      if (installPrompt) installPrompt.prompt();
+      else alert("Use o menu do navegador para instalar o App.");
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f1e8] text-[#3e3535] font-sans selection:bg-[#d4ac6e] selection:text-[#3e3535]">
+    <div className="min-h-screen bg-[#faf9f6] text-[#2d2424] font-sans selection:bg-[#d4ac6e] selection:text-white overflow-x-hidden">
       
-      {/* Navbar Fixa */}
-      <nav className={`fixed w-full z-40 transition-all duration-300 ${scrolled ? 'bg-[#fffefb]/90 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-6'}`}>
+      {/* --- NAVBAR --- */}
+      <nav className={`fixed w-full z-50 transition-all duration-500 ${scrolled ? 'bg-[#faf9f6]/90 backdrop-blur-xl border-b border-[#e6ddcd] py-3 shadow-sm' : 'bg-transparent py-6'}`}>
         <div className="container mx-auto px-6 flex justify-between items-center">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
-            <div className="relative">
-               <LogoIcon className="w-10 h-10 text-[#d4ac6e]" />
-               <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[#f5f1e8]"></div>
+          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
+            <div className="bg-[#2d2424] p-2 rounded-lg text-[#d4ac6e] transition-transform group-hover:rotate-6 shadow-lg">
+               <LogoIcon className="w-6 h-6" />
             </div>
-            <div className="flex flex-col">
-                <span className={`text-xl font-bold tracking-tight leading-none ${scrolled ? 'text-[#3e3535]' : 'text-[#3e3535]'}`}>MarcenApp</span>
-                <span className="text-[10px] uppercase tracking-widest text-[#a89d8d] font-bold">Intelligence</span>
-            </div>
+            <span className="text-xl font-serif font-bold tracking-tight text-[#2d2424]">MarcenApp</span>
           </div>
 
-          {/* Menu Desktop */}
           <div className="hidden md:flex items-center gap-8">
-            {['Funcionalidades', 'App', 'Depoimentos'].map((item) => (
-              <a 
-                key={item} 
-                href={`#${item.toLowerCase()}`}
-                className="text-[#6a5f5f] hover:text-[#d4ac6e] font-medium transition-colors relative group text-sm uppercase tracking-wide"
-              >
-                {item}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#d4ac6e] transition-all duration-300 group-hover:w-full"></span>
-              </a>
-            ))}
-            <button onClick={handleInstallApp} className="bg-[#f0e9dc] border border-[#e6ddcd] text-[#3e3535] px-5 py-2 rounded-full font-bold hover:bg-[#e6ddcd] hover:shadow-md transition-all duration-300 flex items-center gap-2 text-sm">
-              <SmartphoneIcon className="w-4 h-4" />
-              Baixar App
-            </button>
-            <button onClick={() => scrollToLogin('login')} className="bg-[#3e3535] text-white px-6 py-2 rounded-full font-bold hover:bg-[#2d2424] transition shadow-lg hover:shadow-xl text-sm">
+            <a href="#recursos" className="text-sm font-medium hover:text-[#d4ac6e] transition-colors">Recursos</a>
+            <a href="#demonstracao" className="text-sm font-medium hover:text-[#d4ac6e] transition-colors">Como Funciona</a>
+            <a href="#historias" className="text-sm font-medium hover:text-[#d4ac6e] transition-colors">Histórias</a>
+            
+            <div className="h-6 w-px bg-[#e6ddcd]"></div>
+            
+            <button onClick={() => scrollToLogin('login')} className="text-sm font-bold hover:text-[#d4ac6e] transition-colors">
               Entrar
             </button>
+            <button onClick={() => scrollToLogin('signup')} className="bg-[#2d2424] text-white px-6 py-2.5 rounded-full text-sm font-bold hover:bg-[#d4ac6e] hover:text-[#2d2424] transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+              Começar Grátis
+            </button>
           </div>
 
-          {/* Botão Mobile */}
-          <button className="md:hidden text-[#3e3535] p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            {isMenuOpen ? <XIcon className="w-7 h-7" /> : <MenuIcon className="w-7 h-7" />}
+          <button className="md:hidden p-2 text-[#2d2424]" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            {isMenuOpen ? <XIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
           </button>
         </div>
 
-        {/* Menu Mobile Expandido */}
-        <div className={`md:hidden absolute top-full left-0 w-full bg-[#fffefb] shadow-lg overflow-hidden transition-all duration-300 ease-in-out border-t border-[#e6ddcd] ${isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-          <div className="flex flex-col p-6 gap-4">
-            {['Funcionalidades', 'App', 'Depoimentos'].map((item) => (
-              <a key={item} href={`#${item.toLowerCase()}`} className="text-lg font-bold text-[#6a5f5f] hover:text-[#d4ac6e]" onClick={() => setIsMenuOpen(false)}>{item}</a>
-            ))}
-            <div className="h-px bg-[#e6ddcd] my-2"></div>
-            <button onClick={handleInstallApp} className="bg-[#f0e9dc] text-[#3e3535] w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2">
-                <SmartphoneIcon className="w-5 h-5" /> Baixar App
-            </button>
-            <button onClick={() => scrollToLogin('login')} className="bg-[#3e3535] text-white w-full py-3 rounded-xl font-bold">Acessar Conta</button>
+        {/* Mobile Menu */}
+        <div className={`md:hidden absolute top-full left-0 w-full bg-[#faf9f6] border-b border-[#e6ddcd] overflow-hidden transition-all duration-300 shadow-xl ${isMenuOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="p-6 space-y-4">
+            <a href="#recursos" className="block text-lg font-bold text-[#2d2424]" onClick={() => setIsMenuOpen(false)}>Recursos</a>
+            <a href="#demonstracao" className="block text-lg font-bold text-[#2d2424]" onClick={() => setIsMenuOpen(false)}>Como Funciona</a>
+            <div className="h-px bg-[#e6ddcd]"></div>
+            <button onClick={() => scrollToLogin('login')} className="block w-full text-left text-lg font-bold py-2 text-[#2d2424]">Entrar</button>
+            <button onClick={() => scrollToLogin('signup')} className="block w-full bg-[#2d2424] text-white text-center py-3 rounded-xl font-bold shadow-md">Criar Conta</button>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section id="início" className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
-        {/* ... existing hero content ... */}
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-[#d4ac6e]/10 rounded-bl-[100px] -z-10"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#d4ac6e]/5 rounded-full blur-3xl -z-10"></div>
-        
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center gap-12">
-            <div className="md:w-1/2 space-y-8 animate-fadeInUp">
-              <div className="inline-flex items-center gap-2 bg-[#fffefb] border border-[#e6ddcd] text-[#3e3535] px-4 py-1.5 rounded-full text-xs font-bold tracking-wide shadow-sm">
-                <span className="w-2 h-2 bg-[#d4ac6e] rounded-full animate-pulse"></span>
-                NOVO: Crie Móveis com Voz e IA
-              </div>
-              
-              <h1 className="text-4xl md:text-6xl font-black text-[#3e3535] leading-tight">
-                Seus projetos de marcenaria <span className="text-[#d4ac6e] relative inline-block">
-                    Prontos
-                    <svg className="absolute w-full h-3 -bottom-1 left-0 text-[#d4ac6e] opacity-40" viewBox="0 0 100 10" preserveAspectRatio="none">
-                        <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="3" fill="none" />
-                    </svg>
-                </span> em minutos.
-              </h1>
-              
-              <p className="text-lg text-[#6a5f5f] leading-relaxed max-w-xl border-l-4 border-[#d4ac6e] pl-4">
-                Transforme ideias em projetos 3D, gere planos de corte e calcule orçamentos sem complicação. 
-                <br/><span className="font-bold text-[#3e3535]">Do rascunho à produção na palma da sua mão.</span>
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <button onClick={() => scrollToLogin('signup')} className="bg-[#3e3535] text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-[#2d2424] hover:scale-105 transition-all duration-300 shadow-xl flex items-center justify-center gap-2 group">
-                  <ZapIcon className="w-5 h-5 text-[#d4ac6e]" />
-                  Começar Grátis
-                  <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </button>
-                <button onClick={() => document.getElementById('funcionalidades')?.scrollIntoView({behavior: 'smooth'})} className="bg-transparent border-2 border-[#3e3535]/10 text-[#3e3535] px-8 py-4 rounded-xl font-bold text-lg hover:border-[#d4ac6e] hover:text-[#d4ac6e] transition-all duration-300 flex items-center justify-center gap-2">
-                  <PlayCircleIcon className="w-5 h-5" />
-                  Ver Ferramentas
-                </button>
-              </div>
-              
-              <div className="flex items-center gap-4 pt-4 text-sm text-[#8a7e7e]">
-                 <div className="flex -space-x-2">
-                    {[1,2,3,4].map(i => (
-                        <img key={i} className="w-8 h-8 rounded-full border-2 border-[#f5f1e8]" src={`https://i.pravatar.cc/100?img=${i+10}`} alt="User" />
-                    ))}
-                 </div>
-                 <p>Junte-se a +2.000 marceneiros</p>
-              </div>
-            </div>
-            
-            <div className="md:w-1/2 relative perspective-1000">
-              <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl transform md:rotate-y-12 hover:rotate-y-0 transition-all duration-700 ease-out group border-[6px] border-[#fffefb]">
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-300 z-10"></div>
-                <img 
-                    src="https://images.unsplash.com/photo-1617806118233-18e1de247200?auto=format&fit=crop&q=80&w=800" 
-                    alt="Marcenaria Moderna" 
-                    className="w-full h-[500px] object-cover hover:scale-105 transition-transform duration-700"
-                    onError={handleImageError}
-                />
-                
-                <div className="absolute bottom-6 left-6 right-6 bg-[#fffefb]/90 backdrop-blur p-4 rounded-xl shadow-lg z-20 flex items-center gap-4 animate-fadeInUp">
-                    <div className="bg-green-100 p-3 rounded-full text-green-600">
-                        <ClockIcon />
-                    </div>
-                    <div>
-                        <p className="text-xs font-bold text-[#8a7e7e] uppercase">Economia de Tempo</p>
-                        <p className="font-bold text-[#3e3535]">Projetos 10x mais rápidos</p>
-                    </div>
-                </div>
-              </div>
-              
-              <div className="absolute -top-6 -right-6 w-24 h-24 bg-[#d4ac6e] rounded-full opacity-20 blur-2xl"></div>
-              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#3e3535] rounded-full opacity-10 blur-3xl"></div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* --- HERO SECTION --- */}
+      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+        {/* Background Elements */}
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#d4ac6e]/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#2d2424]/5 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4 pointer-events-none"></div>
 
-      {/* ... existing functionality, gallery and testimonials sections ... */}
-      <section id="funcionalidades" className="py-24 bg-[#fffefb]">
-        {/* Content maintained same as before */}
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-black text-[#3e3535] mb-4">Ferramentas Poderosas</h2>
-            <div className="w-20 h-1.5 bg-[#d4ac6e] mx-auto rounded-full mb-6"></div>
-            <p className="text-[#6a5f5f] text-lg">
-              Tudo o que você precisa para projetar, orçar e produzir.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {services.map((service) => (
-              <div 
-                key={service.id}
-                onClick={() => setSelectedFeature(service)}
-                className="bg-[#f5f1e8] p-8 rounded-3xl hover:bg-[#fffefb] border border-transparent hover:border-[#d4ac6e] hover:shadow-xl transition-all duration-300 group cursor-pointer relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 bg-[#d4ac6e] w-16 h-16 rounded-bl-full opacity-10 group-hover:opacity-20 transition-opacity"></div>
-                
-                <div className="mb-6 bg-[#fffefb] w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300 border border-[#e6ddcd]">
-                  {service.icon}
-                </div>
-                
-                <h3 className="text-xl font-bold text-[#3e3535] mb-3 group-hover:text-[#d4ac6e] transition-colors">
-                  {service.title}
-                </h3>
-                
-                <p className="text-[#6a5f5f] leading-relaxed mb-4">
-                  {service.shortDesc}
-                </p>
-                
-                <div className="flex items-center gap-2 text-[#d4ac6e] text-sm font-bold group-hover:translate-x-2 transition-transform">
-                  Ver Detalhes <ArrowRightIcon className="w-4 h-4" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="app" className="py-24 bg-[#3e3535] text-[#f5f1e8] relative overflow-hidden">
-        {/* Content maintained same as before */}
-        <div className="absolute inset-0 opacity-5" style={{backgroundImage: 'radial-gradient(#d4ac6e 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
         <div className="container mx-auto px-6 relative z-10">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-black mb-4">Resultados Reais</h2>
-              <p className="text-[#dcd6c8] text-lg max-w-md">Veja exemplos de projetos criados com a Inteligência Artificial do MarcenApp.</p>
+          <div className="max-w-4xl mx-auto text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-white border border-[#e6ddcd] rounded-full px-4 py-1.5 mb-8 shadow-sm animate-fadeIn">
+                <SparklesIcon className="w-4 h-4 text-[#d4ac6e]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-[#6a5f5f]">Nova IA Generativa 2.5</span>
             </div>
-            <button className="text-[#d4ac6e] hover:text-white font-bold flex items-center gap-2 group transition-colors border-b border-transparent hover:border-[#d4ac6e] pb-1">
-                Ver Galeria Completa <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <h1 className="text-5xl md:text-7xl font-serif font-medium text-[#2d2424] leading-[1.1] mb-6 animate-fadeInUp">
+              Sua Marcenaria,<br />
+              <span className="italic text-[#d4ac6e] relative">
+                Reimaginada.
+                <svg className="absolute w-full h-3 -bottom-1 left-0 text-[#d4ac6e]/30" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="3" fill="none" /></svg>
+              </span>
+            </h1>
+            <p className="text-lg md:text-xl text-[#6a5f5f] max-w-2xl mx-auto leading-relaxed animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
+              Transforme rascunhos em projetos 3D, planos de corte e orçamentos em segundos. 
+              A primeira inteligência artificial criada para marceneiros modernos.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-10 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+              <button onClick={() => scrollToLogin('signup')} className="bg-[#2d2424] text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-[#d4ac6e] hover:text-[#2d2424] transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                <ZapIcon className="w-5 h-5" /> Começar Agora
+              </button>
+              {installPrompt && (
+                <button onClick={handleInstallApp} className="bg-white text-[#2d2424] border border-[#e6ddcd] px-8 py-4 rounded-xl font-bold text-lg hover:bg-[#f5f1e8] transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+                  <SmartphoneIcon className="w-5 h-5" /> Baixar App
+                </button>
+              )}
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {galleryImages.map((img, idx) => (
-              <div 
-                key={idx} 
-                onClick={() => setSelectedImage(img)}
-                className={`relative group overflow-hidden rounded-2xl cursor-zoom-in border border-[#4a4040] shadow-2xl ${idx === 0 ? 'md:col-span-2 md:row-span-2' : ''}`}
-              >
-                <img src={img} alt={`Feature ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 min-h-[250px] opacity-90 group-hover:opacity-100" onError={handleImageError}/>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#2d2424] via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
-                <div className="absolute bottom-0 left-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                  <span className="text-[#d4ac6e] text-xs font-bold uppercase tracking-wider mb-1 block">Projeto {idx + 1}</span>
-                  <h3 className="text-xl font-bold text-white">Render 3D</h3>
+
+          {/* BENTO GRID HERO */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 max-w-6xl mx-auto animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
+             {/* Card 1: 3D Render (Large) */}
+             <div className="md:col-span-8 bg-white rounded-3xl border border-[#e6ddcd] p-3 shadow-xl overflow-hidden group hover:shadow-2xl transition-shadow duration-300">
+                <div className="relative h-[300px] md:h-[400px] rounded-2xl overflow-hidden bg-[#2d2424]">
+                    <BeforeAfterSlider />
                 </div>
-                <div className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
-                    <Maximize2Icon className="w-5 h-5" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+             </div>
 
-      <section id="depoimentos" className="py-24 bg-[#d4ac6e] relative overflow-hidden">
-        {/* Content maintained same as before */}
-        <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-[#3e3535]/10 to-transparent"></div>
-        <div className="container mx-auto px-6 text-center relative z-10">
-          <h2 className="text-3xl md:text-4xl font-black text-[#3e3535] mb-16">Marceneiros que aprovam</h2>
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-[#fffefb] p-10 md:p-14 rounded-[2.5rem] shadow-2xl relative">
-               <div className="text-6xl text-[#d4ac6e] absolute -top-8 left-10 font-serif">"</div>
-               <div className="min-h-[180px] flex flex-col justify-center">
-                   <p className="text-xl md:text-2xl text-[#3e3535] font-medium italic leading-relaxed">
-                     {testimonials[activeTestimonial].text}
-                   </p>
-               </div>
-               <div className="mt-8 flex items-center justify-center gap-4">
-                   <div className="w-14 h-14 bg-[#f5f1e8] rounded-full overflow-hidden border-2 border-[#d4ac6e]">
-                       <img src={`https://i.pravatar.cc/150?img=${activeTestimonial + 50}`} alt="Avatar" className="w-full h-full object-cover" />
-                   </div>
-                   <div className="text-left">
-                       <h4 className="font-bold text-lg text-[#3e3535] leading-tight">{testimonials[activeTestimonial].author}</h4>
-                       <span className="text-[#8a7e7e] text-sm font-medium">{testimonials[activeTestimonial].role}</span>
-                   </div>
-               </div>
-            </div>
-            <div className="flex justify-center gap-3 mt-8">
-              {testimonials.map((_, idx) => (
-                <button key={idx} onClick={() => setActiveTestimonial(idx)} className={`h-3 rounded-full transition-all duration-300 ${idx === activeTestimonial ? 'bg-[#3e3535] w-8' : 'bg-[#3e3535]/30 w-3 hover:bg-[#3e3535]/50'}`} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Login Section (Integrated) */}
-      <section id="login" ref={loginRef} className="py-24 px-6 bg-[#fffefb]">
-          <div className="w-full max-w-lg mx-auto">
-              <div className="text-center mb-10">
-                  <h2 className="text-3xl font-black text-[#3e3535]">
-                      {isLoginMode ? 'Acesse sua conta' : 'Comece Agora'}
-                  </h2>
-                  <p className="text-[#6a5f5f] text-lg mt-2">
-                      {isLoginMode ? 'Bem-vindo de volta!' : 'Crie sua conta gratuita e explore o futuro.'}
-                  </p>
-              </div>
-              
-              <div className="bg-[#f5f1e8] p-8 rounded-3xl border border-[#e6ddcd] shadow-xl relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#d4ac6e] to-[#b99256]"></div>
-                  
-                  {/* Toggle Switch */}
-                  <div className="flex justify-center mb-8 bg-[#e6ddcd] p-1 rounded-xl">
-                      <button
-                          type="button"
-                          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isLoginMode ? 'bg-[#fffefb] text-[#3e3535] shadow-sm' : 'text-[#8a7e7e] hover:text-[#3e3535]'}`}
-                          onClick={() => setIsLoginMode(false)}
-                      >
-                          Criar Conta
-                      </button>
-                      <button
-                          type="button"
-                          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isLoginMode ? 'bg-[#fffefb] text-[#3e3535] shadow-sm' : 'text-[#8a7e7e] hover:text-[#3e3535]'}`}
-                          onClick={() => setIsLoginMode(true)}
-                      >
-                          Já tenho conta
-                      </button>
-                  </div>
-
-                  <form onSubmit={handleLoginSubmit} className="space-y-5">
-                      {/* Only show extra fields if signing up */}
-                      {!isLoginMode && (
-                          <>
-                              <div className="animate-fadeIn">
-                                  <label className="block text-xs font-bold text-[#8a7e7e] uppercase mb-2 tracking-wide">
-                                      Eu sou:
-                                  </label>
-                                  <div className="grid grid-cols-2 gap-3">
-                                      <button
-                                          type="button"
-                                          onClick={() => setAccountType('user')}
-                                          className={`py-3 px-3 rounded-xl text-sm font-bold transition border-2 flex flex-col items-center gap-2 ${accountType === 'user' ? 'bg-[#fffefb] border-[#d4ac6e] text-[#3e3535]' : 'bg-[#fffefb] border-transparent text-gray-400 hover:border-[#e6ddcd]'}`}
-                                      >
-                                          <HammerIcon className="w-5 h-5" /> Marceneiro
-                                      </button>
-                                      <button
-                                          type="button"
-                                          onClick={() => setAccountType('partner')}
-                                          className={`py-3 px-3 rounded-xl text-sm font-bold transition border-2 flex flex-col items-center gap-2 ${accountType === 'partner' ? 'bg-[#fffefb] border-[#3e3535] text-[#3e3535]' : 'bg-[#fffefb] border-transparent text-gray-400 hover:border-[#e6ddcd]'}`}
-                                      >
-                                          <UsersIcon className="w-5 h-5" /> Sou Parceiro
-                                      </button>
-                                  </div>
-                              </div>
-
-                              <div className="animate-fadeIn">
-                                  <label htmlFor="name-landing" className="block text-sm font-bold text-[#3e3535] mb-1">
-                                      Nome Completo
-                                  </label>
-                                  <input
-                                      id="name-landing"
-                                      name="name"
-                                      type="text"
-                                      required={!isLoginMode}
-                                      value={name}
-                                      onChange={(e) => setName(e.target.value)}
-                                      className="w-full p-3 rounded-xl border-2 border-[#e6ddcd] bg-[#fffefb] text-[#3e3535] focus:outline-none focus:border-[#d4ac6e] transition placeholder:text-[#dcd6c8]"
-                                      placeholder="Como gostaria de ser chamado?"
-                                  />
-                              </div>
-                          </>
-                      )}
-
-                      <div>
-                          <label htmlFor="email-landing" className="block text-sm font-bold text-[#3e3535] mb-1">
-                              E-mail {isLoginMode ? '' : 'Profissional'}
-                          </label>
-                          <div className="relative">
-                            <EmailIcon className="absolute left-3 top-3.5 w-5 h-5 text-[#a89d8d]" />
-                            <input
-                                id="email-landing"
-                                name="email"
-                                type="email"
-                                autoComplete="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-10 p-3 rounded-xl border-2 border-[#e6ddcd] bg-[#fffefb] text-[#3e3535] focus:outline-none focus:border-[#d4ac6e] transition placeholder:text-[#dcd6c8]"
-                                placeholder="seu@email.com"
-                            />
-                          </div>
-                      </div>
-                      
-                      {error && (
-                        <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-lg flex items-center gap-2 animate-fadeIn">
-                            <XIcon className="w-4 h-4" /> {error}
-                        </div>
-                      )}
-                      
-                      <div className="pt-2">
-                          <button
-                              type="submit"
-                              disabled={isLoading}
-                              className="w-full flex justify-center items-center gap-2 py-4 px-4 rounded-xl shadow-lg text-base font-bold text-[#3e3535] bg-[#d4ac6e] hover:bg-[#c89f5e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4ac6e] transition disabled:opacity-70 hover:-translate-y-1"
-                          >
-                              {isLoading ? <span className="w-5 h-5 border-2 border-[#3e3535] border-t-transparent rounded-full animate-spin"></span> : null}
-                              {isLoading 
-                                ? (isLoginMode ? 'Entrando...' : 'Criando conta...') 
-                                : (isLoginMode ? 'Acessar Sistema' : (accountType === 'partner' ? 'Credenciar Distribuidor' : 'Começar Grátis'))}
-                          </button>
-                      </div>
-                      
-                      <p className="text-xs text-center text-[#8a7e7e]">
-                          {isLoginMode ? 'Não tem senha. O acesso é liberado via e-mail.' : 'Sem necessidade de cartão de crédito.'}
-                      </p>
-                  </form>
-              </div>
-          </div>
-      </section>
-
-      {/* ... existing footer and modals ... */}
-      {/* Footer */}
-      <footer className="bg-[#2d2424] text-[#a89d8d] py-12 border-t border-[#4a4040]">
-        {/* ... same content ... */}
-        <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8 mb-12">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-[#d4ac6e] rounded-lg flex items-center justify-center text-[#3e3535] shadow-lg">
-                    <LogoIcon className="w-6 h-6" />
+             {/* Card 2: Stats (Small) */}
+             <div className="md:col-span-4 bg-[#2d2424] rounded-3xl p-8 flex flex-col justify-between text-white shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#d4ac6e] rounded-full blur-[60px] opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                <div>
+                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-4 text-[#d4ac6e] backdrop-blur-sm border border-white/10">
+                        <ChartBarIcon className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-2xl font-bold mb-1">Economia</h3>
+                    <p className="text-white/60 text-sm">Média por projeto</p>
                 </div>
                 <div>
-                    <span className="text-xl font-bold text-[#f5f1e8] block leading-none">MarcenApp</span>
-                    <span className="text-[10px] uppercase text-[#d4ac6e] font-bold tracking-widest">Intelligence</span>
+                    <p className="text-5xl font-mono font-bold tracking-tight text-[#d4ac6e]">30%</p>
+                    <p className="text-sm text-white/60 mt-2">Menos desperdício de chapas com nosso Nesting AI.</p>
                 </div>
-              </div>
-              <p className="text-sm leading-relaxed opacity-80">
-                Transformando a marcenaria tradicional com o poder da inteligência artificial.
-              </p>
-            </div>
-            {/* ... other footer cols ... */}
-            <div>
-              <h4 className="text-[#f5f1e8] font-bold mb-4 text-sm uppercase tracking-wider">Produto</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#funcionalidades" className="hover:text-[#d4ac6e] transition-colors">Funcionalidades</a></li>
-                <li><a href="#" className="hover:text-[#d4ac6e] transition-colors">Planos & Preços</a></li>
-                <li><a href="#" className="hover:text-[#d4ac6e] transition-colors">Para Parceiros</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-[#f5f1e8] font-bold mb-4 text-sm uppercase tracking-wider">Contato</h4>
-              <ul className="space-y-3 text-sm">
-                <li className="flex items-center gap-3 hover:text-white transition-colors">
-                    <div className="w-8 h-8 rounded-full bg-[#3e3535] flex items-center justify-center"><PhoneIcon className="w-4 h-4" /></div> 
-                    (11) 96122-6754
-                </li>
-                <li className="flex items-center gap-3 hover:text-white transition-colors">
-                    <div className="w-8 h-8 rounded-full bg-[#3e3535] flex items-center justify-center"><EmailIcon className="w-4 h-4" /></div> 
-                    suporte@marcenapp.com
-                </li>
-                <li className="flex items-center gap-3 hover:text-white transition-colors">
-                    <div className="w-8 h-8 rounded-full bg-[#3e3535] flex items-center justify-center"><MapPinIcon className="w-4 h-4" /></div> 
-                    São Paulo, SP
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-[#f5f1e8] font-bold mb-4 text-sm uppercase tracking-wider">Newsletter</h4>
-              <p className="text-xs mb-3 opacity-70">Receba dicas de marcenaria e novidades.</p>
-              <div className="flex gap-2">
-                <input type="email" placeholder="Seu e-mail" className="bg-[#3e3535] border border-[#4a4040] rounded-lg px-4 py-2 text-sm w-full focus:outline-none focus:border-[#d4ac6e] text-white transition" />
-                <button className="bg-[#d4ac6e] text-[#3e3535] px-3 rounded-lg hover:bg-[#c89f5e] transition-colors font-bold"><ArrowRightIcon className="w-4 h-4" /></button>
-              </div>
-            </div>
+             </div>
+
+             {/* Card 3: Mobile (Small) */}
+             <div className="md:col-span-4 bg-[#f0e9dc] rounded-3xl p-8 border border-[#d4ac6e]/20 relative overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+                <h3 className="text-xl font-serif font-bold text-[#2d2424] mb-2">No seu bolso.</h3>
+                <p className="text-[#6a5f5f] text-sm mb-6">Leve o projeto para a obra e apresente no tablet ou celular.</p>
+                <div className="absolute bottom-0 right-0 w-32 h-32 bg-white/50 rounded-tl-full"></div>
+                <div className="relative z-10 flex items-center gap-2 text-[#2d2424] font-bold text-sm bg-white/80 backdrop-blur px-4 py-2 rounded-lg w-fit shadow-sm border border-white/50">
+                    <CheckIcon className="w-4 h-4 text-green-600" />
+                    Modo Offline
+                </div>
+             </div>
+
+             {/* Card 4: Features (Medium) */}
+             <div className="md:col-span-8 bg-white rounded-3xl border border-[#e6ddcd] p-8 shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 hover:border-[#d4ac6e]/50 transition-colors">
+                <div className="space-y-4 flex-1">
+                    <h3 className="text-2xl font-serif font-bold text-[#2d2424]">Tudo em um lugar.</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                        {['Plano de Corte', 'Lista de Compras', 'Orçamento PDF', 'Contrato Legal'].map(item => (
+                            <div key={item} className="flex items-center gap-2 text-[#6a5f5f] text-sm bg-[#f5f1e8] px-3 py-2 rounded-lg">
+                                <CheckIcon className="w-4 h-4 text-[#d4ac6e]" /> {item}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="flex gap-4">
+                    <div className="w-20 h-24 bg-[#2d2424] rounded-xl shadow-lg transform -rotate-6 flex items-center justify-center border border-[#4a4040] text-[#d4ac6e]">
+                        <DocumentTextIcon className="w-8 h-8" />
+                    </div>
+                    <div className="w-20 h-24 bg-[#d4ac6e] rounded-xl shadow-lg transform rotate-6 flex items-center justify-center text-[#2d2424] border border-[#b99256]">
+                        <CalculatorIcon className="w-8 h-8" />
+                    </div>
+                </div>
+             </div>
           </div>
-          <div className="border-t border-[#4a4040] pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs opacity-60">
-            <p>&copy; {new Date().getFullYear()} MarcenApp. Todos os direitos reservados.</p>
-            <div className="flex gap-6">
-              <a href="#" className="hover:text-white transition-colors">Privacidade</a>
-              <a href="#" className="hover:text-white transition-colors">Termos de Uso</a>
-              <a href="#" className="hover:text-white transition-colors">Cookies</a>
+        </div>
+      </section>
+
+      {/* --- TRUST MARQUEE --- */}
+      <section className="py-10 border-y border-[#e6ddcd] bg-white overflow-hidden">
+        <div className="container mx-auto px-6 mb-6 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#a89d8d]">Compatível com materiais das melhores redes</p>
+        </div>
+        <div className="flex w-full overflow-hidden relative">
+            <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-white to-transparent z-10"></div>
+            <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-white to-transparent z-10"></div>
+            <div className="flex animate-scroll gap-16 min-w-full justify-around items-center opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                <span className="text-2xl font-black text-[#3e3535]">LEO MADEIRAS</span>
+                <span className="text-2xl font-black text-[#3e3535]">DURATEX</span>
+                <span className="text-2xl font-black text-[#3e3535]">GMAD</span>
+                <span className="text-2xl font-black text-[#3e3535]">ARAUCO</span>
+                <span className="text-2xl font-black text-[#3e3535]">GUARARAPES</span>
+                <span className="text-2xl font-black text-[#3e3535]">GASÔMETRO</span>
+                {/* Duplicate for infinite loop illusion */}
+                <span className="text-2xl font-black text-[#3e3535]">LEO MADEIRAS</span>
+                <span className="text-2xl font-black text-[#3e3535]">DURATEX</span>
+                <span className="text-2xl font-black text-[#3e3535]">GMAD</span>
             </div>
-          </div>
+        </div>
+      </section>
+
+      {/* --- HOW IT WORKS SECTION --- */}
+      <section id="demonstracao" className="py-24 bg-[#faf9f6]">
+        <div className="container mx-auto px-6">
+            <div className="flex flex-col md:flex-row gap-16 items-center">
+                <div className="md:w-1/2 space-y-8">
+                    <div className="inline-block bg-[#d4ac6e]/10 text-[#b99256] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Tecnologia Iara Vision</div>
+                    <h2 className="text-4xl md:text-5xl font-serif font-medium text-[#2d2424] leading-tight">
+                        Do papel para a realidade em <span className="text-[#d4ac6e]">segundos</span>.
+                    </h2>
+                    <p className="text-[#6a5f5f] text-lg leading-relaxed">
+                        Não sabe usar programas CAD complexos? Sem problemas. Tire uma foto do seu rascunho ou do ambiente vazio, fale o que você quer, e nossa IA faz o resto.
+                    </p>
+                    
+                    <div className="space-y-6">
+                        {[
+                            { icon: <MagicIcon className="w-6 h-6" />, title: "Interpretação Inteligente", desc: "Reconhece paredes, medidas e anotações manuscritas automaticamente." },
+                            { icon: <BookIcon className="w-6 h-6" />, title: "Catálogo Real", desc: "Aplica texturas de MDF e materiais disponíveis no mercado brasileiro." },
+                            { icon: <RulerIcon className="w-6 h-6" />, title: "Precisão Técnica", desc: "Gera plantas baixas respeitando normas de arquitetura." }
+                        ].map((feat, idx) => (
+                            <div key={idx} className="flex gap-4 p-4 rounded-xl hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-[#e6ddcd]">
+                                <div className="w-12 h-12 bg-white border border-[#e6ddcd] rounded-full flex items-center justify-center text-[#d4ac6e] shadow-sm shrink-0">
+                                    {feat.icon}
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-[#2d2424] text-lg">{feat.title}</h4>
+                                    <p className="text-sm text-[#6a5f5f] leading-relaxed">{feat.desc}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                
+                <div className="md:w-1/2 w-full relative">
+                    <div className="absolute -inset-4 bg-[#d4ac6e]/20 rounded-[2.5rem] rotate-3 blur-lg"></div>
+                    <div className="relative bg-white p-3 rounded-[2rem] shadow-2xl border border-[#e6ddcd]">
+                        <img 
+                            src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=1600" 
+                            alt="Interface App" 
+                            className="w-full rounded-[1.5rem]"
+                        />
+                        
+                        {/* Floating Cards */}
+                        <div className="absolute -left-6 top-20 bg-[#2d2424] text-white p-4 rounded-xl shadow-xl border border-[#4a4040] animate-bounce" style={{ animationDuration: '3s' }}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center"><CheckIcon className="w-6 h-6" /></div>
+                                <div>
+                                    <p className="text-xs text-gray-400">Status</p>
+                                    <p className="font-bold">Projeto Gerado</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="absolute -right-6 bottom-20 bg-white text-[#2d2424] p-4 rounded-xl shadow-xl border border-[#e6ddcd] animate-bounce" style={{ animationDuration: '4s' }}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-[#d4ac6e] rounded-full flex items-center justify-center"><ZapIcon className="w-6 h-6 text-white" /></div>
+                                <div>
+                                    <p className="text-xs text-gray-500">Tempo</p>
+                                    <p className="font-bold">12 Segundos</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </section>
+
+      {/* --- TESTIMONIALS --- */}
+      <section id="historias" className="py-24 bg-[#2d2424] text-[#f5f1e8] relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] opacity-10"></div>
+        
+        <div className="container mx-auto px-6 relative z-10">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+                <h2 className="text-3xl md:text-4xl font-serif mb-6">De Marceneiro para Marceneiro</h2>
+                <p className="text-[#a89d8d] text-lg">
+                    Veja como profissionais de todo o Brasil estão modernizando suas oficinas e fechando mais contratos.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {[
+                    {
+                        name: "Ricardo Silva",
+                        role: "Marcenaria RS - SP",
+                        text: "O MarcenApp mudou a forma como vendo. O cliente fecha na hora quando vê o 3D no tablet. Antes eu demorava dias desenhando.",
+                        image: "https://randomuser.me/api/portraits/men/32.jpg"
+                    },
+                    {
+                        name: "Ana Beatriz",
+                        role: "Designer de Interiores - RJ",
+                        text: "A precisão do plano de corte é incrível. Economizo pelo menos 20% de material em cada obra. O sistema se pagou na primeira semana.",
+                        image: "https://randomuser.me/api/portraits/women/44.jpg"
+                    },
+                    {
+                        name: "Carlos Mendes",
+                        role: "Móveis Planejados - MG",
+                        text: "Eu tinha dificuldade em orçar a mão de obra corretamente. A calculadora do app me deu clareza e agora sei exatamente meu lucro.",
+                        image: "https://randomuser.me/api/portraits/men/67.jpg"
+                    }
+                ].map((test, idx) => (
+                    <div key={idx} className="bg-white/5 border border-white/10 p-8 rounded-2xl hover:bg-white/10 transition-colors relative">
+                        <div className="text-[#d4ac6e] text-6xl font-serif absolute top-4 left-6 opacity-20">"</div>
+                        <p className="text-gray-300 italic mb-6 relative z-10">{test.text}</p>
+                        <div className="flex items-center gap-4">
+                            <img src={test.image} alt={test.name} className="w-12 h-12 rounded-full border-2 border-[#d4ac6e]" />
+                            <div>
+                                <h4 className="font-bold text-[#f5f1e8]">{test.name}</h4>
+                                <p className="text-xs text-[#d4ac6e]">{test.role}</p>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+      </section>
+
+      {/* --- LOGIN / SIGNUP SECTION --- */}
+      <section id="acesso" ref={loginRef} className="py-24 bg-[#fffefb]">
+        <div className="container mx-auto px-6">
+            <div className="max-w-5xl mx-auto bg-[#f5f1e8] rounded-[3rem] overflow-hidden shadow-2xl border border-[#e6ddcd] flex flex-col md:flex-row relative">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#d4ac6e]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                {/* Form Side */}
+                <div className="md:w-1/2 p-10 md:p-16 flex flex-col justify-center relative z-10">
+                    <div className="mb-8">
+                        <h3 className="text-3xl font-serif font-bold text-[#2d2424] mb-2">
+                            {isLoginMode ? 'Bem-vindo de volta' : 'Comece a usar agora'}
+                        </h3>
+                        <p className="text-[#6a5f5f]">
+                            {isLoginMode ? 'Acesse seus projetos e orçamentos.' : 'Teste grátis por 7 dias. Sem cartão de crédito.'}
+                        </p>
+                    </div>
+
+                    {/* Toggle */}
+                    <div className="bg-[#e6ddcd] p-1.5 rounded-xl flex mb-8 shadow-inner">
+                        <button 
+                            onClick={() => setIsLoginMode(false)}
+                            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${!isLoginMode ? 'bg-white text-[#2d2424] shadow-md' : 'text-[#6a5f5f] hover:text-[#2d2424]'}`}
+                        >
+                            Criar Conta
+                        </button>
+                        <button 
+                            onClick={() => setIsLoginMode(true)}
+                            className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${isLoginMode ? 'bg-white text-[#2d2424] shadow-md' : 'text-[#6a5f5f] hover:text-[#2d2424]'}`}
+                        >
+                            Entrar
+                        </button>
+                    </div>
+
+                    <form onSubmit={handleLoginSubmit} className="space-y-5">
+                        {!isLoginMode && (
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-[#8a7e7e] mb-1.5 ml-1">Seu Nome</label>
+                                <div className="relative">
+                                    <input 
+                                        type="text" 
+                                        className="w-full p-3.5 pl-4 rounded-xl border border-[#e6ddcd] bg-white focus:border-[#d4ac6e] focus:ring-2 focus:ring-[#d4ac6e]/20 outline-none transition"
+                                        placeholder="João Silva"
+                                        value={name}
+                                        onChange={e => setName(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        <div>
+                            <label className="block text-xs font-bold uppercase text-[#8a7e7e] mb-1.5 ml-1">E-mail Profissional</label>
+                            <input 
+                                type="email" 
+                                className="w-full p-3.5 pl-4 rounded-xl border border-[#e6ddcd] bg-white focus:border-[#d4ac6e] focus:ring-2 focus:ring-[#d4ac6e]/20 outline-none transition"
+                                placeholder="contato@marcenaria.com"
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                            />
+                        </div>
+
+                        {!isLoginMode && (
+                            <div className="grid grid-cols-2 gap-4 pt-2">
+                                <button type="button" onClick={() => setAccountType('user')} className={`p-4 rounded-xl border-2 text-sm font-bold transition flex flex-col items-center gap-2 ${accountType === 'user' ? 'border-[#d4ac6e] bg-white text-[#2d2424] shadow-sm' : 'border-transparent bg-[#e6ddcd]/50 text-gray-500 hover:bg-[#e6ddcd]'}`}>
+                                    <HammerIcon className={`w-6 h-6 ${accountType === 'user' ? 'text-[#d4ac6e]' : 'text-gray-400'}`} /> Sou Marceneiro
+                                </button>
+                                <button type="button" onClick={() => setAccountType('partner')} className={`p-4 rounded-xl border-2 text-sm font-bold transition flex flex-col items-center gap-2 ${accountType === 'partner' ? 'border-[#2d2424] bg-white text-[#2d2424] shadow-sm' : 'border-transparent bg-[#e6ddcd]/50 text-gray-500 hover:bg-[#e6ddcd]'}`}>
+                                    <UsersIcon className={`w-6 h-6 ${accountType === 'partner' ? 'text-[#2d2424]' : 'text-gray-400'}`} /> Sou Lojista
+                                </button>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-100 flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div> {error}
+                            </div>
+                        )}
+
+                        <button 
+                            type="submit" 
+                            disabled={isLoading}
+                            className="w-full bg-[#2d2424] text-white font-bold py-4 rounded-xl hover:bg-[#d4ac6e] hover:text-[#2d2424] transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-70"
+                        >
+                            {isLoading ? 'Processando...' : (isLoginMode ? 'Acessar Sistema' : 'Criar Conta Grátis')} <ArrowRightIcon className="w-5 h-5" />
+                        </button>
+                    </form>
+                </div>
+
+                {/* Image Side */}
+                <div className="md:w-1/2 bg-[#2d2424] relative overflow-hidden min-h-[300px] md:min-h-auto">
+                    <img 
+                        src="https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&q=80&w=1200" 
+                        alt="Marcenaria Moderna" 
+                        className="absolute inset-0 w-full h-full object-cover opacity-60"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#2d2424] via-[#2d2424]/40 to-transparent"></div>
+                    
+                    <div className="absolute bottom-10 left-10 right-10 text-white">
+                        <div className="flex gap-1 mb-4">
+                            {[1,2,3,4,5].map(i => <StarIcon key={i} className="w-5 h-5 text-[#d4ac6e] fill-current" />)}
+                        </div>
+                        <p className="text-xl italic font-serif font-medium leading-relaxed text-[#f5f1e8]/90">"A organização que o MarcenApp trouxe para minha oficina é impagável. Hoje consigo pegar 3x mais projetos."</p>
+                        <div className="mt-6 border-l-4 border-[#d4ac6e] pl-4">
+                            <p className="font-bold text-lg">Roberto Almeida</p>
+                            <p className="text-sm text-[#d4ac6e]">Móveis Planejados Almeida</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </section>
+
+      {/* --- FOOTER --- */}
+      <footer className="bg-[#fffefb] border-t border-[#e6ddcd] pt-16 pb-8">
+        <div className="container mx-auto px-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                <div className="md:col-span-1">
+                    <div className="inline-flex items-center gap-2 mb-4 text-[#2d2424]">
+                        <LogoIcon className="w-8 h-8 text-[#d4ac6e]" />
+                        <span className="font-serif font-bold text-2xl">MarcenApp</span>
+                    </div>
+                    <p className="text-[#6a5f5f] text-sm leading-relaxed mb-6">
+                        A plataforma definitiva para marceneiros que querem projetar, vender e produzir com inteligência artificial.
+                    </p>
+                    <div className="flex gap-4">
+                        <a href="#" className="p-2 bg-[#f5f1e8] rounded-full text-[#2d2424] hover:bg-[#d4ac6e] transition"><InstagramIcon className="w-5 h-5" /></a>
+                        <a href="#" className="p-2 bg-[#f5f1e8] rounded-full text-[#2d2424] hover:bg-[#d4ac6e] transition"><FacebookIcon className="w-5 h-5" /></a>
+                        <a href="#" className="p-2 bg-[#f5f1e8] rounded-full text-[#2d2424] hover:bg-[#d4ac6e] transition"><LinkedinIcon className="w-5 h-5" /></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 className="font-bold text-[#2d2424] mb-4">Produto</h4>
+                    <ul className="space-y-2 text-sm text-[#6a5f5f]">
+                        <li><a href="#" className="hover:text-[#d4ac6e]">Projeto 3D</a></li>
+                        <li><a href="#" className="hover:text-[#d4ac6e]">Plano de Corte</a></li>
+                        <li><a href="#" className="hover:text-[#d4ac6e]">Orçamentos</a></li>
+                        <li><a href="#" className="hover:text-[#d4ac6e]">Gestão Financeira</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 className="font-bold text-[#2d2424] mb-4">Empresa</h4>
+                    <ul className="space-y-2 text-sm text-[#6a5f5f]">
+                        <li><a href="#" className="hover:text-[#d4ac6e]">Sobre Nós</a></li>
+                        <li><a href="#" className="hover:text-[#d4ac6e]">Seja Parceiro</a></li>
+                        <li><a href="#" className="hover:text-[#d4ac6e]">Blog</a></li>
+                        <li><a href="#" className="hover:text-[#d4ac6e]">Carreiras</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 className="font-bold text-[#2d2424] mb-4">Suporte</h4>
+                    <ul className="space-y-2 text-sm text-[#6a5f5f]">
+                        <li><a href="#" className="hover:text-[#d4ac6e]">Central de Ajuda</a></li>
+                        <li><a href="#" className="hover:text-[#d4ac6e]">Tutoriais</a></li>
+                        <li><a href="#" className="hover:text-[#d4ac6e]">Contato</a></li>
+                        <li><a href="#" className="hover:text-[#d4ac6e]">Status do Sistema</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div className="border-t border-[#e6ddcd] pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p className="text-xs text-[#a89d8d]">
+                    &copy; {new Date().getFullYear()} MarcenApp Intelligence. Todos os direitos reservados.
+                </p>
+                <div className="flex gap-6 text-xs text-[#6a5f5f] font-medium">
+                    <a href="#" className="hover:text-[#d4ac6e]">Termos de Uso</a>
+                    <a href="#" className="hover:text-[#d4ac6e]">Privacidade</a>
+                </div>
+            </div>
         </div>
       </footer>
 
-      {selectedFeature && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
-          <div className="absolute inset-0 bg-[#2d2424]/80 backdrop-blur-sm" onClick={() => setSelectedFeature(null)}></div>
-          <div className="bg-[#fffefb] rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative z-10 shadow-2xl border border-[#e6ddcd] flex flex-col md:flex-row overflow-hidden">
-            <button 
-              onClick={() => setSelectedFeature(null)} 
-              className="absolute top-4 right-4 bg-white/80 p-2 rounded-full hover:bg-white transition-colors z-30 text-[#3e3535] shadow-sm"
-            >
-              <XIcon className="w-6 h-6" />
-            </button>
-            
-            <div className="md:w-2/5 h-64 md:h-auto relative">
-                <img 
-                    src={selectedFeature.image} 
-                    alt={selectedFeature.title} 
-                    className="w-full h-full object-cover" 
-                    onError={handleImageError}
-                />
-                <div className="absolute inset-0 bg-[#3e3535]/20"></div>
-                <div className="absolute bottom-6 left-6 bg-[#fffefb]/90 backdrop-blur p-3 rounded-2xl shadow-lg border border-[#e6ddcd]">
-                  {selectedFeature.icon}
-                </div>
-            </div>
-
-            <div className="md:w-3/5 p-8 md:p-12 flex flex-col justify-center text-[#3e3535] bg-[#fffefb]">
-                <h3 className="text-3xl font-black mb-4">{selectedFeature.title}</h3>
-                <p className="text-[#6a5f5f] text-lg mb-8 leading-relaxed">
-                  {selectedFeature.fullDesc}
-                </p>
-
-                <div className="grid grid-cols-1 gap-3 mb-8">
-                  {selectedFeature.benefits.map((benefit: any, idx: number) => (
-                    <div key={idx} className="flex items-start gap-3 bg-[#f5f1e8] p-4 rounded-xl border border-[#e6ddcd]">
-                      <div className="text-[#d4ac6e] mt-0.5 bg-[#fffefb] p-1 rounded-full shadow-sm">{benefit.icon}</div>
-                      <span className="text-sm font-bold text-[#3e3535] mt-0.5">{benefit.text}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex gap-4 mt-auto">
-                  <button onClick={() => {setSelectedFeature(null); scrollToLogin('signup');}} className="flex-1 bg-[#d4ac6e] text-[#3e3535] py-3.5 rounded-xl font-bold hover:bg-[#c89f5e] transition-colors shadow-md flex justify-center items-center gap-2 hover:-translate-y-0.5 transform">
-                    <ZapIcon className="w-5 h-5" /> Testar Agora
-                  </button>
-                </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {selectedImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md animate-fadeIn" onClick={() => setSelectedImage(null)}>
-          <button className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2">
-            <XIcon className="w-10 h-10" />
-          </button>
-          <img 
-            src={selectedImage} 
-            alt="Zoom" 
-            className="max-w-full max-h-[85vh] rounded-lg shadow-2xl border-4 border-[#3e3535]" 
-            onClick={(e) => e.stopPropagation()} 
-            onError={handleImageError}
-          />
-          <p className="absolute bottom-8 text-white/70 text-sm">Toque fora para fechar</p>
-        </div>
-      )}
-
     </div>
   );
-}
+};
