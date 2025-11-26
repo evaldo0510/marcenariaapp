@@ -898,7 +898,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       {/* Only render admin/partner modals if user is super admin */}
       {isSuperAdmin && (
         <>
-            <ManagementDashboard isOpen={modals.management} onClose={() => toggleModal('management', false)} />
+            <ManagementDashboard 
+                isOpen={modals.management} 
+                onClose={() => toggleModal('management', false)} 
+                onOpenProjectGenerator={() => toggleModal('projectGenerator', true)}
+                onOpenCuttingPlan={() => toggleModal('cutting', true)}
+            />
             <DistributorPortal isOpen={modals.partnerPortal} onClose={() => toggleModal('partnerPortal', false)} />
             <DistributorAdmin isOpen={modals.admin} onClose={() => toggleModal('admin', false)} />
             {modals.notifications && <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => toggleModal('notifications', false)}><NotificationSystem /></div>}

@@ -22,7 +22,10 @@ import {
     TrendingUpIcon,
     TrendingDownIcon,
     AlertCircleIcon,
-    PlusIcon
+    PlusIcon,
+    ArrowRightIcon,
+    MagicIcon,
+    ToolsIcon
 } from './Shared';
 import { getHistory, getInventory, getTransactions } from '../services/historyService';
 import type { ProjectHistoryItem, InventoryItem, Transaction } from '../types';
@@ -30,14 +33,28 @@ import type { ProjectHistoryItem, InventoryItem, Transaction } from '../types';
 interface ManagementDashboardProps {
     isOpen: boolean;
     onClose: () => void;
+    onOpenProjectGenerator?: () => void;
+    onOpenCuttingPlan?: () => void;
 }
 
 type ModuleTab = 'dashboard' | 'finance' | 'inventory' | 'kanban' | 'pricing' | 'suppliers' | 'settings' | 'quotations' | 'catalog';
 
 // --- AI ASSISTANT COMPONENT ---
-const AIAssistant: React.FC<{ projects: ProjectHistoryItem[], inventory: InventoryItem[], transactions: Transaction[] }> = ({ projects, inventory, transactions }) => {
+interface AIAssistantProps {
+    projects: ProjectHistoryItem[];
+    inventory: InventoryItem[];
+    transactions: Transaction[];
+    onAction: (actionType: string, payload?: any) => void;
+}
+
+const AIAssistant: React.FC<AIAssistantProps> = ({ projects, inventory, transactions, onAction }) => {
   const insights = useMemo(() => {
-    const tips: { type: 'urgent' | 'warning' | 'success' | 'opportunity' | 'info'; title: string; message: string }[] = [];
+    const tips: { 
+        type: 'urgent' | 'warning' | 'success' | 'opportunity' | 'info'; 
+        title: string; 
+        message: string;
+        action?: { label: string; type: string; payload?: any; icon?: any };
+    }[] = [];
     
     // 1. Análise de Estoque
     const lowStock = inventory.filter(i => i.quantity <= i.minStock);
@@ -45,7 +62,8 @@ const AIAssistant: React.FC<{ projects: ProjectHistoryItem[], inventory: Invento
       tips.push({
         type: 'urgent',
         title: '🚨 Reposição de Estoque Urgente',
-        message: `Identifiquei ${lowStock.length} itens críticos. Você precisa comprar: ${lowStock.map(i => i.name).join(', ')} para evitar paradas na produção.`
+        message: `Identifiquei ${lowStock.length} itens críticos. Você precisa comprar: ${lowStock.map(i => i.name).join(', ')} para evitar paradas na produção.`,
+        action: { label: 'Ver Estoque', type: 'goto_inventory', icon: <ClipboardListIcon className="w-4 h-4" /> }
       });
     }
 
@@ -63,8 +81,9 @@ const AIAssistant: React.FC<{ projects: ProjectHistoryItem[], inventory: Invento
        tips.push({
          type: 'info', 
          title: '📉 Margem de Lucro Apertada',
-         message: `Sua margem atual é de apenas ${(((income - expense) / income) * 100).toFixed(1)}%. Considere revisar a precificação na Calculadora para aumentar seus ganhos.`
-       });
+         message: `Sua margem atual é de apenas ${(((income - expense) / income) * 100).toFixed(1)}%. Considere revisar a precificação na Calculadora para aumentar seus ganhos.`,
+         action: { label: 'Abrir Calculadora', type: 'goto_pricing', icon: <CalculatorIcon className="w-4 h-4" /> }
+      });
     }
 
     // 3. Análise de Projetos (Gargalos)
@@ -74,18 +93,36 @@ const AIAssistant: React.FC<{ projects: ProjectHistoryItem[], inventory: Invento
       tips.push({
         type: 'warning',
         title: '🚧 Gargalo na Produção',
-        message: `Você tem ${doing} projetos em andamento ao mesmo tempo. Evite iniciar novos trabalhos da coluna "Em Orçamento" para garantir a qualidade e o prazo dos atuais.`
+        message: `Você tem ${doing} projetos em andamento ao mesmo tempo. Evite iniciar novos trabalhos da coluna "Em Orçamento" para garantir a qualidade e o prazo dos atuais.`,
+        action: { label: 'Gerenciar no Kanban', type: 'goto_kanban', icon: <ViewBoardsIcon className="w-4 h-4" /> }
       });
     }
     
     // 4. Dica de Faturamento (Oportunidade)
-    // Assuming projectValue is available, otherwise ignoring
     const potentialRevenue = projects.reduce((acc, p) => acc + (p.status !== 'finalizado' ? Number(p.projectValue || 0) : 0), 0);
     if (potentialRevenue > 0) {
         tips.push({
             type: 'opportunity',
             title: '💰 Receita Potencial',
-            message: `Você tem ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(potentialRevenue)} em projetos abertos. Foque em concluir os itens em andamento para liberar esse caixa.`
+            message: `Você tem ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(potentialRevenue)} em projetos abertos. Foque em concluir os itens em andamento.`
+        });
+    }
+
+    // 5. Sugestão Criativa (Geração 3D)
+    tips.push({
+        type: 'opportunity',
+        title: '✨ Tendência de Mercado',
+        message: 'Cozinhas em estilo "Industrial Moderno" estão em alta na sua região. Que tal gerar um projeto modelo para seu portfólio?',
+        action: { label: 'Gerar Projeto 3D', type: 'generate_3d', icon: <MagicIcon className="w-4 h-4" /> }
+    });
+
+    // 6. Sugestão de Otimização (Plano de Corte)
+    if (projects.length > 0) {
+        tips.push({
+            type: 'info',
+            title: '📐 Otimização de Material',
+            message: 'Você pode reduzir o desperdício de chapas nos seus projetos atuais gerando um novo plano de corte consolidado.',
+            action: { label: 'Otimizar Plano de Corte', type: 'optimize_cut', icon: <ToolsIcon className="w-4 h-4" /> }
         });
     }
 
@@ -115,25 +152,43 @@ const AIAssistant: React.FC<{ projects: ProjectHistoryItem[], inventory: Invento
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         {insights.map((insight, idx) => (
-          <div key={idx} className={`p-4 rounded-lg border-l-4 transition-all hover:translate-x-1 shadow-sm ${
+          <div key={idx} className={`p-5 rounded-xl border-l-4 transition-all hover:shadow-md shadow-sm flex flex-col justify-between ${
             insight.type === 'urgent' ? 'border-l-red-500 bg-red-50 dark:bg-red-900/20' :
             insight.type === 'warning' ? 'border-l-amber-500 bg-amber-50 dark:bg-amber-900/20' :
             insight.type === 'success' ? 'border-l-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' :
             insight.type === 'opportunity' ? 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20' :
             'border-l-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
           }`}>
-             <h3 className={`font-bold text-lg mb-1 flex items-center gap-2 ${
-                insight.type === 'urgent' ? 'text-red-700 dark:text-red-400' :
-                insight.type === 'warning' ? 'text-amber-700 dark:text-amber-400' :
-                insight.type === 'success' ? 'text-emerald-700 dark:text-emerald-400' :
-                insight.type === 'opportunity' ? 'text-blue-700 dark:text-blue-400' :
-                'text-indigo-700 dark:text-indigo-400'
-             }`}>
-                {insight.title}
-             </h3>
-             <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{insight.message}</p>
+             <div>
+                 <h3 className={`font-bold text-lg mb-2 flex items-center gap-2 ${
+                    insight.type === 'urgent' ? 'text-red-700 dark:text-red-400' :
+                    insight.type === 'warning' ? 'text-amber-700 dark:text-amber-400' :
+                    insight.type === 'success' ? 'text-emerald-700 dark:text-emerald-400' :
+                    insight.type === 'opportunity' ? 'text-blue-700 dark:text-blue-400' :
+                    'text-indigo-700 dark:text-indigo-400'
+                 }`}>
+                    {insight.title}
+                 </h3>
+                 <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-4">{insight.message}</p>
+             </div>
+             
+             {insight.action && (
+                 <button 
+                    onClick={() => onAction(insight.action!.type, insight.action!.payload)}
+                    className={`self-start text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                        insight.type === 'urgent' ? 'bg-red-200 text-red-800 hover:bg-red-300' :
+                        insight.type === 'warning' ? 'bg-amber-200 text-amber-800 hover:bg-amber-300' :
+                        insight.type === 'opportunity' ? 'bg-blue-200 text-blue-800 hover:bg-blue-300' :
+                        'bg-indigo-200 text-indigo-800 hover:bg-indigo-300'
+                    }`}
+                 >
+                    {insight.action.icon}
+                    {insight.action.label}
+                    <ArrowRightIcon className="w-3 h-3" />
+                 </button>
+             )}
           </div>
         ))}
       </div>
@@ -146,8 +201,9 @@ const DashboardOverview: React.FC<{
     setActiveTab: (tab: ModuleTab) => void,
     projects: ProjectHistoryItem[], 
     inventory: InventoryItem[], 
-    transactions: Transaction[] 
-}> = ({ setActiveTab, projects, inventory, transactions }) => {
+    transactions: Transaction[],
+    onAction: (action: string, payload?: any) => void
+}> = ({ setActiveTab, projects, inventory, transactions, onAction }) => {
     
     const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -173,7 +229,12 @@ const DashboardOverview: React.FC<{
             </div>
 
             {/* AI Assistant Section */}
-            <AIAssistant projects={projects} inventory={inventory} transactions={transactions} />
+            <AIAssistant 
+                projects={projects} 
+                inventory={inventory} 
+                transactions={transactions} 
+                onAction={onAction}
+            />
 
             {/* Financial Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -260,7 +321,7 @@ const DashboardOverview: React.FC<{
     );
 }
 
-export const ManagementDashboard: React.FC<ManagementDashboardProps> = ({ isOpen, onClose }) => {
+export const ManagementDashboard: React.FC<ManagementDashboardProps> = ({ isOpen, onClose, onOpenProjectGenerator, onOpenCuttingPlan }) => {
     const [activeTab, setActiveTab] = useState<ModuleTab>('dashboard');
     
     // State for shared data across tabs (fetched from IndexedDB)
@@ -286,7 +347,37 @@ export const ManagementDashboard: React.FC<ManagementDashboardProps> = ({ isOpen
             };
             fetchData();
         }
-    }, [isOpen, activeTab]); // Refresh data when tab changes to keep it somewhat fresh
+    }, [isOpen, activeTab]); 
+
+    const handleAIAction = (type: string, payload?: any) => {
+        switch (type) {
+            case 'generate_3d':
+                if (onOpenProjectGenerator) {
+                    onClose(); // Close dashboard first
+                    onOpenProjectGenerator();
+                } else {
+                    alert("O gerador de projetos não está disponível neste contexto.");
+                }
+                break;
+            case 'optimize_cut':
+                if (onOpenCuttingPlan) {
+                    onClose();
+                    onOpenCuttingPlan();
+                }
+                break;
+            case 'goto_inventory':
+                setActiveTab('inventory');
+                break;
+            case 'goto_pricing':
+                setActiveTab('pricing');
+                break;
+            case 'goto_kanban':
+                setActiveTab('kanban');
+                break;
+            default:
+                console.log("Unknown action:", type);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -302,7 +393,13 @@ export const ManagementDashboard: React.FC<ManagementDashboardProps> = ({ isOpen
             case 'catalog': return <MaterialsCatalog />;
             case 'dashboard':
             default:
-                return <DashboardOverview setActiveTab={setActiveTab} projects={projects} inventory={inventory} transactions={transactions} />;
+                return <DashboardOverview 
+                            setActiveTab={setActiveTab} 
+                            projects={projects} 
+                            inventory={inventory} 
+                            transactions={transactions} 
+                            onAction={handleAIAction}
+                        />;
         }
     };
 

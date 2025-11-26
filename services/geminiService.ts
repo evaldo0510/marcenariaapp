@@ -13,9 +13,6 @@ export const getGeminiApiKey = (): string => {
     }
     
     // 2. Check Environment Variables (Vercel/Vite System Key)
-    // Support both Vite (import.meta.env) and standard process.env
-    // Vercel often exposes vars as process.env in functions or VITE_ prefixed vars in frontend
-    
     // @ts-ignore
     if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY) {
         // @ts-ignore
@@ -32,53 +29,116 @@ export const getGeminiApiKey = (): string => {
 
 export const hasSystemApiKey = () => {
     const key = getGeminiApiKey();
-    // We consider it a "System Key" if it exists but isn't in local storage
-    // However, for UI purposes, we just want to know if ANY key works without user input
     const localKey = typeof localStorage !== 'undefined' ? localStorage.getItem('gemini_api_key') : null;
-    if (localKey) return true; // User has a key, so system is "ready"
-    return !!key; // If no local key, but we found one in env, it's a system key
+    if (localKey) return true;
+    return !!key;
 }
 
 // Helper to get a fresh AI client instance
 const getAiClient = () => {
     const apiKey = getGeminiApiKey();
-    // If API Key is missing, we pass an empty string.
-    // The SDK will initialize, but calls will fail, triggering the UI to ask for a key.
     return new GoogleGenAI({ apiKey: apiKey || '' });
 };
 
+// --- FALLBACK PROXY ---
+const PROXY_URL = 'https://api.geminigen.ai/uapi/v1/generate';
+
+async function callCustomProxy(model: string, contents: any, config: any): Promise<GenerateContentResponse> {
+    // Construct payload to match what the proxy likely expects (standard Gemini REST structure)
+    const payload = {
+        model,
+        contents,
+        config,
+        apiKey: getGeminiApiKey() // Pass key in body in case proxy relies on it
+    };
+
+    console.log("Attempting fallback to proxy:", PROXY_URL);
+
+    const response = await fetch(PROXY_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Proxy Request Failed: ${response.status} - ${errText}`);
+    }
+
+    const data = await response.json();
+    return data as GenerateContentResponse;
+}
+
+// Unified generation function with fallback logic
+async function generateContentSafe(
+    params: { model: string, contents: any, config?: any }
+): Promise<GenerateContentResponse> {
+    const ai = getAiClient();
+    
+    try {
+        // 1. Try Direct SDK Call
+        return await retryOperation(() => ai.models.generateContent(params));
+    } catch (error: any) {
+        const errorMsg = error.message || '';
+        const status = error.status || error.code;
+
+        // Check for specific errors that warrant a proxy fallback
+        // 403 (Forbidden/Location), 500 (Internal), Network Error (fetch failed)
+        // Note: 429 (Quota) might not be solved by proxy unless proxy handles rotation, but we try anyway.
+        const isCandidateForFallback = 
+            errorMsg.includes('fetch') || 
+            errorMsg.includes('network') || 
+            errorMsg.includes('Failed to fetch') ||
+            status === 403 || 
+            status === 500 ||
+            errorMsg.includes('User location is not supported');
+
+        if (isCandidateForFallback) {
+            console.warn(`Direct API call failed (${status || 'Network'}), attempting proxy fallback...`);
+            try {
+                return await callCustomProxy(params.model, params.contents, params.config);
+            } catch (proxyError) {
+                console.error("Proxy fallback also failed:", proxyError);
+                // Throw the original error as it's usually more descriptive for the user
+                throw error; 
+            }
+        }
+        
+        throw error;
+    }
+}
+
 // Helper for retrying operations with exponential backoff
-async function retryOperation<T>(operation: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+async function retryOperation<T>(operation: () => Promise<T>, retries = 2, delay = 1000): Promise<T> {
     try {
         return await operation();
     } catch (error: any) {
         const status = error.status || error.code;
         const message = error.message || '';
         
-        const isRateLimit = status === 429 || status === 'RESOURCE_EXHAUSTED' || message.includes('429') || message.includes('quota') || message.includes('RESOURCE_EXHAUSTED');
-        const isNetworkError = message.includes('xhr') || message.includes('fetch') || status === 500 || status === 503;
+        const isRateLimit = status === 429 || status === 'RESOURCE_EXHAUSTED' || message.includes('429') || message.includes('quota');
+        const isNetworkError = message.includes('xhr') || message.includes('fetch') || status === 503;
 
         if (retries > 0 && (isNetworkError || isRateLimit)) {
             let waitTime = delay;
             
             if (isRateLimit) {
-                // Try to parse retry time from message (e.g., "Please retry in 42.68s")
                 const retryMatch = message.match(/retry in ([0-9.]+)(s|ms)/);
                 if (retryMatch) {
                     const val = parseFloat(retryMatch[1]);
                     const unit = retryMatch[2];
                     const parsedWait = unit === 's' ? val * 1000 : val;
                     
-                    // If wait time is reasonable (e.g. < 15s), we wait. Otherwise throw to let UI handle it.
                     if (parsedWait < 15000) {
-                        waitTime = parsedWait + 1000; // Add 1s buffer
+                        waitTime = parsedWait + 1000;
                         console.warn(`Rate limit hit. Retrying automatically in ${waitTime}ms...`);
                     } else {
-                        // Too long to wait automatically in background, throw so UI can show timer
                         throw error;
                     }
                 } else {
-                    waitTime = delay * 2; // Default exponential backoff
+                    waitTime = delay * 2;
                 }
             } else {
                 waitTime = delay * 2;
@@ -121,7 +181,6 @@ export function cleanAndParseJson<T>(text: string): T {
 // --- ARCVISION SPECIFIC FUNCTIONS ---
 
 export async function detectEnvironments(imageBase64: { data: string, mimeType: string } | null): Promise<string[]> {
-    const ai = getAiClient();
     const prompt = `
       Você é um Assistente de Arquiteto.
       Analise a imagem fornecida (Planta Baixa ou Foto).
@@ -135,7 +194,7 @@ export async function detectEnvironments(imageBase64: { data: string, mimeType: 
         parts.push(fileToGenerativePart(imageBase64.data, imageBase64.mimeType));
     }
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: { parts },
         config: {
@@ -147,7 +206,7 @@ export async function detectEnvironments(imageBase64: { data: string, mimeType: 
                 }
             }
         }
-    }));
+    });
 
     if (response.text) {
         const parsed = cleanAndParseJson<{ ambientes: string[] }>(response.text);
@@ -163,7 +222,6 @@ export async function generateArcVisionProject(
     collectionInfo: any,
     imageBase64: { data: string, mimeType: string } | null
 ): Promise<any> {
-    const ai = getAiClient();
     const envsList = selectedEnvs.join(", ");
     
     const promptText = `
@@ -222,13 +280,13 @@ export async function generateArcVisionProject(
         parts.push(fileToGenerativePart(imageBase64.data, imageBase64.mimeType));
     }
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
-        model: 'gemini-2.5-flash', // Using Flash for complex JSON reasoning
+    const response = await generateContentSafe({
+        model: 'gemini-2.5-flash',
         contents: { parts },
         config: {
             responseMimeType: 'application/json'
         }
-    }));
+    });
 
     if (response.text) {
         return cleanAndParseJson<any>(response.text);
@@ -247,10 +305,6 @@ export async function generateImage(
     isMirrored: boolean = false
 ): Promise<string> {
     
-    const ai = getAiClient();
-    // Select Model
-    // Standard: gemini-2.5-flash-image (Nano Banana)
-    // Pro: gemini-3-pro-image-preview (Nano Banana Pro)
     const modelName = useProModel ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
 
     // Engenharia de prompt para estilo PROMOB/V-Ray com proteção contra alucinações
@@ -275,7 +329,6 @@ export async function generateImage(
     \n**DIRETRIZES OBRIGATÓRIAS DE CÂMERA E ENQUADRAMENTO (ANTI-CORTE):**
     `;
 
-    // Injeta a estratégia específica escolhida pelo usuário, se houver
     if (framingStrategy) {
         technicalPrompt += `\n**COMANDO PRIORITÁRIO DE ENQUADRAMENTO:** "${framingStrategy}"\n`;
     }
@@ -334,7 +387,6 @@ export async function generateImage(
     4. **Qualidade:** 4K, nítida, sem distorções.
     `;
 
-    // --- BLOCO ESPECÍFICO PARA MODO PRO ---
     if (useProModel) {
         technicalPrompt += `
         \n**💎 MODO PRO ATIVADO (Hiper-Realismo):**
@@ -354,23 +406,21 @@ export async function generateImage(
     }
 
     try {
-        // Configure based on model capabilities
         const config: any = {
             responseModalities: [Modality.IMAGE],
         };
 
-        // Only Gemini 3 Pro supports explicit imageSize configuration
         if (useProModel) {
             config.imageConfig = {
-                imageSize: imageResolution // '1K', '2K', '4K'
+                imageSize: imageResolution
             };
         }
 
-        const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+        const response = await generateContentSafe({
             model: modelName,
             contents: { parts },
             config: config
-        }));
+        });
 
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
         
@@ -387,10 +437,9 @@ export async function generateImage(
 
 // Function to describe an image for a 3D project prompt
 export async function describeImageFor3D(base64Data: string, mimeType: string): Promise<string> {
-    const ai = getAiClient();
     const prompt = `Descreva detalhadamente este móvel da foto para um projeto 3D: destaque o tipo de móvel, as dimensões aproximadas, materiais, estilo, quantidade de portas/gavetas/nichos e qualquer característica visual que se destaca. Formule como um prompt de geração de projeto.`;
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: {
             parts: [
@@ -398,13 +447,12 @@ export async function describeImageFor3D(base64Data: string, mimeType: string): 
                 { text: prompt }
             ]
         }
-    }));
+    });
 
     return response.text || "Não foi possível descrever a imagem.";
 }
 
 export async function enhancePrompt(originalText: string): Promise<string> {
-    const ai = getAiClient();
     const prompt = `
     Atue como um Mestre Marceneiro e Designer de Interiores Sênior.
     
@@ -424,16 +472,15 @@ export async function enhancePrompt(originalText: string): Promise<string> {
     Retorne APENAS o texto reescrito, sem introduções ou aspas.
     `;
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: prompt
-    }));
+    });
 
     return response.text?.trim() || originalText;
 }
 
 export async function analyzeRoomImage(base64Image: string): Promise<{ roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }> {
-    const ai = getAiClient();
     const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';
     const data = base64Image.split(',')[1];
 
@@ -447,7 +494,7 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
     
     Retorne JSON: { roomType: string, confidence: string, dimensions: { width: number, depth: number, height: number }, detectedObjects: string[] }`;
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: {
             parts: [
@@ -474,7 +521,7 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
                 }
             }
         }
-    }));
+    });
 
     if (response.text) {
         return cleanAndParseJson(response.text);
@@ -483,7 +530,6 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
 }
 
 export async function generateLayoutSuggestions(roomType: string, dimensions: any, userIntent?: string): Promise<{ title: string, description: string, pros: string }[]> {
-    const ai = getAiClient();
     let prompt = `Para um ambiente do tipo "${roomType}" com dimensões ${dimensions.width}m x ${dimensions.depth}m.`;
     
     if (userIntent) {
@@ -494,7 +540,7 @@ export async function generateLayoutSuggestions(roomType: string, dimensions: an
 
     prompt += `\nRetorne JSON Array: [{ title, description, pros }]`;
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -511,7 +557,7 @@ export async function generateLayoutSuggestions(roomType: string, dimensions: an
                 }
             }
         }
-    }));
+    });
 
     if (response.text) {
         return cleanAndParseJson(response.text);
@@ -520,7 +566,6 @@ export async function generateLayoutSuggestions(roomType: string, dimensions: an
 }
 
 export async function generateDecorationList(projectDescription: string, style: string): Promise<{ item: string, category: string, estimatedPrice: string, suggestion: string }[]> {
-    const ai = getAiClient();
     const prompt = `Atue como um Designer de Interiores.
     Baseado neste projeto: "${projectDescription}"
     Estilo: "${style}"
@@ -530,7 +575,7 @@ export async function generateDecorationList(projectDescription: string, style: 
     
     Retorne APENAS um JSON Array com objetos: { item, category, estimatedPrice, suggestion }`;
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -549,7 +594,7 @@ export async function generateDecorationList(projectDescription: string, style: 
                 }
             }
         }
-    }));
+    });
 
     if (response.text) {
         return cleanAndParseJson(response.text);
@@ -558,7 +603,6 @@ export async function generateDecorationList(projectDescription: string, style: 
 }
 
 export async function suggestAlternativeStyles(projectDescription: string, currentStyle: string, base64Image?: string): Promise<string[]> {
-    const ai = getAiClient();
     const prompt = `Atue como um Diretor de Arte de Interiores.
     Projeto: "${projectDescription}"
     Estilo Atual: "${currentStyle}"
@@ -573,7 +617,7 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
         parts.push(fileToGenerativePart(data, mimeType));
     }
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: { parts },
         config: {
@@ -583,7 +627,7 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
                 items: { type: Type.STRING }
             }
         }
-    }));
+    });
     
     if (response.text) {
         return cleanAndParseJson<string[]>(response.text);
@@ -592,7 +636,6 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
 }
 
 export async function suggestAlternativeFinishes(projectDescription: string, style: string): Promise<Finish[]> {
-    const ai = getAiClient();
     const prompt = `Atue como um Especialista em Materiais de Marcenaria.
     Projeto: "${projectDescription}"
     Estilo: "${style}"
@@ -603,7 +646,7 @@ export async function suggestAlternativeFinishes(projectDescription: string, sty
     Retorne JSON array com objetos Finish.
     Type deve ser um de: 'wood', 'solid', 'metal', 'stone', 'glass'.`;
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -625,7 +668,7 @@ export async function suggestAlternativeFinishes(projectDescription: string, sty
                 }
             }
         }
-    }));
+    });
 
     if (response.text) {
         return cleanAndParseJson<Finish[]>(response.text);
@@ -634,11 +677,10 @@ export async function suggestAlternativeFinishes(projectDescription: string, sty
 }
 
 export async function searchFinishes(query: string): Promise<Finish[]> {
-    const ai = getAiClient();
     const prompt = `Sugira 4 acabamentos de marcenaria reais (MDF, pedras, metais) para: "${query}".
     Retorne JSON array.`;
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -660,7 +702,7 @@ export async function searchFinishes(query: string): Promise<Finish[]> {
                 }
             }
         }
-    }));
+    });
 
     if (response.text) {
         return cleanAndParseJson<Finish[]>(response.text);
@@ -669,46 +711,39 @@ export async function searchFinishes(query: string): Promise<Finish[]> {
 }
 
 export async function editImage(base64Data: string, mimeType: string, prompt: string): Promise<string> {
-    const ai = getAiClient();
-    try {
-        // Adicionando reforço de enquadramento também na edição
-        const enhancedPrompt = `${prompt}
-        
-        **REGRA CRÍTICA DE MANUTENÇÃO DE ENQUADRAMENTO:**
-        Ao editar, NÃO dê zoom in. Mantenha o enquadramento original ou afaste a câmera (Zoom Out) se necessário para mostrar o objeto inteiro. Mantenha margens de segurança nas bordas.`;
+    // Adicionando reforço de enquadramento também na edição
+    const enhancedPrompt = `${prompt}
+    
+    **REGRA CRÍTICA DE MANUTENÇÃO DE ENQUADRAMENTO:**
+    Ao editar, NÃO dê zoom in. Mantenha o enquadramento original ou afaste a câmera (Zoom Out) se necessário para mostrar o objeto inteiro. Mantenha margens de segurança nas bordas.`;
 
-        const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
-            model: 'gemini-2.5-flash-image', // Explicitly using Flash Image for editing tasks
-            contents: {
-                parts: [
-                    fileToGenerativePart(base64Data, mimeType),
-                    { text: enhancedPrompt }
-                ]
-            },
-            config: {
-                responseModalities: [Modality.IMAGE]
-            }
-        }));
-
-        const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-        if (part && part.inlineData) {
-            return part.inlineData.data;
+    const response = await generateContentSafe({
+        model: 'gemini-2.5-flash-image', 
+        contents: {
+            parts: [
+                fileToGenerativePart(base64Data, mimeType),
+                { text: enhancedPrompt }
+            ]
+        },
+        config: {
+            responseModalities: [Modality.IMAGE]
         }
-        throw new Error("Falha ao gerar imagem editada.");
-    } catch (e) {
-        console.error("Edit Image Error:", e);
-        throw e;
+    });
+
+    const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+    if (part && part.inlineData) {
+        return part.inlineData.data;
     }
+    throw new Error("Falha ao gerar imagem editada.");
 }
 
 export async function suggestImageEdits(projectDescription: string, imageSrc: string): Promise<string[]> {
-    const ai = getAiClient();
     const base64Data = imageSrc.split(',')[1];
     const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
 
     const prompt = `Analise esta imagem de projeto. Sugira 4 edições visuais (ex: mudar cor, adicionar luz). Retorne JSON array de strings.`;
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: {
             parts: [
@@ -723,7 +758,7 @@ export async function suggestImageEdits(projectDescription: string, imageSrc: st
                 items: { type: Type.STRING }
             }
         }
-    }));
+    });
 
     if (response.text) {
         return cleanAndParseJson<string[]>(response.text);
@@ -732,16 +767,15 @@ export async function suggestImageEdits(projectDescription: string, imageSrc: st
 }
 
 export async function generateGroundedResponse(prompt: string, location: { latitude: number, longitude: number } | null): Promise<{ text: string, sources: any[] }> {
-    const ai = getAiClient();
     const tools: any[] = [{ googleSearch: {} }];
     
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
-        model: 'gemini-3-pro-preview', // Using Pro for better reasoning on grounded tasks
+    const response = await generateContentSafe({
+        model: 'gemini-3-pro-preview', 
         contents: prompt,
         config: {
             tools: tools,
         }
-    }));
+    });
 
     const text = response.text || "Não encontrei informações.";
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
@@ -755,35 +789,29 @@ export async function generateGroundedResponse(prompt: string, location: { latit
 }
 
 export async function findLocalSuppliers(location: { latitude: number, longitude: number }): Promise<any[]> {
-    const ai = getAiClient();
-    
-    // Use Google Maps tool to find specific places near the location
     const prompt = `Encontre madeireiras e fornecedores de MDF próximos a esta localização (Lat: ${location.latitude}, Long: ${location.longitude}). Liste nome, endereço e se possível website.`;
     
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
             tools: [{ googleMaps: {} }],
         }
-    }));
+    });
 
-    // Extract grounding chunks that contain map data
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     
     const suppliers = groundingChunks
-        .filter((chunk: any) => chunk.maps) // Filter for chunks with map data
+        .filter((chunk: any) => chunk.maps) 
         .map((chunk: any) => ({
             title: chunk.maps.title,
             uri: chunk.maps.uri,
-            // Add a placeholder for distance or other metadata if available in future APIs
         }));
 
     return suppliers;
 }
 
 export async function editFloorPlan(base64Data: string, mimeType: string, prompt: string): Promise<string> {
-    // Prompt reforçado para manter estilo técnico AutoCAD com cotas
     const technicalPrompt = `
     ATUE COMO: Um software CAD (AutoCAD) em modo de exportação.
     TAREFA: Editar esta planta baixa mantendo o rigoroso padrão de desenho técnico.
@@ -803,7 +831,6 @@ export async function editFloorPlan(base64Data: string, mimeType: string, prompt
 }
 
 export async function estimateProjectCosts(project: ProjectHistoryItem): Promise<{ materialCost: number, laborCost: number }> {
-    const ai = getAiClient();
     const parts: any[] = [];
     const prompt = `Orce este projeto de marcenaria (Material e Mão de Obra) no Brasil.
     Projeto: ${project.name}
@@ -821,7 +848,7 @@ export async function estimateProjectCosts(project: ProjectHistoryItem): Promise
         parts.push(fileToGenerativePart(data, mimeType));
     }
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: { parts },
         config: {
@@ -835,7 +862,7 @@ export async function estimateProjectCosts(project: ProjectHistoryItem): Promise
                 required: ['materialCost', 'laborCost']
             }
         }
-    }));
+    });
 
     if (response.text) {
         return cleanAndParseJson<{ materialCost: number, laborCost: number }>(response.text);
@@ -844,7 +871,6 @@ export async function estimateProjectCosts(project: ProjectHistoryItem): Promise
 }
 
 export async function generateText(prompt: string, images?: { data: string, mimeType: string }[] | null): Promise<string> {
-    const ai = getAiClient();
     const parts: any[] = [{ text: prompt }];
     if (images) {
         images.forEach(img => {
@@ -852,18 +878,15 @@ export async function generateText(prompt: string, images?: { data: string, mime
         });
     }
 
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
-        model: 'gemini-3-pro-preview', // Use Pro for better reasoning on BOMS
+    const response = await generateContentSafe({
+        model: 'gemini-3-pro-preview',
         contents: { parts }
-    }));
+    });
 
     return response.text || "Não foi possível gerar o texto.";
 }
 
 export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidth: number, sheetHeight: number): Promise<{ text: string, image: string, optimization: string }> {
-    const ai = getAiClient();
-    const parts: any[] = [];
-    
     // 1. Texto e Otimização
     const textPrompt = `Gere um plano de corte otimizado para chapas de ${sheetWidth}x${sheetHeight}mm.
     Projeto: ${project.name}
@@ -873,14 +896,14 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
     1. Lista de cortes detalhada.
     2. Dicas de otimização (nesting) para economizar chapas.`;
 
-    const textResponse = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const textResponse = await generateContentSafe({
         model: 'gemini-3-pro-preview',
         contents: textPrompt
-    }));
+    });
     
     const textPlan = textResponse.text || "Plano não gerado.";
 
-    // 2. Imagem do Diagrama (Baseado na imagem do projeto se existir, ou apenas texto)
+    // 2. Imagem do Diagrama
     const imagePrompt = `
     ATUE COMO: Software de Otimização de Corte (Cutlist).
     TAREFA: Gerar um diagrama esquemático 2D de Nesting (plano de corte) para chapas de MDF.
@@ -895,7 +918,6 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
 
     const imgParts: any[] = [{ text: imagePrompt }];
     
-    // Se tiver imagem 3D, usa como contexto para entender a complexidade
     if (project.views3d && project.views3d.length > 0) {
          const imageSrc = project.views3d[0];
          const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
@@ -905,11 +927,11 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
 
     let imageBase64 = "";
     try {
-        const imgResponse = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+        const imgResponse = await generateContentSafe({
             model: 'gemini-2.5-flash-image',
             contents: { parts: imgParts },
             config: { responseModalities: [Modality.IMAGE] }
-        }));
+        });
         
         const imgPart = imgResponse.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
         if (imgPart && imgPart.inlineData) {
@@ -927,9 +949,8 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
 }
 
 export async function findProjectLeads(city: string): Promise<ProjectLead[]> {
-    const ai = getAiClient();
     const prompt = `Gere 3 leads fictícios de marcenaria em ${city}. JSON Array.`;
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
@@ -948,7 +969,7 @@ export async function findProjectLeads(city: string): Promise<ProjectLead[]> {
                 }
             }
         }
-    }));
+    });
 
     if (response.text) {
         return cleanAndParseJson<ProjectLead[]>(response.text);
@@ -965,14 +986,12 @@ export async function generateAssemblyDetails(project: ProjectHistoryItem): Prom
 }
 
 export async function parseBomToList(bomText: string): Promise<any[]> {
-    const ai = getAiClient();
-    // Simplified logic for brevity, assuming same functionality as before
     const prompt = `Extraia itens da BOM para JSON Array [{item, qty, dimensions}]. BOM: ${bomText}`;
-    const response = await retryOperation<GenerateContentResponse>(() => ai.models.generateContent({
+    const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: prompt,
         config: { responseMimeType: 'application/json' }
-    }));
+    });
     if (response.text) return cleanAndParseJson<any[]>(response.text);
     return [];
 }
@@ -988,7 +1007,6 @@ export async function generateFloorPlanFrom3D(project: ProjectHistoryItem): Prom
     const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
     const data = imageSrc.split(',')[1];
     
-    // Engenharia de prompt para converter 3D -> 2D Técnico (Estilo AutoCAD)
     const technicalPrompt = `
     ATUE COMO: Um software CAD (AutoCAD/Revit) exportando para PDF/PNG.
     TAREFA: Converter esta visualização 3D em uma PLANTA BAIXA TÉCNICA 2D (Vista Superior/Top View) de Alta Precisão.
@@ -1017,7 +1035,6 @@ export async function generate3Dfrom2D(project: ProjectHistoryItem, style: strin
     const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
     const data = imageSrc.split(',')[1];
     
-    // Engenharia de prompt para converter 2D -> 3D (Estilo Promob)
     const renderPrompt = `
     ATUE COMO: Renderizador V-Ray para Promob.
     TAREFA: Converter esta planta baixa técnica 2D em uma visualização 3D Fotorrealista.
