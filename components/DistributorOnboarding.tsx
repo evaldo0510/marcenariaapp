@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { OFFICIAL_NETWORKS, type DistributorNetwork } from '../services/distributorData';
 import { LogoIcon, StoreIcon, UserIcon, CheckIcon, Spinner, ShieldIcon } from './Shared';

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { LogoIcon, HandshakeIcon, TrophyIcon, PresentationIcon, AcademicCapIcon, ChartBarIcon, CurrencyDollarIcon, ShieldIcon, UsersIcon, LinkIcon, StoreIcon, CheckIcon } from './Shared';
 import { getDistributorProfile, createDistributorProfile } from '../services/historyService';
