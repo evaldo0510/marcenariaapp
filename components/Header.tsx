@@ -223,4 +223,36 @@ export const Header: React.FC<HeaderProps> = ({
 
                                     {/* Mobile Only Buttons */}
                                     <div className="md:hidden space-y-1 mb-2">
-                                        <button onClick={() => {onOpenToolsHub(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold text-[#2d2424] bg-[#d4ac6e] hover:bg-[#c89f5e] text-
+                                        <button onClick={() => {onOpenToolsHub(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold text-[#2d2424] bg-[#d4ac6e] hover:bg-[#c89f5e] text-sm transition-colors shadow-sm">
+                                            <StoreIcon className="w-4 h-4"/> Início
+                                        </button>
+                                        <button onClick={() => {onOpenHistory(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors">
+                                            <HistoryIcon className="w-4 h-4"/> Meus Projetos
+                                        </button>
+                                    </div>
+
+                                    <div className="h-px bg-[#4a4040] my-2"></div>
+                                    
+                                    <button onClick={handleThemeToggle} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors">
+                                        {theme === 'light' ? <MoonIcon className="w-4 h-4" /> : <SunIcon className="w-4 h-4" />}
+                                        Alternar Tema
+                                    </button>
+                                    <button onClick={() => { if(onOpenAbout) onOpenAbout(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors">
+                                        <InfoIcon className="w-4 h-4" /> Sobre
+                                    </button>
+                                    <button onClick={() => { if(onConfigureApi) onConfigureApi(); setIsMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors">
+                                        <div className={`w-2 h-2 rounded-full ${isApiReady ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                        Configurar API
+                                    </button>
+                                    <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-[#2d2424] text-sm transition-colors">
+                                        <LogoutIcon className="w-4 h-4" /> Sair
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+    );
+};
