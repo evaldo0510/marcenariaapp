@@ -169,7 +169,7 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({ isOpen, onClose, o
                 
                 <footer className="mt-16 text-center">
                     <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d]">
-                        MarcenApp Inteligência Artificial v2.1
+                        MarcenApp Inteligência Artificial v2.2 (Proxy Ativo)
                     </p>
                 </footer>
             </div>

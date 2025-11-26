@@ -64,10 +64,12 @@ async function callCustomProxy(model: string, contents: any, config: any): Promi
 
     if (!response.ok) {
         const errText = await response.text();
+        console.error("Proxy Error:", errText);
         throw new Error(`Proxy Request Failed: ${response.status} - ${errText}`);
     }
 
     const data = await response.json();
+    console.log("Proxy Success");
     return data as GenerateContentResponse;
 }
 
@@ -79,10 +81,13 @@ async function generateContentSafe(
     
     try {
         // 1. Try Direct SDK Call
+        console.log(`Generating content with model: ${params.model}`);
         return await retryOperation(() => ai.models.generateContent(params));
     } catch (error: any) {
         const errorMsg = error.message || '';
         const status = error.status || error.code;
+
+        console.warn(`Direct API call failed (${status}):`, errorMsg);
 
         // Check for specific errors that warrant a proxy fallback
         // 403 (Forbidden/Location), 500 (Internal), Network Error (fetch failed)
@@ -96,7 +101,7 @@ async function generateContentSafe(
             errorMsg.includes('User location is not supported');
 
         if (isCandidateForFallback) {
-            console.warn(`Direct API call failed (${status || 'Network'}), attempting proxy fallback...`);
+            console.warn(`Attempting proxy fallback due to error...`);
             try {
                 return await callCustomProxy(params.model, params.contents, params.config);
             } catch (proxyError) {
