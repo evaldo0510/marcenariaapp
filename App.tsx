@@ -29,6 +29,7 @@ import { SmartWorkshopModal } from './components/SmartWorkshopModal';
 import { InteractiveImageViewer } from './components/InteractiveImageViewer';
 import { DecorationListModal } from './components/DecorationListModal';
 import { DistributorAdmin } from './components/DistributorAdmin';
+import { ToolsHubModal } from './components/ToolsHubModal';
 import { AlertNotification, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, HighQualityIcon, PlantIcon, ShoppingBagIcon, ShareIcon, ToolsIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
@@ -126,18 +127,6 @@ const FinishSuggestionsModal: React.FC<FinishSuggestionsModalProps> = ({ isOpen,
     );
 };
 
-const ToolButton: React.FC<{ icon: React.ReactNode; label: string; onClick: () => void; done?: boolean }> = ({ icon, label, onClick, done }) => (
-    <button 
-        onClick={onClick} 
-        className={`flex flex-col items-center justify-center p-3 rounded-xl border shadow-sm transition-all min-w-[70px] active:scale-95 ${done ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-white dark:bg-[#3e3535] border-[#e6ddcd] dark:border-[#4a4040] hover:border-[#d4ac6e] hover:shadow-md'}`}
-    >
-        <div className={`p-2 rounded-full mb-1 ${done ? 'text-green-600 dark:text-green-400' : 'text-[#6a5f5f] dark:text-[#c7bca9]'}`}>
-            {icon}
-        </div>
-        <span className="text-xs font-bold text-[#3e3535] dark:text-[#f5f1e8] whitespace-nowrap">{label}</span>
-    </button>
-);
-
 const framingOptions = [
     { label: 'Padrão (Seguro/Sem Cortes)', value: 'ENQUADRAMENTO DE SEGURANÇA (SAFE FRAME): Renderize o projeto 3D centralizado, aplicando um ZOOM OUT agressivo (0.6x). O objeto deve ocupar no máximo 75% da imagem, deixando 12.5% de margem vazia em CADA lado (topo, baixo, esq, dir). Garanta que NENHUMA parte do móvel toque as bordas. Centralize perfeitamente.' },
     { label: 'Grande Angular (Tudo Visível)', value: 'Gere uma imagem 3D do projeto, ajustando o enquadramento para que todo o espaço fique visível, inclusive as paredes, teto e piso.' },
@@ -152,19 +141,15 @@ const framingOptions = [
 export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   
-  // SUPER ADMIN LOGIC (Case Insensitive Robust Check)
+  // SUPER ADMIN LOGIC - RESTRICTED MODE
+  // Strictly verify the email. All other users get a simplified view.
   const isSuperAdmin = (userEmail || '').trim().toLowerCase() === 'evaldo0510@gmail.com';
   
-  // Determine effective plan and role
-  const effectivePlan = isSuperAdmin ? 'business' : userPlan; // 'business' gives max access
-  
-  // User Role Logic (Partner vs Carpenter)
-  const isPartner = userPlan === 'partner' || isSuperAdmin;
-  const isCarpenter = userPlan !== 'partner' || isSuperAdmin;
-  
-  // Store Owner Role
-  // Activated for Super Admin AND users with 'business' plan (Plano Oficina)
-  const isStoreOwner = isSuperAdmin || effectivePlan === 'business';
+  const effectivePlan = isSuperAdmin ? 'business' : userPlan; 
+  // FORCE these roles to match super admin status to hide extra tabs for others
+  const isPartner = isSuperAdmin;
+  const isCarpenter = true; 
+  const isStoreOwner = isSuperAdmin;
 
   // Main Input States
   const [description, setDescription] = useState('');
@@ -192,6 +177,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
   // Modal States
   const [modals, setModals] = useState({
+      toolsHub: true, // APP STARTS ON TOOLS HUB
       research: false,
       live: false,
       distributors: false,
@@ -249,6 +235,30 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const closeAlert = () => setAlert({ ...alert, show: false });
   const toggleModal = (key: keyof typeof modals, value: boolean) => setModals(prev => ({ ...prev, [key]: value }));
 
+  // HANDLE TOOLS HUB SELECTION
+  const handleToolSelect = (toolId: string) => {
+      toggleModal('toolsHub', false);
+      switch (toolId) {
+          case 'project':
+              // Just close hub, user is on main screen
+              break;
+          case 'cutting':
+              toggleModal('cutting', true);
+              break;
+          case 'bom':
+              toggleModal('bom', true);
+              break;
+          case 'cost':
+              toggleModal('cost', true);
+              break;
+          case 'history':
+              toggleModal('history', true);
+              break;
+          default:
+              break;
+      }
+  };
+
   const loadDemoProject = () => {
       setDescription("Móvel com 3 portas verticais em madeira clara, 2 gavetas centrais com puxadores metálicos, acabamento fosco, pés retos e estilo moderno minimalista. Inclua nichos abertos na lateral e prateleiras internas.");
       setStylePreset("Moderno");
@@ -278,6 +288,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
   // Handlers
   const handleGenerateProject = async (forcePro = false) => {
+      // Only Admin can generate
+      if (!isSuperAdmin) {
+          showAlert("A geração de projetos 3D é um recurso Premium exclusivo. Entre em contato para liberar.", "Acesso Restrito", "warning");
+          return;
+      }
+
       if (!description.trim()) return showAlert("Por favor, descreva seu projeto.", "Falta Descrição", "warning");
       setIsGenerating(true);
       try {
@@ -335,7 +351,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           console.error(e);
           const errorMsg = e.message || JSON.stringify(e);
           
-          // HANDLE MISSING API KEY ERROR SPECIFICALLY
           if (errorMsg.includes('API Key') || errorMsg.includes('API key') || errorMsg.includes('Auth')) {
                if ((window as any).aistudio?.openSelectKey) {
                    await (window as any).aistudio.openSelectKey();
@@ -352,7 +367,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                }
           }
           
-          // HANDLE QUOTA LIMITS (429)
           if (errorMsg.includes('429') || errorMsg.includes('RESOURCE_EXHAUSTED') || errorMsg.includes('quota')) {
               const retryMatch = errorMsg.match(/retry in ([0-9.]+)(s|ms)/);
               const timeMsg = retryMatch ? ` (${retryMatch[0]})` : '';
@@ -368,6 +382,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   };
 
   const handleGenerateFloorPlan = async () => {
+      // Only Admin check
+      if (!isSuperAdmin) {
+          showAlert("Recurso Premium exclusivo para administradores.", "Acesso Restrito", "warning");
+          return;
+      }
+
       if (!currentProject) return;
       if (!currentProject.views3d || currentProject.views3d.length === 0) return showAlert("Nenhuma imagem 3D disponível para gerar planta.", "Aviso", "warning");
 
@@ -403,6 +423,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   };
 
   const handleQuickRoomSwap = async (newRoomType: string) => {
+      if (!isSuperAdmin) return showAlert("Recurso Premium.", "Restrito");
+      
       if (!currentProject) return;
       setIsGenerating(true);
       try {
@@ -531,12 +553,13 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       <div className="sticky top-0 z-50 w-full">
           <Header 
             userEmail={userEmail} 
-            isAdmin={isSuperAdmin || effectivePlan === 'business'}
+            isAdmin={isSuperAdmin}
             isPartner={isPartner}
             isCarpenter={isCarpenter}
             isStoreOwner={isStoreOwner}
             currentProject={currentProject}
             
+            onOpenToolsHub={() => toggleModal('toolsHub', true)}
             onOpenResearch={() => toggleModal('research', true)}
             onOpenLive={() => toggleModal('live', true)}
             onOpenDistributors={() => toggleModal('distributors', true)}
@@ -747,4 +770,241 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                     <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#4a4040] flex items-center gap-3">
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" checked={withLedLighting} onChange={(e) => setWithLedLighting(e.target.checked)} className="sr-only peer" />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#d4ac6e]"></div>
+                            <span className="ml-3 text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] flex items-center gap-2">
+                                <SparklesIcon className="w-4 h-4 text-yellow-500" /> Adicionar LEDs
+                            </span>
+                        </label>
+                    </div>
+                </section>
+
+                {/* CTA Buttons - MODIFIED TO USE NEW LOGIC */}
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => handleGenerateProject(false)}
+                        disabled={isGenerating || !description.trim()}
+                        className={`flex-1 py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all flex items-center justify-center gap-2 
+                        ${isGenerating || !description.trim() ? 'bg-[#e6ddcd] dark:bg-[#4a4040] text-[#8a7e7e] dark:text-[#a89d8d] cursor-not-allowed' : 'bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535]'}`}
+                    >
+                        {isGenerating ? <Spinner /> : <CubeIcon className="w-6 h-6"/>}
+                        {isGenerating ? 'Criando...' : 'Gerar Projeto'}
+                    </button>
+                    {isSuperAdmin && (
+                        <button 
+                            onClick={() => handleGenerateProject(true)}
+                            disabled={isGenerating || !description.trim()}
+                            className={`px-4 rounded-xl font-bold border-2 border-[#d4ac6e] text-[#d4ac6e] hover:bg-[#d4ac6e] hover:text-[#3e3535] transition-all flex flex-col items-center justify-center
+                            ${isGenerating || !description.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title="Gerar versão de Alta Qualidade"
+                        >
+                            <HighQualityIcon className="w-5 h-5"/>
+                            <span className="text-[10px]">PRO</span>
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Right Column: Results */}
+            <div className={`${mobileTab === 'result' ? 'block' : 'hidden'} lg:block h-full flex flex-col`}>
+                {currentProject ? (
+                    <div className="bg-white dark:bg-[#3e3535] rounded-2xl shadow-xl border border-[#e6ddcd] dark:border-[#4a4040] h-full flex flex-col overflow-hidden animate-fadeIn">
+                        <div className="p-4 bg-[#f5f1e8] dark:bg-[#2d2424] border-b border-[#e6ddcd] dark:border-[#4a4040] flex justify-between items-center">
+                            <div>
+                                <h3 className="font-bold text-[#3e3535] dark:text-[#f5f1e8]">{currentProject.name}</h3>
+                                <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d]">{new Date(currentProject.timestamp).toLocaleDateString()}</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={handleShareProject} className="p-2 bg-[#e6ddcd] dark:bg-[#4a4040] rounded-full text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#d4ac6e] transition"><ShareIcon /></button>
+                                <button onClick={() => toggleModal('imageEditor', true)} className="p-2 bg-[#e6ddcd] dark:bg-[#4a4040] rounded-full text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#d4ac6e] transition" title="Editar Imagem com IA"><WandIcon /></button>
+                                <button onClick={() => toggleModal('newView', true)} className="p-2 bg-[#e6ddcd] dark:bg-[#4a4040] rounded-full text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#d4ac6e] transition" title="Gerar Nova Vista"><CubeIcon /></button>
+                            </div>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-[#2d2424]">
+                            <div className="grid grid-cols-1 gap-4">
+                                {currentProject.views3d.map((src, index) => (
+                                    <div key={index} className="relative group">
+                                        <InteractiveImageViewer 
+                                            src={src} 
+                                            alt={`Vista ${index + 1}`} 
+                                            projectName={currentProject.name}
+                                            onGenerateNewView={() => toggleModal('newView', true)}
+                                        />
+                                        <div className="absolute bottom-4 left-4 bg-black/50 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">
+                                            Vista {index + 1}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t border-[#e6ddcd] dark:border-[#4a4040] bg-[#fffefb] dark:bg-[#3e3535]">
+                            <div className="grid grid-cols-2 gap-3">
+                                <button onClick={handleOpenLayoutEditor} className="flex items-center justify-center gap-2 bg-[#e6ddcd] dark:bg-[#4a4040] py-3 rounded-lg font-bold text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition text-sm">
+                                    <BlueprintIcon className="w-4 h-4"/> {currentProject.image2d ? 'Ver Planta' : 'Gerar Planta'}
+                                </button>
+                                <button onClick={() => toggleModal('proposal', true)} className="flex items-center justify-center gap-2 bg-[#d4ac6e] py-3 rounded-lg font-bold text-[#3e3535] hover:bg-[#c89f5e] transition text-sm">
+                                    <CurrencyDollarIcon className="w-4 h-4"/> Orçamento
+                                </button>
+                                <button onClick={() => toggleModal('decorationList', true)} className="flex items-center justify-center gap-2 bg-[#e6ddcd] dark:bg-[#4a4040] py-3 rounded-lg font-bold text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition text-sm col-span-2">
+                                    <ShoppingBagIcon className="w-4 h-4"/> Lista de Decoração
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-[#8a7e7e] dark:text-[#a89d8d] bg-[#fffefb] dark:bg-[#3e3535] rounded-2xl border-2 border-dashed border-[#e6ddcd] dark:border-[#4a4040] p-8">
+                        <CubeIcon className="w-24 h-24 mb-4 opacity-20" />
+                        <h3 className="text-xl font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-2">Nenhum projeto gerado</h3>
+                        <p className="text-center max-w-xs mb-6">Preencha os dados ao lado e clique em "Gerar Projeto" para ver a mágica acontecer.</p>
+                        <button onClick={loadDemoProject} className="text-[#d4ac6e] font-bold hover:underline text-sm">Carregar Demo</button>
+                    </div>
+                )}
+            </div>
+        </div>
+      </main>
+
+      {/* MODALS */}
+      <ToolsHubModal 
+        isOpen={modals.toolsHub}
+        onClose={() => {
+            // Prevent closing if it is initial view
+        }}
+        onSelectTool={handleToolSelect}
+      />
+      <ResearchAssistant isOpen={modals.research} onClose={() => toggleModal('research', false)} showAlert={showAlert} />
+      <LiveAssistant isOpen={modals.live} onClose={() => toggleModal('live', false)} showAlert={showAlert} />
+      <DistributorFinder isOpen={modals.distributors} onClose={() => toggleModal('distributors', false)} showAlert={showAlert} />
+      <ClientPanel 
+        isOpen={modals.clients} 
+        onClose={() => toggleModal('clients', false)} 
+        clients={clients}
+        projects={history}
+        onSaveClient={async (c) => setClients(await saveClient(c))}
+        onDeleteClient={async (id) => setClients(await removeClient(id))}
+        onViewProject={handleViewProject}
+      />
+      <HistoryPanel 
+        isOpen={modals.history} 
+        onClose={() => toggleModal('history', false)} 
+        history={history} 
+        onViewProject={handleViewProject}
+        onAddNewView={(projectId) => {
+            const project = history.find(p => p.id === projectId);
+            if(project) {
+                setCurrentProject(project);
+                toggleModal('newView', true);
+            }
+        }}
+        onDeleteProject={async (id) => {
+            const updatedHistory = await removeProjectFromHistory(id);
+            setHistory(updatedHistory);
+            if (currentProject?.id === id) setCurrentProject(null);
+            showAlert("Projeto excluído com sucesso.", "Exclusão", "success");
+        }}
+      />
+      <AboutModal isOpen={modals.about} onClose={() => toggleModal('about', false)} />
+      <BomGeneratorModal isOpen={modals.bom} onClose={() => toggleModal('bom', false)} showAlert={showAlert} />
+      <CuttingPlanGeneratorModal isOpen={modals.cutting} onClose={() => toggleModal('cutting', false)} showAlert={showAlert} />
+      <CostEstimatorModal isOpen={modals.cost} onClose={() => toggleModal('cost', false)} showAlert={showAlert} />
+      <EncontraProModal isOpen={modals.encontraPro} onClose={() => toggleModal('encontraPro', false)} showAlert={showAlert} />
+      <ARViewer isOpen={modals.ar} onClose={() => toggleModal('ar', false)} imageSrc={currentProject?.views3d[0] || ''} showAlert={showAlert} />
+      
+      {currentProject && (
+        <>
+            <ProposalModal 
+                isOpen={modals.proposal} 
+                onClose={() => toggleModal('proposal', false)} 
+                project={currentProject} 
+                client={clients.find(c => c.id === currentProject.clientId)}
+                showAlert={showAlert}
+            />
+            <ImageEditor 
+                isOpen={modals.imageEditor} 
+                imageSrc={currentProject.views3d[0]} 
+                projectDescription={currentProject.description}
+                onClose={() => toggleModal('imageEditor', false)} 
+                onSave={async (newImageBase64) => {
+                    const newViewUrl = `data:image/png;base64,${newImageBase64}`;
+                    const updatedViews = [...currentProject.views3d, newViewUrl];
+                    const updatedProject = await updateProjectInHistory(currentProject.id, { views3d: updatedViews });
+                    setHistory(await getHistory());
+                    setCurrentProject(updatedProject);
+                    toggleModal('imageEditor', false);
+                    showAlert("Nova versão salva na galeria do projeto!", "Sucesso", "success");
+                }}
+                showAlert={showAlert}
+            />
+            <NewViewGenerator 
+                isOpen={modals.newView}
+                project={currentProject}
+                onClose={() => toggleModal('newView', false)}
+                onSaveComplete={async () => {
+                    setHistory(await getHistory());
+                    const updated = (await getHistory()).find(p => p.id === currentProject.id);
+                    if(updated) setCurrentProject(updated);
+                    showAlert("Nova vista 3D adicionada ao projeto!", "Sucesso", "success");
+                }}
+                showAlert={showAlert}
+            />
+            {currentProject.image2d && (
+                <LayoutEditor
+                    isOpen={modals.layoutEditor}
+                    floorPlanSrc={currentProject.image2d}
+                    projectDescription={currentProject.description}
+                    onClose={() => toggleModal('layoutEditor', false)}
+                    onSave={handleSaveLayout}
+                    showAlert={showAlert}
+                />
+            )}
+            <DecorationListModal 
+                isOpen={modals.decorationList}
+                onClose={() => toggleModal('decorationList', false)}
+                projectDescription={currentProject.description}
+                style={currentProject.style}
+                showAlert={showAlert}
+            />
+        </>
+      )}
+
+      <StyleSuggestionsModal 
+        isOpen={styleSuggestions.isOpen} 
+        isLoading={styleSuggestions.isLoading} 
+        suggestions={styleSuggestions.suggestions} 
+        onClose={() => setStyleSuggestions({ ...styleSuggestions, isOpen: false })} 
+        onSelectStyle={(style) => {
+            setStylePreset(style);
+            setStyleSuggestions({ ...styleSuggestions, isOpen: false });
+        }} 
+      />
+
+      <FinishSuggestionsModal 
+        isOpen={finishSuggestions.isOpen} 
+        isLoading={finishSuggestions.isLoading} 
+        suggestions={finishSuggestions.suggestions} 
+        onClose={() => setFinishSuggestions({ ...finishSuggestions, isOpen: false })} 
+        onSelectFinish={(finish) => {
+            setSelectedFinish({ manufacturer: finish.manufacturer, finish });
+            setFinishSuggestions({ ...finishSuggestions, isOpen: false });
+        }} 
+      />
+
+      <AlertNotification show={alert.show} title={alert.title} message={alert.message} type={alert.type} onClose={closeAlert} />
+      
+      {/* Only render admin/partner modals if user is super admin */}
+      {isSuperAdmin && (
+        <>
+            <ManagementDashboard isOpen={modals.management} onClose={() => toggleModal('management', false)} />
+            <DistributorPortal isOpen={modals.partnerPortal} onClose={() => toggleModal('partnerPortal', false)} />
+            <DistributorAdmin isOpen={modals.admin} onClose={() => toggleModal('admin', false)} />
+            {modals.notifications && <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => toggleModal('notifications', false)}><NotificationSystem /></div>}
+            {modals.wallet && <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => toggleModal('wallet', false)}><div className="bg-white p-4 rounded-lg max-w-4xl w-full" onClick={e => e.stopPropagation()}><CommissionWallet /></div></div>}
+            <StoreDashboard isOpen={modals.storeMode} onClose={() => toggleModal('storeMode', false)} />
+            <SmartWorkshopModal isOpen={modals.smartWorkshop} onClose={() => toggleModal('smartWorkshop', false)} />
+            <ArcVisionModule isOpen={modals.projectGenerator} onClose={() => toggleModal('projectGenerator', false)} showAlert={showAlert} />
+        </>
+      )}
+
+    </div>
+  );
+};

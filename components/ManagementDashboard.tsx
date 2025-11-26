@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FinanceModule } from './FinanceModule';
 import { InventoryModule } from './InventoryModule';
 import { KanbanBoard } from './KanbanBoard';
@@ -17,8 +17,15 @@ import {
     TruckIcon, 
     CogIcon,
     CatalogIcon,
-    ReceiptIcon
+    ReceiptIcon,
+    SparklesIcon,
+    TrendingUpIcon,
+    TrendingDownIcon,
+    AlertCircleIcon,
+    PlusIcon
 } from './Shared';
+import { getHistory, getInventory, getTransactions } from '../services/historyService';
+import type { ProjectHistoryItem, InventoryItem, Transaction } from '../types';
 
 interface ManagementDashboardProps {
     isOpen: boolean;
@@ -27,8 +34,259 @@ interface ManagementDashboardProps {
 
 type ModuleTab = 'dashboard' | 'finance' | 'inventory' | 'kanban' | 'pricing' | 'suppliers' | 'settings' | 'quotations' | 'catalog';
 
+// --- AI ASSISTANT COMPONENT ---
+const AIAssistant: React.FC<{ projects: ProjectHistoryItem[], inventory: InventoryItem[], transactions: Transaction[] }> = ({ projects, inventory, transactions }) => {
+  const insights = useMemo(() => {
+    const tips: { type: 'urgent' | 'warning' | 'success' | 'opportunity' | 'info'; title: string; message: string }[] = [];
+    
+    // 1. Análise de Estoque
+    const lowStock = inventory.filter(i => i.quantity <= i.minStock);
+    if (lowStock.length > 0) {
+      tips.push({
+        type: 'urgent',
+        title: '🚨 Reposição de Estoque Urgente',
+        message: `Identifiquei ${lowStock.length} itens críticos. Você precisa comprar: ${lowStock.map(i => i.name).join(', ')} para evitar paradas na produção.`
+      });
+    }
+
+    // 2. Análise Financeira
+    const income = transactions.filter(t => t.type === 'income').reduce((a, b) => a + Number(b.amount), 0);
+    const expense = transactions.filter(t => t.type === 'expense').reduce((a, b) => a + Number(b.amount), 0);
+    
+    if (expense > income && income > 0) {
+       tips.push({
+         type: 'warning',
+         title: '⚠️ Fluxo de Caixa Negativo',
+         message: 'Atenção! Suas saídas superaram as entradas este mês. Verifique gastos desnecessários ou cobre clientes inadimplentes.'
+       });
+    } else if (income > 0 && (income - expense) / income < 0.2) {
+       tips.push({
+         type: 'info', 
+         title: '📉 Margem de Lucro Apertada',
+         message: `Sua margem atual é de apenas ${(((income - expense) / income) * 100).toFixed(1)}%. Considere revisar a precificação na Calculadora para aumentar seus ganhos.`
+       });
+    }
+
+    // 3. Análise de Projetos (Gargalos)
+    const doing = projects.filter(p => p.status === 'producao' || p.status === 'montagem').length;
+
+    if (doing > 3) {
+      tips.push({
+        type: 'warning',
+        title: '🚧 Gargalo na Produção',
+        message: `Você tem ${doing} projetos em andamento ao mesmo tempo. Evite iniciar novos trabalhos da coluna "Em Orçamento" para garantir a qualidade e o prazo dos atuais.`
+      });
+    }
+    
+    // 4. Dica de Faturamento (Oportunidade)
+    // Assuming projectValue is available, otherwise ignoring
+    const potentialRevenue = projects.reduce((acc, p) => acc + (p.status !== 'finalizado' ? Number(p.projectValue || 0) : 0), 0);
+    if (potentialRevenue > 0) {
+        tips.push({
+            type: 'opportunity',
+            title: '💰 Receita Potencial',
+            message: `Você tem ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(potentialRevenue)} em projetos abertos. Foque em concluir os itens em andamento para liberar esse caixa.`
+        });
+    }
+
+    if (tips.length === 0) {
+      tips.push({
+        type: 'success',
+        title: '✨ Tudo Organizado!',
+        message: 'Seus indicadores estão ótimos. O fluxo de caixa está positivo e o estoque controlado. Continue assim!'
+      });
+    }
+
+    return tips;
+  }, [projects, inventory, transactions]);
+
+  return (
+    <div className="mb-8 space-y-6">
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+        <div className="relative z-10 flex items-center gap-4">
+          <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm shadow-inner">
+            <SparklesIcon className="w-8 h-8 text-yellow-300" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">Assistente Inteligente</h2>
+            <p className="text-indigo-100 opacity-90 text-sm">Analiso seus dados em tempo real para sugerir melhorias na sua organização.</p>
+          </div>
+        </div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+      </div>
+
+      <div className="grid gap-4">
+        {insights.map((insight, idx) => (
+          <div key={idx} className={`p-4 rounded-lg border-l-4 transition-all hover:translate-x-1 shadow-sm ${
+            insight.type === 'urgent' ? 'border-l-red-500 bg-red-50 dark:bg-red-900/20' :
+            insight.type === 'warning' ? 'border-l-amber-500 bg-amber-50 dark:bg-amber-900/20' :
+            insight.type === 'success' ? 'border-l-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' :
+            insight.type === 'opportunity' ? 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20' :
+            'border-l-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+          }`}>
+             <h3 className={`font-bold text-lg mb-1 flex items-center gap-2 ${
+                insight.type === 'urgent' ? 'text-red-700 dark:text-red-400' :
+                insight.type === 'warning' ? 'text-amber-700 dark:text-amber-400' :
+                insight.type === 'success' ? 'text-emerald-700 dark:text-emerald-400' :
+                insight.type === 'opportunity' ? 'text-blue-700 dark:text-blue-400' :
+                'text-indigo-700 dark:text-indigo-400'
+             }`}>
+                {insight.title}
+             </h3>
+             <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{insight.message}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// --- DASHBOARD OVERVIEW COMPONENT ---
+const DashboardOverview: React.FC<{ 
+    setActiveTab: (tab: ModuleTab) => void,
+    projects: ProjectHistoryItem[], 
+    inventory: InventoryItem[], 
+    transactions: Transaction[] 
+}> = ({ setActiveTab, projects, inventory, transactions }) => {
+    
+    const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+    const receita = transactions
+        .filter(t => t.type === 'income')
+        .reduce((acc, curr) => acc + Number(curr.amount), 0);
+  
+    const despesa = transactions
+        .filter(t => t.type === 'expense')
+        .reduce((acc, curr) => acc + Number(curr.amount), 0);
+
+    const lowStock = inventory.filter(i => i.quantity <= i.minStock);
+    const activeProjects = projects.filter(p => p.status && p.status !== 'finalizado').length;
+
+    return (
+        <div className="space-y-6 animate-fadeIn">
+            <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-[#3e3535] dark:text-[#f5f1e8]">Visão Geral</h2>
+                <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full border border-indigo-100 dark:border-indigo-800">
+                    <SparklesIcon className="w-4 h-4 text-indigo-500" />
+                    <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">IA Ativa</span>
+                </div>
+            </div>
+
+            {/* AI Assistant Section */}
+            <AIAssistant projects={projects} inventory={inventory} transactions={transactions} />
+
+            {/* Financial Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white dark:bg-[#3e3535] p-6 rounded-xl border-l-4 border-l-emerald-500 shadow-sm border border-gray-200 dark:border-[#4a4040]">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Receitas (Total)</p>
+                            <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(receita)}</h3>
+                        </div>
+                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-600 dark:text-emerald-400">
+                            <TrendingUpIcon className="w-6 h-6" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white dark:bg-[#3e3535] p-6 rounded-xl border-l-4 border-l-red-500 shadow-sm border border-gray-200 dark:border-[#4a4040]">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Despesas (Total)</p>
+                            <h3 className="text-2xl font-bold text-red-600 dark:text-red-400">{formatCurrency(despesa)}</h3>
+                        </div>
+                        <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400">
+                            <TrendingDownIcon className="w-6 h-6" />
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white dark:bg-[#3e3535] p-6 rounded-xl border-l-4 border-l-blue-500 shadow-sm border border-gray-200 dark:border-[#4a4040]">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Saldo</p>
+                            <h3 className={`text-2xl font-bold ${receita - despesa >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600'}`}>
+                                {formatCurrency(receita - despesa)}
+                            </h3>
+                        </div>
+                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
+                            <CurrencyDollarIcon className="w-6 h-6" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Alerts */}
+                <div className="bg-white dark:bg-[#3e3535] p-6 rounded-xl border border-[#e6ddcd] dark:border-[#4a4040] shadow-sm">
+                    <h3 className="font-semibold text-[#3e3535] dark:text-[#f5f1e8] mb-4 flex items-center gap-2">
+                        <AlertCircleIcon className="text-amber-500 w-5 h-5"/>
+                        Atenção Necessária
+                    </h3>
+                    <div className="space-y-3">
+                        {lowStock.length > 0 ? (
+                            lowStock.slice(0, 3).map(item => (
+                                <div key={item.id} className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-lg text-sm text-amber-800 dark:text-amber-300">
+                                    <span>Estoque baixo: <strong>{item.name}</strong></span>
+                                    <span className="font-bold">{item.quantity} {item.unit}</span>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-gray-500 dark:text-gray-400 text-sm italic">Nenhum alerta de estoque.</p>
+                        )}
+                        {activeProjects > 0 && (
+                            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg text-sm text-blue-800 dark:text-blue-300">
+                                <span>Projetos em andamento</span>
+                                <span className="font-bold">{activeProjects}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Quick Access */}
+                <div className="bg-white dark:bg-[#3e3535] p-6 rounded-xl border border-[#e6ddcd] dark:border-[#4a4040] shadow-sm">
+                    <h3 className="font-semibold text-[#3e3535] dark:text-[#f5f1e8] mb-4">Acesso Rápido</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        <button onClick={() => setActiveTab('quotations')} className="p-4 bg-gray-50 dark:bg-[#2d2424] hover:bg-[#e6ddcd] dark:hover:bg-[#4a4040] rounded-xl border border-gray-200 dark:border-[#5a4f4f] text-center transition-colors group">
+                            <PlusIcon className="mx-auto mb-2 text-blue-600 dark:text-blue-400 w-6 h-6 group-hover:scale-110 transition-transform" />
+                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Nova Cotação</span>
+                        </button>
+                        <button onClick={() => setActiveTab('inventory')} className="p-4 bg-gray-50 dark:bg-[#2d2424] hover:bg-[#e6ddcd] dark:hover:bg-[#4a4040] rounded-xl border border-gray-200 dark:border-[#5a4f4f] text-center transition-colors group">
+                            <ClipboardListIcon className="mx-auto mb-2 text-emerald-600 dark:text-emerald-400 w-6 h-6 group-hover:scale-110 transition-transform" />
+                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Entrada Estoque</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export const ManagementDashboard: React.FC<ManagementDashboardProps> = ({ isOpen, onClose }) => {
     const [activeTab, setActiveTab] = useState<ModuleTab>('dashboard');
+    
+    // State for shared data across tabs (fetched from IndexedDB)
+    const [projects, setProjects] = useState<ProjectHistoryItem[]>([]);
+    const [inventory, setInventory] = useState<InventoryItem[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+    useEffect(() => {
+        if (isOpen) {
+            const fetchData = async () => {
+                try {
+                    const [p, i, t] = await Promise.all([
+                        getHistory(),
+                        getInventory(),
+                        getTransactions()
+                    ]);
+                    setProjects(p);
+                    setInventory(i);
+                    setTransactions(t);
+                } catch (e) {
+                    console.error("Failed to load dashboard data", e);
+                }
+            };
+            fetchData();
+        }
+    }, [isOpen, activeTab]); // Refresh data when tab changes to keep it somewhat fresh
 
     if (!isOpen) return null;
 
@@ -44,50 +302,7 @@ export const ManagementDashboard: React.FC<ManagementDashboardProps> = ({ isOpen
             case 'catalog': return <MaterialsCatalog />;
             case 'dashboard':
             default:
-                return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fadeIn">
-                        <button onClick={() => setActiveTab('kanban')} className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 hover:shadow-lg transition text-left">
-                            <ViewBoardsIcon className="w-10 h-10 text-blue-600 mb-3" />
-                            <h3 className="text-xl font-bold text-blue-900 dark:text-blue-300">Projetos (Kanban)</h3>
-                            <p className="text-sm text-blue-700 dark:text-blue-400 mt-2">Acompanhe o progresso de cada pedido.</p>
-                        </button>
-                        <button onClick={() => setActiveTab('quotations')} className="p-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 hover:shadow-lg transition text-left">
-                            <ReceiptIcon className="w-10 h-10 text-indigo-600 mb-3" />
-                            <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-300">Cotações</h3>
-                            <p className="text-sm text-indigo-700 dark:text-indigo-400 mt-2">Gerencie orçamentos enviados aos clientes.</p>
-                        </button>
-                        <button onClick={() => setActiveTab('finance')} className="p-6 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800 hover:shadow-lg transition text-left">
-                            <CurrencyDollarIcon className="w-10 h-10 text-green-600 mb-3" />
-                            <h3 className="text-xl font-bold text-green-900 dark:text-green-300">Financeiro</h3>
-                            <p className="text-sm text-green-700 dark:text-green-400 mt-2">Fluxo de caixa, contas a pagar e receber.</p>
-                        </button>
-                        <button onClick={() => setActiveTab('inventory')} className="p-6 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-100 dark:border-yellow-800 hover:shadow-lg transition text-left">
-                            <ClipboardListIcon className="w-10 h-10 text-yellow-600 mb-3" />
-                            <h3 className="text-xl font-bold text-yellow-900 dark:text-yellow-300">Estoque</h3>
-                            <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-2">Materiais, alertas de reposição e inventário.</p>
-                        </button>
-                        <button onClick={() => setActiveTab('catalog')} className="p-6 bg-teal-50 dark:bg-teal-900/20 rounded-xl border border-teal-100 dark:border-teal-800 hover:shadow-lg transition text-left">
-                            <CatalogIcon className="w-10 h-10 text-teal-600 mb-3" />
-                            <h3 className="text-xl font-bold text-teal-900 dark:text-teal-300">Catálogo</h3>
-                            <p className="text-sm text-teal-700 dark:text-teal-400 mt-2">Banco de preços e materiais de referência.</p>
-                        </button>
-                        <button onClick={() => setActiveTab('pricing')} className="p-6 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800 hover:shadow-lg transition text-left">
-                            <CalculatorIcon className="w-10 h-10 text-purple-600 mb-3" />
-                            <h3 className="text-xl font-bold text-purple-900 dark:text-purple-300">Calculadora</h3>
-                            <p className="text-sm text-purple-700 dark:text-purple-400 mt-2">Defina preços com margem de lucro correta.</p>
-                        </button>
-                        <button onClick={() => setActiveTab('suppliers')} className="p-6 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-100 dark:border-orange-800 hover:shadow-lg transition text-left">
-                            <TruckIcon className="w-10 h-10 text-orange-600 mb-3" />
-                            <h3 className="text-xl font-bold text-orange-900 dark:text-orange-300">Fornecedores</h3>
-                            <p className="text-sm text-orange-700 dark:text-orange-400 mt-2">Gestão de contatos e avaliações.</p>
-                        </button>
-                        <button onClick={() => setActiveTab('settings')} className="p-6 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-lg transition text-left">
-                            <CogIcon className="w-10 h-10 text-gray-600 mb-3" />
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-300">Configurações</h3>
-                            <p className="text-sm text-gray-700 dark:text-gray-400 mt-2">Ajustes gerais do sistema.</p>
-                        </button>
-                    </div>
-                );
+                return <DashboardOverview setActiveTab={setActiveTab} projects={projects} inventory={inventory} transactions={transactions} />;
         }
     };
 

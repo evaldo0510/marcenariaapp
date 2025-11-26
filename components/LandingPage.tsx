@@ -8,15 +8,16 @@ interface LandingPageProps {
 
 const plans = [
   {
-    name: 'Hobby',
-    price: 'Grátis',
+    name: 'Hobby (Grátis)',
+    price: 'R$ 0,00',
     priceDescription: 'para sempre',
-    description: 'Para entusiastas e pequenos projetos pessoais.',
+    description: 'Ideal para testar a plataforma e pequenos projetos.',
     features: [
-      '3 projetos por mês',
-      'Geração 3D Básica',
-      'Planta Baixa Automática',
-      'Acesso à Comunidade',
+      'Acesso às 5 Ferramentas Essenciais',
+      'Limite: 3 Projetos 3D por mês',
+      'Plano de Corte Básico',
+      'Lista de Materiais Simples',
+      'Qualidade de Render Padrão',
     ],
     cta: 'Começar Grátis',
     planId: 'hobby',
@@ -24,53 +25,51 @@ const plans = [
   },
   {
     name: 'Profissional',
-    price: 'R$ 69,90',
+    price: 'R$ 49,90',
     priceDescription: '/mês',
-    description: 'Para marceneiros autônomos e designers.',
+    description: 'Para marceneiros que precisam de mais volume e qualidade.',
     features: [
-      'Projetos Ilimitados',
-      'Render 3D em 4K (IA Avançada)',
-      'Plano de Corte & Lista de Compras',
-      'Orçamentos em PDF',
-      'CRM Básico de Clientes',
+      'Acesso às 5 Ferramentas Essenciais',
+      'Limite: 20 Projetos 3D por mês',
+      'Plano de Corte Otimizado',
+      'Orçamentos em PDF Profissional',
+      'Render 3D em Alta Definição',
       'Suporte Prioritário',
     ],
-    cta: 'Ser Profissional',
+    cta: 'Assinar Agora',
     planId: 'pro',
     highlight: true,
-    badge: 'Mais Popular'
+    badge: 'Melhor Custo-Benefício'
   },
   {
     name: 'Oficina',
-    price: 'R$ 199,90',
-    priceDescription: '/mês',
-    description: 'Gestão completa para marcenarias e lojas.',
+    price: 'Em Breve',
+    priceDescription: 'Lançamento Futuro',
+    description: 'Gestão completa de equipe, estoque e financeiro avançado.',
     features: [
-      'Tudo do Profissional',
-      'Gestão Financeira & Estoque',
-      // 'Modo Loja (Showroom Virtual)', // STANDBY
-      'Gestão de Equipe (Multi-usuário)',
+      'Múltiplos Usuários',
+      'Controle de Estoque Real',
+      'Gestão de Fluxo de Caixa',
       'Relatórios de Produtividade',
-      'Contratos Digitais',
+      'CRM Avançado',
     ],
-    cta: 'Migrar para Oficina',
+    cta: 'Entrar na Lista de Espera',
     planId: 'business',
     highlight: false,
   },
   {
     name: 'Parceiro',
-    price: 'R$ 390,00',
-    priceDescription: '/mês',
+    price: 'Em Breve',
+    priceDescription: 'Lançamento Futuro',
     description: 'Para distribuidores e redes de fornecedores.',
     features: [
       'Portal do Distribuidor Exclusivo',
       'Gestão de Comissões e Vendas',
       'Painel de Múltiplos Clientes',
       'Materiais de Marketing White-label',
-      'API de Integração',
-      'Gerente de Conta Dedicado',
+      'Integração via API',
     ],
-    cta: 'Tornar-se Parceiro',
+    cta: 'Seja um Pioneiro',
     planId: 'partner',
     highlight: false,
     badge: 'B2B'
@@ -79,8 +78,10 @@ const plans = [
 
 const PlanCard: React.FC<{ plan: typeof plans[0]; onSelect: () => void; }> = ({ plan, onSelect }) => {
   const isHighlight = plan.highlight;
+  const isComingSoon = plan.price === 'Em Breve';
+
   return (
-    <div className={`relative flex flex-col rounded-2xl border p-6 shadow-lg transition-all duration-300 ${isHighlight ? 'border-[#d4ac6e] bg-[#fffefb] dark:bg-[#3e3535] scale-105 z-10' : 'border-[#e6ddcd] dark:border-[#4a4040] bg-white dark:bg-[#2d2424] hover:shadow-xl'}`}>
+    <div className={`relative flex flex-col rounded-2xl border p-6 shadow-lg transition-all duration-300 ${isHighlight ? 'border-[#d4ac6e] bg-[#fffefb] dark:bg-[#3e3535] scale-105 z-10' : 'border-[#e6ddcd] dark:border-[#4a4040] bg-white dark:bg-[#2d2424] hover:shadow-xl'} ${isComingSoon ? 'opacity-80' : ''}`}>
       {plan.badge && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#d4ac6e] text-[#3e3535] px-4 py-1 rounded-full text-sm font-bold shadow-md uppercase tracking-wide">
           {plan.badge}
@@ -89,8 +90,8 @@ const PlanCard: React.FC<{ plan: typeof plans[0]; onSelect: () => void; }> = ({ 
       <div className="flex-grow">
         <h3 className="text-2xl font-bold font-serif text-center text-[#3e3535] dark:text-[#f5f1e8]">{plan.name}</h3>
         <div className="mt-4 text-center">
-          <span className="text-4xl font-bold text-[#3e3535] dark:text-[#f5f1e8]">{plan.price}</span>
-          <span className="text-sm text-[#6a5f5f] dark:text-[#c7bca9] block">{plan.priceDescription}</span>
+          <span className="text-3xl md:text-4xl font-bold text-[#3e3535] dark:text-[#f5f1e8]">{plan.price}</span>
+          <span className="text-sm text-[#6a5f5f] dark:text-[#c7bca9] block mt-1">{plan.priceDescription}</span>
         </div>
         <p className="mt-4 text-center text-sm text-[#8a7e7e] dark:text-[#a89d8d] min-h-[40px]">{plan.description}</p>
         
@@ -107,7 +108,8 @@ const PlanCard: React.FC<{ plan: typeof plans[0]; onSelect: () => void; }> = ({ 
       </div>
       <button 
         onClick={onSelect}
-        className={`w-full mt-8 font-bold py-3 px-6 rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 ${isHighlight ? 'bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535]' : 'bg-[#e6ddcd] dark:bg-[#4a4040] text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f]'}`}
+        disabled={isComingSoon}
+        className={`w-full mt-8 font-bold py-3 px-6 rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 ${isComingSoon ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed' : isHighlight ? 'bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535]' : 'bg-[#e6ddcd] dark:bg-[#4a4040] text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f]'}`}
       >
         {plan.cta}
       </button>
@@ -240,7 +242,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                     onClick={() => scrollToSection('signup')}
                                     className="bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-10 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg flex items-center justify-center gap-2"
                                 >
-                                    <CubeIcon /> Testar Grátis
+                                    <CubeIcon /> Acesso Gratuito (Hobby)
                                 </button>
                                 <button
                                     onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
@@ -361,7 +363,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                     <div className="max-w-7xl mx-auto">
                         <div className="text-center mb-16">
                             <h2 className="text-3xl md:text-4xl font-bold font-serif mb-4">Escolha o Plano Ideal</h2>
-                            <p className="text-lg text-[#6a5f5f] dark:text-[#c7bca9]">Investimento que se paga no primeiro projeto.</p>
+                            <p className="text-lg text-[#6a5f5f] dark:text-[#c7bca9]">Comece com o Hobby e evolua conforme sua demanda.</p>
                         </div>
                         {/* Plan Grid: Adjusted for 4 items */}
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
@@ -376,7 +378,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                     <HandshakeIcon /> Programa de Parceiros
                                 </h4>
                                 <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                                    Tem uma loja de ferragens ou é influenciador? <button onClick={() => scrollToSection('signup')} className="underline font-bold hover:text-blue-900">Torne-se um Parceiro Autorizado</button> e ganhe comissões recorrentes.
+                                    Tem uma loja de ferragens ou é influenciador? <button onClick={() => scrollToSection('signup')} className="underline font-bold hover:text-blue-900">Cadastre-se na Lista de Espera</button> e seja avisado do lançamento.
                                 </p>
                             </div>
                         </div>
@@ -496,11 +498,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                         disabled={isLoading}
                                         className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-[#3e3535] bg-[#d4ac6e] hover:bg-[#c89f5e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4ac6e] transition disabled:opacity-70"
                                     >
-                                        {isLoading ? (isLoginMode ? 'Entrando...' : 'Criando conta...') : (isLoginMode ? 'Acessar Sistema' : (accountType === 'partner' ? 'Criar Conta de Parceiro' : 'Criar Conta Grátis'))}
+                                        {isLoading ? (isLoginMode ? 'Entrando...' : 'Criando conta...') : (isLoginMode ? 'Acessar Sistema' : (accountType === 'partner' ? 'Criar Conta de Parceiro' : 'Começar Grátis'))}
                                     </button>
                                 </div>
                                 <p className="text-xs text-center text-gray-500">
-                                    {isLoginMode ? 'Não tem senha. O acesso é via e-mail para este demo.' : 'Sem necessidade de cartão de crédito para o plano Hobby.'}
+                                    {isLoginMode ? 'Não tem senha. O acesso é via e-mail para este demo.' : 'Sem necessidade de cartão de crédito.'}
                                 </p>
                             </form>
                         </div>
