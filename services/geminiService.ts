@@ -52,7 +52,7 @@ async function callCustomProxy(model: string, contents: any, config: any): Promi
         apiKey: getGeminiApiKey() // Pass key in body in case proxy relies on it
     };
 
-    console.log("Attempting fallback to proxy:", PROXY_URL);
+    console.log("[Proxy] Attempting fallback call to:", PROXY_URL);
 
     const response = await fetch(PROXY_URL, {
         method: 'POST',
@@ -64,12 +64,12 @@ async function callCustomProxy(model: string, contents: any, config: any): Promi
 
     if (!response.ok) {
         const errText = await response.text();
-        console.error("Proxy Error:", errText);
+        console.error("[Proxy] Error:", errText);
         throw new Error(`Proxy Request Failed: ${response.status} - ${errText}`);
     }
 
     const data = await response.json();
-    console.log("Proxy Success");
+    console.log("[Proxy] Success");
     return data as GenerateContentResponse;
 }
 
@@ -81,42 +81,27 @@ async function generateContentSafe(
     
     try {
         // 1. Try Direct SDK Call
-        console.log(`Generating content with model: ${params.model}`);
+        console.log(`[v2.3] Generating content with model: ${params.model}`);
         return await retryOperation(() => ai.models.generateContent(params));
     } catch (error: any) {
         const errorMsg = error.message || '';
-        const status = error.status || error.code;
+        console.warn(`[v2.3] Direct API call failed:`, errorMsg);
 
-        console.warn(`Direct API call failed (${status}):`, errorMsg);
-
-        // Check for specific errors that warrant a proxy fallback
-        // 403 (Forbidden/Location), 500 (Internal), Network Error (fetch failed)
-        // Note: 429 (Quota) might not be solved by proxy unless proxy handles rotation, but we try anyway.
-        const isCandidateForFallback = 
-            errorMsg.includes('fetch') || 
-            errorMsg.includes('network') || 
-            errorMsg.includes('Failed to fetch') ||
-            status === 403 || 
-            status === 500 ||
-            errorMsg.includes('User location is not supported');
-
-        if (isCandidateForFallback) {
-            console.warn(`Attempting proxy fallback due to error...`);
-            try {
-                return await callCustomProxy(params.model, params.contents, params.config);
-            } catch (proxyError) {
-                console.error("Proxy fallback also failed:", proxyError);
-                // Throw the original error as it's usually more descriptive for the user
-                throw error; 
-            }
+        // FALLBACK: Aggressively try proxy for almost any error to ensure Vercel functionality
+        // We ignore rate limits (429) if the retry logic already failed, giving the proxy a chance
+        console.warn(`[v2.3] Attempting proxy fallback...`);
+        try {
+            return await callCustomProxy(params.model, params.contents, params.config);
+        } catch (proxyError) {
+            console.error("[v2.3] Proxy fallback also failed:", proxyError);
+            // Throw the original error as it's usually more descriptive for the user
+            throw error; 
         }
-        
-        throw error;
     }
 }
 
 // Helper for retrying operations with exponential backoff
-async function retryOperation<T>(operation: () => Promise<T>, retries = 2, delay = 1000): Promise<T> {
+async function retryOperation<T>(operation: () => Promise<T>, retries = 1, delay = 1000): Promise<T> {
     try {
         return await operation();
     } catch (error: any) {
