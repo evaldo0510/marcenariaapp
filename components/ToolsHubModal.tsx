@@ -12,7 +12,8 @@ import {
     UsersIcon,
     ChartBarIcon,
     ShieldIcon,
-    LockIcon
+    LockIcon,
+    PaletteIcon // Added import
 } from './Shared'; 
 
 interface ToolsHubModalProps {
@@ -34,6 +35,14 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({ isOpen, onClose, o
             icon: <MagicIcon className="w-8 h-8 text-purple-600 dark:text-purple-400" />,
             color: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
             hover: 'hover:border-purple-500'
+        },
+        {
+            id: 'studio', // NEW TOOL
+            title: 'Studio de Combinações',
+            description: 'Teste cores e texturas de MDF em tempo real.',
+            icon: <PaletteIcon className="w-8 h-8 text-pink-600 dark:text-pink-400" />,
+            color: 'bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800',
+            hover: 'hover:border-pink-500'
         },
         {
             id: 'cutting',
@@ -75,9 +84,9 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({ isOpen, onClose, o
             id: 'install',
             title: 'Instalar App',
             description: 'Acesso rápido e offline na sua tela inicial.',
-            icon: <DownloadIcon className="w-8 h-8 text-pink-600 dark:text-pink-400" />,
-            color: 'bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800',
-            hover: 'hover:border-pink-500'
+            icon: <DownloadIcon className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />,
+            color: 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800',
+            hover: 'hover:border-indigo-500'
         });
     }
 
@@ -169,7 +178,7 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({ isOpen, onClose, o
                 
                 <footer className="mt-16 text-center">
                     <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d]">
-                        MarcenApp Inteligência Artificial v2.3 (Proxy Force)
+                        MarcenApp Inteligência Artificial v2.4 (Material Studio Added)
                     </p>
                 </footer>
             </div>

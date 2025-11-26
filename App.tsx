@@ -33,7 +33,8 @@ import { ToolsHubModal } from './components/ToolsHubModal';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { InstallPwaModal } from './components/InstallPwaModal'; 
 import { UserProfileModal } from './components/UserProfileModal';
-import { DistributorOnboarding } from './components/DistributorOnboarding'; // IMPORTED
+import { DistributorOnboarding } from './components/DistributorOnboarding';
+import { MaterialCombinationStudio } from './components/MaterialCombinationStudio'; // ADDED
 import { AlertNotification, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, ShoppingBagIcon, ShareIcon, CubeIcon, ArrowLeftIcon } from './components/Shared';
 import { SmartInputAssistant } from './components/SmartInputAssistant'; 
 import { RefinementPanel } from './components/RefinementPanel';
@@ -48,7 +49,9 @@ interface AppProps {
   userPlan: string;
 }
 
-// ... existing FinishSuggestionsModal component ...
+// ... (FinishSuggestionsModal code remains same) ...
+// ... (framingOptions code remains same) ...
+
 interface FinishSuggestionsModalProps {
     isOpen: boolean;
     isLoading: boolean;
@@ -102,18 +105,13 @@ const framingOptions = [
 ];
 
 export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
+  // ... (Existing state setup) ...
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  
-  // SUPER ADMIN LOGIC - RESTRICTED MODE
   const isSuperAdmin = (userEmail || '').trim().toLowerCase() === 'evaldo0510@gmail.com';
-  
-  // FORCE these roles to match super admin status
   const isPartner = isSuperAdmin;
   const isCarpenter = true; 
   const isStoreOwner = isSuperAdmin;
 
-  // PWA State
-  // ... existing PWA Logic ...
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -123,24 +121,18 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       e.preventDefault();
       setInstallPrompt(e);
     };
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Detect iOS
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-    
     if (isIosDevice && !isStandalone) {
         setIsIOS(true);
     }
-
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
 
-  // ... Input States ...
   const [description, setDescription] = useState('');
   const [stylePreset, setStylePreset] = useState('Moderno');
   const [framingStrategy, setFramingStrategy] = useState(framingOptions[0].value);
@@ -151,20 +143,13 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [isEnhancingText, setIsEnhancingText] = useState(false); 
   const [decorationLevel, setDecorationLevel] = useState<'minimal' | 'standard' | 'rich'>('standard');
-  
-  // Quality & Resolution States
   const [qualityMode, setQualityMode] = useState<'standard' | 'pro'>('standard');
   const [imageResolution, setImageResolution] = useState<'1K' | '2K' | '4K'>('1K');
-
-  // Mobile Tab State
   const [mobileTab, setMobileTab] = useState<'create' | 'result'>('create');
-
-  // Data State
   const [history, setHistory] = useState<ProjectHistoryItem[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [favoriteFinishes, setFavoriteFinishes] = useState<Finish[]>([]);
 
-  // Modal States
   const [modals, setModals] = useState({
       toolsHub: true, 
       research: false,
@@ -194,16 +179,15 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       apiKey: false,
       finishSelector: false,
       userProfile: false,
-      distributorOnboarding: false // ADDED
+      distributorOnboarding: false,
+      materialStudio: false // NEW MODAL STATE
   });
   
   const [finishSuggestions, setFinishSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as Finish[] });
   const [alert, setAlert] = useState<AlertState>({ show: false, title: '', message: '' });
-  
   const descriptionTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const [currentProject, setCurrentProject] = useState<ProjectHistoryItem | null>(null);
 
-  // ... Effects ...
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
@@ -221,19 +205,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         }
     };
     loadData();
-    
-    // Check if user profile is complete
     const profile = localStorage.getItem('userProfile');
     if (!profile && !isSuperAdmin) {
         setModals(prev => ({ ...prev, userProfile: true }));
     }
-    
-    // Check if came from "Sou Parceiro" link
     const isDistributorRef = sessionStorage.getItem('userPlan') === 'partner';
     if (isDistributorRef && !localStorage.getItem('distributorProfile')) {
         setModals(prev => ({ ...prev, distributorOnboarding: true }));
     }
-
   }, [isSuperAdmin]);
 
   const showAlert = (message: string, title = 'Aviso', type: AlertState['type'] = 'info') => setAlert({ show: true, title, message, type });
@@ -244,12 +223,10 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       setShowInstallModal(true);
   };
 
-  // HANDLE TOOLS HUB SELECTION
   const handleToolSelect = (toolId: string) => {
       toggleModal('toolsHub', false);
       switch (toolId) {
           case 'project':
-              // Just close hub, user is on main screen
               break;
           case 'cutting':
               toggleModal('cutting', true);
@@ -263,12 +240,15 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           case 'history':
               toggleModal('history', true);
               break;
+          case 'studio': // HANDLE NEW TOOL
+              toggleModal('materialStudio', true);
+              break;
           default:
               break;
       }
   };
 
-  // ... loadDemoProject, handleDescribeImage, handleEnhanceDescription ...
+  // ... (Keep all existing helper functions: loadDemoProject, handleDescribeImage, handleEnhanceDescription, handleGenerateProject, handleGenerateFloorPlan, handleViewProject, handleShareProject, handleGetFinishSuggestions, handleOpenLayoutEditor, handleSaveLayout) ...
   const loadDemoProject = () => {
       setDescription("Móvel com 3 portas verticais em madeira clara, 2 gavetas centrais com puxadores metálicos, acabamento fosco, pés retos e estilo moderno minimalista. Inclua nichos abertos na lateral e prateleiras internas.");
       setStylePreset("Moderno");
@@ -309,9 +289,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       }
   };
 
-  // ... handleGenerateProject (Updated to restrict access) ...
   const handleGenerateProject = async (forcePro = false) => {
-      // Only Admin can generate
       if (!isSuperAdmin) {
           showAlert("A geração de projetos 3D é um recurso Premium exclusivo. Entre em contato para liberar.", "Acesso Restrito", "warning");
           return;
@@ -408,7 +386,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       }
   };
 
-  // ... other handlers (handleGenerateFloorPlan, handleViewProject, etc) ...
   const handleGenerateFloorPlan = async () => {
       if (!isSuperAdmin) {
           showAlert("Recurso Premium exclusivo para administradores.", "Acesso Restrito", "warning");
@@ -507,6 +484,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   return (
     <div className="min-h-[100dvh] bg-[#f5f1e8] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] transition-colors duration-300 pb-safe flex flex-col">
       <div className="sticky top-0 z-50 w-full">
+          {/* ... Header Props remain same ... */}
           <Header 
             userEmail={userEmail} 
             isAdmin={isSuperAdmin}
@@ -547,7 +525,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             onInstallClick={handleInstallApp}
           />
 
-          {/* Mobile Tab Switcher */}
           <div className="lg:hidden flex bg-[#f5f1e8] dark:bg-[#2d2424] border-b border-[#e6ddcd] dark:border-[#4a4040] shadow-sm z-40 relative">
               <button 
                 onClick={() => setMobileTab('create')} 
@@ -567,11 +544,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       <main className="flex-1 max-w-7xl mx-auto p-3 sm:p-6 lg:px-8 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
             
-            {/* Left Column: Inputs - SIMPLIFIED */}
             <div className={`${mobileTab === 'create' ? 'block' : 'hidden'} lg:block space-y-6 animate-fadeIn`}>
                 
                 <section className="bg-white dark:bg-[#3e3535] p-5 rounded-2xl shadow-sm border border-[#e6ddcd] dark:border-[#4a4040] relative">
-                    {/* BACK TO MENU BUTTON */}
                     <button 
                         onClick={() => toggleModal('toolsHub', true)}
                         className="absolute top-5 right-5 text-xs font-bold text-[#8a7e7e] hover:text-[#d4ac6e] flex items-center gap-1 bg-[#f0e9dc] dark:bg-[#2d2424] px-3 py-1.5 rounded-full transition-colors"
@@ -606,7 +581,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         </button>
                     </div>
                     
-                    {/* SMART INPUT ASSISTANT */}
                     <div className="mt-4">
                         <SmartInputAssistant 
                             currentText={description}
@@ -649,7 +623,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                 </div>
             </div>
 
-            {/* Right Column: Results & Refinement */}
             <div className={`${mobileTab === 'result' ? 'block' : 'hidden'} lg:block h-full flex flex-col`}>
                 {currentProject ? (
                     <div className="bg-white dark:bg-[#3e3535] rounded-2xl shadow-xl border border-[#e6ddcd] dark:border-[#4a4040] h-full flex flex-col overflow-hidden animate-fadeIn">
@@ -683,7 +656,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                             </div>
                         </div>
 
-                        {/* REFINEMENT PANEL */}
                         <RefinementPanel 
                             currentStyle={stylePreset}
                             onStyleChange={setStylePreset}
@@ -727,9 +699,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       {/* MODALS */}
       <ToolsHubModal 
         isOpen={modals.toolsHub}
-        onClose={() => {
-            // Prevent closing if it is initial view
-        }}
+        onClose={() => { }}
         onSelectTool={handleToolSelect}
         installPrompt={installPrompt}
         onInstallClick={handleInstallApp}
@@ -746,7 +716,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         }}
       />
       
-      {/* ... Other modals (FinishSelector, Research, Live, etc) ... */}
       <div className={`fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4 animate-fadeIn ${!modals.finishSelector ? 'hidden' : ''}`} onClick={() => toggleModal('finishSelector', false)}>
           <div className="bg-[#fffefb] dark:bg-[#4a4040] rounded-lg w-full max-w-3xl p-6 shadow-xl border border-[#e6ddcd] dark:border-[#4a4040] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-4">Selecionar Acabamento</h3>
@@ -770,6 +739,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
               <button onClick={() => toggleModal('finishSelector', false)} className="mt-4 w-full py-2 bg-[#e6ddcd] dark:bg-[#5a4f4f] text-[#3e3535] dark:text-white rounded">Cancelar</button>
           </div>
       </div>
+
+      <MaterialCombinationStudio 
+        isOpen={modals.materialStudio} 
+        onClose={() => toggleModal('materialStudio', false)}
+        showAlert={showAlert}
+      />
 
       <ResearchAssistant isOpen={modals.research} onClose={() => toggleModal('research', false)} showAlert={showAlert} />
       <LiveAssistant isOpen={modals.live} onClose={() => toggleModal('live', false)} showAlert={showAlert} />
@@ -895,7 +870,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
       <AlertNotification show={alert.show} title={alert.title} message={alert.message} type={alert.type} onClose={closeAlert} />
       
-      {/* Only render admin/partner modals if user is super admin */}
       {isSuperAdmin && (
         <>
             <ManagementDashboard 
