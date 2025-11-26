@@ -1,5 +1,6 @@
 
 import type { ProjectHistoryItem, Client, Finish, Transaction, InventoryItem, DistributorProfile } from '../types';
+import { supabase, isSupabaseConfigured, getCurrentUserEmail } from './supabaseClient';
 
 const DB_NAME = 'MarcenAppDB';
 const PROJECTS_STORE_NAME = 'projects';
@@ -8,7 +9,9 @@ const FAVORITE_FINISHES_STORE_NAME = 'favoriteFinishes';
 const TRANSACTIONS_STORE_NAME = 'transactions';
 const INVENTORY_STORE_NAME = 'inventory';
 const DISTRIBUTOR_PROFILE_STORE_NAME = 'distributorProfile';
-const DB_VERSION = 6; // Incremented version
+const DB_VERSION = 6;
+
+// --- INDEXED DB HELPERS (FALLBACK) ---
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -20,47 +23,64 @@ function openDb(): Promise<IDBDatabase> {
     request.onsuccess = () => resolve(request.result);
     request.onupgradeneeded = (event) => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(PROJECTS_STORE_NAME)) {
-        db.createObjectStore(PROJECTS_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(CLIENTS_STORE_NAME)) {
-        db.createObjectStore(CLIENTS_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(FAVORITE_FINISHES_STORE_NAME)) {
-        db.createObjectStore(FAVORITE_FINISHES_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(TRANSACTIONS_STORE_NAME)) {
-        db.createObjectStore(TRANSACTIONS_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(INVENTORY_STORE_NAME)) {
-        db.createObjectStore(INVENTORY_STORE_NAME, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(DISTRIBUTOR_PROFILE_STORE_NAME)) {
-        db.createObjectStore(DISTRIBUTOR_PROFILE_STORE_NAME, { keyPath: 'id' });
-      }
+      if (!db.objectStoreNames.contains(PROJECTS_STORE_NAME)) db.createObjectStore(PROJECTS_STORE_NAME, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(CLIENTS_STORE_NAME)) db.createObjectStore(CLIENTS_STORE_NAME, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(FAVORITE_FINISHES_STORE_NAME)) db.createObjectStore(FAVORITE_FINISHES_STORE_NAME, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(TRANSACTIONS_STORE_NAME)) db.createObjectStore(TRANSACTIONS_STORE_NAME, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(INVENTORY_STORE_NAME)) db.createObjectStore(INVENTORY_STORE_NAME, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(DISTRIBUTOR_PROFILE_STORE_NAME)) db.createObjectStore(DISTRIBUTOR_PROFILE_STORE_NAME, { keyPath: 'id' });
     };
   });
+}
+
+async function idbGetAll<T>(storeName: string): Promise<T[]> {
+    const db = await openDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const request = store.getAll();
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+    });
+}
+
+async function idbPut<T>(storeName: string, item: T): Promise<void> {
+    const db = await openDb();
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).put(item);
+    return new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function idbDelete(storeName: string, id: string): Promise<void> {
+    const db = await openDb();
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).delete(id);
+    return new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
 }
 
 // --- PROJECT HISTORY FUNCTIONS ---
 
 export const getHistory = async (): Promise<ProjectHistoryItem[]> => {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(PROJECTS_STORE_NAME, 'readonly');
-    const store = tx.objectStore(PROJECTS_STORE_NAME);
-    const request = store.getAll();
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const projects: ProjectHistoryItem[] = request.result;
-      // Ensure new fields have defaults if missing
-      const fixedProjects = projects.map(p => ({
-          ...p,
-          status: p.status || 'orcamento'
-      }));
-      resolve(fixedProjects.sort((a, b) => b.timestamp - a.timestamp));
-    };
-  });
+  // CLOUD FIRST
+  if (isSupabaseConfigured() && supabase) {
+      const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('user_email', getCurrentUserEmail())
+          .order('timestamp', { ascending: false });
+      
+      if (!error && data) return data as ProjectHistoryItem[];
+  }
+
+  // LOCAL FALLBACK
+  const projects = await idbGetAll<ProjectHistoryItem>(PROJECTS_STORE_NAME);
+  return projects.sort((a, b) => b.timestamp - a.timestamp);
 };
 
 export const addProjectToHistory = async (project: Omit<ProjectHistoryItem, 'id' | 'timestamp'>): Promise<ProjectHistoryItem[]> => {
@@ -70,61 +90,65 @@ export const addProjectToHistory = async (project: Omit<ProjectHistoryItem, 'id'
         timestamp: Date.now(),
         status: project.status || 'orcamento'
     };
-    const db = await openDb();
-    const tx = db.transaction(PROJECTS_STORE_NAME, 'readwrite');
-    tx.objectStore(PROJECTS_STORE_NAME).put(newProject);
-    await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
+
+    if (isSupabaseConfigured() && supabase) {
+        await supabase.from('projects').insert([{ ...newProject, user_email: getCurrentUserEmail() }]);
+    } else {
+        await idbPut(PROJECTS_STORE_NAME, newProject);
+    }
+    
     return getHistory();
 };
 
 export const removeProjectFromHistory = async (id: string): Promise<ProjectHistoryItem[]> => {
-    const db = await openDb();
-    const tx = db.transaction(PROJECTS_STORE_NAME, 'readwrite');
-    tx.objectStore(PROJECTS_STORE_NAME).delete(id);
-    await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
+    if (isSupabaseConfigured() && supabase) {
+        await supabase.from('projects').delete().eq('id', id);
+    } else {
+        await idbDelete(PROJECTS_STORE_NAME, id);
+    }
     return getHistory();
 };
 
 export const updateProjectInHistory = async (id: string, updates: Partial<ProjectHistoryItem>): Promise<ProjectHistoryItem | null> => {
-    const db = await openDb();
-    const tx = db.transaction(PROJECTS_STORE_NAME, 'readwrite');
-    const store = tx.objectStore(PROJECTS_STORE_NAME);
-    const project = await new Promise<ProjectHistoryItem | undefined>((resolve, reject) => {
-        const request = store.get(id);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve(request.result);
-    });
-    if (!project) return null;
-    const updatedProject = { ...project, ...updates };
-    store.put(updatedProject);
-    await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
-    return updatedProject;
+    if (isSupabaseConfigured() && supabase) {
+        const { data, error } = await supabase
+            .from('projects')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+        if (!error) return data;
+        return null;
+    } else {
+        const db = await openDb();
+        const tx = db.transaction(PROJECTS_STORE_NAME, 'readwrite');
+        const store = tx.objectStore(PROJECTS_STORE_NAME);
+        
+        const project = await new Promise<ProjectHistoryItem | undefined>((resolve, reject) => {
+            const req = store.get(id);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+
+        if (!project) return null;
+        const updatedProject = { ...project, ...updates };
+        store.put(updatedProject);
+        
+        await new Promise<void>((resolve) => { tx.oncomplete = () => resolve(); });
+        return updatedProject;
+    }
 };
 
 
 // --- CLIENT FUNCTIONS ---
 
 export const getClients = async (): Promise<Client[]> => {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(CLIENTS_STORE_NAME, 'readonly');
-    const store = tx.objectStore(CLIENTS_STORE_NAME);
-    const request = store.getAll();
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const clients: Client[] = request.result;
-      resolve(clients.sort((a, b) => b.timestamp - a.timestamp));
-    };
-  });
+  if (isSupabaseConfigured() && supabase) {
+      const { data, error } = await supabase.from('clients').select('*').eq('user_email', getCurrentUserEmail());
+      if (!error && data) return data as Client[];
+  }
+  const clients = await idbGetAll<Client>(CLIENTS_STORE_NAME);
+  return clients.sort((a, b) => b.timestamp - a.timestamp);
 };
 
 export const saveClient = async (client: Omit<Client, 'id' | 'timestamp'> & { id?: string }): Promise<Client[]> => {
@@ -133,78 +157,64 @@ export const saveClient = async (client: Omit<Client, 'id' | 'timestamp'> & { id
         id: client.id || `client_${Date.now()}`,
         timestamp: Date.now(),
     };
-    const db = await openDb();
-    const tx = db.transaction(CLIENTS_STORE_NAME, 'readwrite');
-    tx.objectStore(CLIENTS_STORE_NAME).put(clientToSave);
-    await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
+
+    if (isSupabaseConfigured() && supabase) {
+        // Upsert handles both insert and update based on ID
+        await supabase.from('clients').upsert([{ ...clientToSave, user_email: getCurrentUserEmail() }]);
+    } else {
+        await idbPut(CLIENTS_STORE_NAME, clientToSave);
+    }
     return getClients();
 };
 
 export const removeClient = async (id: string): Promise<Client[]> => {
-    const db = await openDb();
-    const tx = db.transaction(CLIENTS_STORE_NAME, 'readwrite');
-    tx.objectStore(CLIENTS_STORE_NAME).delete(id);
-    await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
+    if (isSupabaseConfigured() && supabase) {
+        await supabase.from('clients').delete().eq('id', id);
+    } else {
+        await idbDelete(CLIENTS_STORE_NAME, id);
+    }
     return getClients();
 };
 
-// --- FAVORITE FINISHES FUNCTIONS ---
+// --- INVENTORY FUNCTIONS ---
 
-export const getFavoriteFinishes = async (): Promise<Finish[]> => {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(FAVORITE_FINISHES_STORE_NAME, 'readonly');
-        const store = tx.objectStore(FAVORITE_FINISHES_STORE_NAME);
-        const request = store.getAll();
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-            resolve(request.result || []);
-        };
-    });
+export const getInventory = async (): Promise<InventoryItem[]> => {
+    if (isSupabaseConfigured() && supabase) {
+        const { data, error } = await supabase.from('inventory').select('*').eq('user_email', getCurrentUserEmail());
+        if (!error && data) return data as InventoryItem[];
+    }
+    const items = await idbGetAll<InventoryItem>(INVENTORY_STORE_NAME);
+    return items.sort((a, b) => a.name.localeCompare(b.name));
 };
 
-export const addFavoriteFinish = async (finish: Finish): Promise<Finish[]> => {
-    const db = await openDb();
-    const tx = db.transaction(FAVORITE_FINISHES_STORE_NAME, 'readwrite');
-    tx.objectStore(FAVORITE_FINISHES_STORE_NAME).put(finish);
-    await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
-    return getFavoriteFinishes();
+export const saveInventoryItem = async (item: InventoryItem): Promise<InventoryItem[]> => {
+    const itemToSave = { ...item, lastUpdated: Date.now() };
+    if (isSupabaseConfigured() && supabase) {
+        await supabase.from('inventory').upsert([{ ...itemToSave, user_email: getCurrentUserEmail() }]);
+    } else {
+        await idbPut(INVENTORY_STORE_NAME, itemToSave);
+    }
+    return getInventory();
 };
 
-export const removeFavoriteFinish = async (id: string): Promise<Finish[]> => {
-    const db = await openDb();
-    const tx = db.transaction(FAVORITE_FINISHES_STORE_NAME, 'readwrite');
-    tx.objectStore(FAVORITE_FINISHES_STORE_NAME).delete(id);
-    await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
-    return getFavoriteFinishes();
+export const deleteInventoryItem = async (id: string): Promise<InventoryItem[]> => {
+    if (isSupabaseConfigured() && supabase) {
+        await supabase.from('inventory').delete().eq('id', id);
+    } else {
+        await idbDelete(INVENTORY_STORE_NAME, id);
+    }
+    return getInventory();
 };
 
 // --- FINANCIAL TRANSACTIONS FUNCTIONS ---
 
 export const getTransactions = async (): Promise<Transaction[]> => {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(TRANSACTIONS_STORE_NAME, 'readonly');
-        const store = tx.objectStore(TRANSACTIONS_STORE_NAME);
-        const request = store.getAll();
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-            const transactions: Transaction[] = request.result;
-            resolve(transactions.sort((a, b) => b.date - a.date));
-        };
-    });
+    if (isSupabaseConfigured() && supabase) {
+        const { data, error } = await supabase.from('transactions').select('*').eq('user_email', getCurrentUserEmail());
+        if (!error && data) return data as Transaction[];
+    }
+    const transactions = await idbGetAll<Transaction>(TRANSACTIONS_STORE_NAME);
+    return transactions.sort((a, b) => b.date - a.date);
 };
 
 export const addTransaction = async (transaction: Omit<Transaction, 'id'>): Promise<Transaction[]> => {
@@ -212,92 +222,47 @@ export const addTransaction = async (transaction: Omit<Transaction, 'id'>): Prom
         ...transaction,
         id: `tx_${Date.now()}`,
     };
-    const db = await openDb();
-    const tx = db.transaction(TRANSACTIONS_STORE_NAME, 'readwrite');
-    tx.objectStore(TRANSACTIONS_STORE_NAME).put(newTx);
-    await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
+    if (isSupabaseConfigured() && supabase) {
+        await supabase.from('transactions').insert([{ ...newTx, user_email: getCurrentUserEmail() }]);
+    } else {
+        await idbPut(TRANSACTIONS_STORE_NAME, newTx);
+    }
     return getTransactions();
 };
 
 export const deleteTransaction = async (id: string): Promise<Transaction[]> => {
-    const db = await openDb();
-    const tx = db.transaction(TRANSACTIONS_STORE_NAME, 'readwrite');
-    tx.objectStore(TRANSACTIONS_STORE_NAME).delete(id);
-    await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
+    if (isSupabaseConfigured() && supabase) {
+        await supabase.from('transactions').delete().eq('id', id);
+    } else {
+        await idbDelete(TRANSACTIONS_STORE_NAME, id);
+    }
     return getTransactions();
 };
 
+// --- LOCAL ONLY (Favorite Finishes & Distributor Profile) ---
+// These remain local for now as they are user preferences/session specific
 
-// --- INVENTORY FUNCTIONS ---
-
-export const getInventory = async (): Promise<InventoryItem[]> => {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(INVENTORY_STORE_NAME, 'readonly');
-        const store = tx.objectStore(INVENTORY_STORE_NAME);
-        const request = store.getAll();
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-            const items: InventoryItem[] = request.result;
-            resolve(items.sort((a, b) => a.name.localeCompare(b.name)));
-        };
-    });
+export const getFavoriteFinishes = async (): Promise<Finish[]> => {
+    return idbGetAll<Finish>(FAVORITE_FINISHES_STORE_NAME);
 };
 
-export const saveInventoryItem = async (item: InventoryItem): Promise<InventoryItem[]> => {
-    const db = await openDb();
-    const tx = db.transaction(INVENTORY_STORE_NAME, 'readwrite');
-    tx.objectStore(INVENTORY_STORE_NAME).put({ ...item, lastUpdated: Date.now() });
-    await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
-    return getInventory();
+export const addFavoriteFinish = async (finish: Finish): Promise<Finish[]> => {
+    await idbPut(FAVORITE_FINISHES_STORE_NAME, finish);
+    return getFavoriteFinishes();
 };
 
-export const deleteInventoryItem = async (id: string): Promise<InventoryItem[]> => {
-    const db = await openDb();
-    const tx = db.transaction(INVENTORY_STORE_NAME, 'readwrite');
-    tx.objectStore(INVENTORY_STORE_NAME).delete(id);
-    await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
-    return getInventory();
+export const removeFavoriteFinish = async (id: string): Promise<Finish[]> => {
+    await idbDelete(FAVORITE_FINISHES_STORE_NAME, id);
+    return getFavoriteFinishes();
 };
-
-// --- DISTRIBUTOR PROFILE FUNCTIONS ---
 
 export const getDistributorProfile = async (): Promise<DistributorProfile | undefined> => {
-    const db = await openDb();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(DISTRIBUTOR_PROFILE_STORE_NAME, 'readonly');
-        const store = tx.objectStore(DISTRIBUTOR_PROFILE_STORE_NAME);
-        const request = store.getAll(); // We assume only one profile per user
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-            resolve(request.result[0]);
-        };
-    });
+    const profiles = await idbGetAll<DistributorProfile>(DISTRIBUTOR_PROFILE_STORE_NAME);
+    return profiles[0];
 };
 
 export const createDistributorProfile = async (profile: Omit<DistributorProfile, 'id'>): Promise<DistributorProfile> => {
-    const newProfile: DistributorProfile = {
-        ...profile,
-        id: 'current_user', // Simplify for single user context
-    };
-    const db = await openDb();
-    const tx = db.transaction(DISTRIBUTOR_PROFILE_STORE_NAME, 'readwrite');
-    tx.objectStore(DISTRIBUTOR_PROFILE_STORE_NAME).put(newProfile);
-    await new Promise<void>((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
+    const newProfile: DistributorProfile = { ...profile, id: 'current_user' };
+    await idbPut(DISTRIBUTOR_PROFILE_STORE_NAME, newProfile);
     return newProfile;
 };
