@@ -2,6 +2,13 @@
 import { GoogleGenAI, Type, Modality, GenerateContentResponse } from "@google/genai";
 import type { ProjectHistoryItem, ProjectLead, Finish } from '../types';
 
+// --- CONFIGURAÇÃO DE API E PROXY ---
+
+// SE VOCÊ COMPROU O GEMINIGEN OU OUTRO PROXY, ALTERE AQUI:
+const USE_PROXY_AS_PRIMARY = false; // Mude para true se quiser usar o proxy como padrão
+const CUSTOM_PROXY_URL = 'https://api.geminigen.ai/v1/generate'; // URL do serviço comprado
+const CUSTOM_PROXY_KEY = ''; // Coloque a chave do GeminiGen aqui se tiver
+
 // --- API KEY MANAGEMENT ---
 
 // Helper to get the API key from various possible sources
@@ -12,7 +19,12 @@ export const getGeminiApiKey = (): string => {
         if (localKey) return localKey;
     }
     
-    // 2. Check Environment Variables (Vercel/Vite System Key)
+    // 2. Check configured Proxy Key if active
+    if (USE_PROXY_AS_PRIMARY && CUSTOM_PROXY_KEY) {
+        return CUSTOM_PROXY_KEY;
+    }
+    
+    // 3. Check Environment Variables (Vercel/Vite System Key)
     // @ts-ignore
     if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY) {
         // @ts-ignore
@@ -40,24 +52,30 @@ const getAiClient = () => {
     return new GoogleGenAI({ apiKey: apiKey || '' });
 };
 
-// --- FALLBACK PROXY ---
-const PROXY_URL = 'https://api.geminigen.ai/uapi/v1/generate';
+// --- FALLBACK PROXY LOGIC ---
 
 async function callCustomProxy(model: string, contents: any, config: any): Promise<GenerateContentResponse> {
-    // Construct payload to match what the proxy likely expects (standard Gemini REST structure)
+    // Construct payload to match standard Gemini REST structure
+    // Many proxies like GeminiGen accept the OpenAI format or Google format.
+    // This implementation assumes a Google-compatible endpoint.
+    
     const payload = {
         model,
         contents,
-        config,
-        apiKey: getGeminiApiKey() // Pass key in body in case proxy relies on it
+        ...config, // Spread config directly
+        apiKey: getGeminiApiKey() // Pass key in body if required by specific proxy
     };
 
-    console.log("[Proxy] Attempting fallback call to:", PROXY_URL);
+    // Se a URL do proxy não tiver a chave na query, adicionamos se for a do Google
+    let url = USE_PROXY_AS_PRIMARY ? CUSTOM_PROXY_URL : 'https://api.geminigen.ai/uapi/v1/generate';
+    
+    console.log(`[Connection] Usando rota: ${USE_PROXY_AS_PRIMARY ? 'Proxy Primário' : 'Proxy Fallback'}`);
 
-    const response = await fetch(PROXY_URL, {
+    const response = await fetch(url, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getGeminiApiKey()}` // Alguns proxies usam Bearer
         },
         body: JSON.stringify(payload)
     });
@@ -69,7 +87,6 @@ async function callCustomProxy(model: string, contents: any, config: any): Promi
     }
 
     const data = await response.json();
-    console.log("[Proxy] Success");
     return data as GenerateContentResponse;
 }
 
@@ -77,26 +94,39 @@ async function callCustomProxy(model: string, contents: any, config: any): Promi
 async function generateContentSafe(
     params: { model: string, contents: any, config?: any }
 ): Promise<GenerateContentResponse> {
+    
+    // 1. Se o usuário configurou para usar PROXY como padrão (comprou serviço)
+    if (USE_PROXY_AS_PRIMARY) {
+        try {
+            return await callCustomProxy(params.model, params.contents, params.config);
+        } catch (e: any) {
+            console.error("Falha no Proxy Primário:", e);
+            throw e; // Se o primário falhar, lança erro
+        }
+    }
+
+    // 2. Fluxo Padrão (Tenta Google Oficial -> Falha -> Tenta Proxy de Emergência)
     const ai = getAiClient();
     
     try {
-        // 1. Try Direct SDK Call
-        console.log(`[v2.3] Generating content with model: ${params.model}`);
+        console.log(`[v2.4] Generating content with model: ${params.model}`);
         return await retryOperation(() => ai.models.generateContent(params));
     } catch (error: any) {
         const errorMsg = error.message || '';
-        console.warn(`[v2.3] Direct API call failed:`, errorMsg);
+        console.warn(`[v2.4] Direct API call failed:`, errorMsg);
 
-        // FALLBACK: Aggressively try proxy for almost any error to ensure Vercel functionality
-        // We ignore rate limits (429) if the retry logic already failed, giving the proxy a chance
-        console.warn(`[v2.3] Attempting proxy fallback...`);
-        try {
-            return await callCustomProxy(params.model, params.contents, params.config);
-        } catch (proxyError) {
-            console.error("[v2.3] Proxy fallback also failed:", proxyError);
-            // Throw the original error as it's usually more descriptive for the user
-            throw error; 
+        // Só tenta o fallback se for erro de conexão, região ou servidor
+        // Erros de "API Key Inválida" geralmente não se resolvem com proxy gratuito
+        if (errorMsg.includes('fetch') || errorMsg.includes('500') || errorMsg.includes('503') || errorMsg.includes('location')) {
+            console.warn(`[v2.4] Attempting proxy fallback...`);
+            try {
+                return await callCustomProxy(params.model, params.contents, params.config);
+            } catch (proxyError) {
+                console.error("[v2.4] Proxy fallback also failed:", proxyError);
+            }
         }
+        // Throw the original error if fallback fails or wasn't attempted
+        throw error; 
     }
 }
 
