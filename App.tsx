@@ -31,58 +31,20 @@ import { DecorationListModal } from './components/DecorationListModal';
 import { DistributorAdmin } from './components/DistributorAdmin';
 import { ToolsHubModal } from './components/ToolsHubModal';
 import { ApiKeyModal } from './components/ApiKeyModal';
-import { AlertNotification, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, HighQualityIcon, PlantIcon, ShoppingBagIcon, ShareIcon, ToolsIcon } from './components/Shared';
+import { InstallPwaModal } from './components/InstallPwaModal'; 
+import { AlertNotification, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, ShoppingBagIcon, ShareIcon, CubeIcon, ArrowLeftIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
+import { RefinementPanel } from './components/RefinementPanel';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
-import { suggestAlternativeStyles, generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D, describeImageFor3D } from './services/geminiService';
+import { generateImage, suggestAlternativeFinishes, generateFloorPlanFrom3D, describeImageFor3D } from './services/geminiService';
 import type { ProjectHistoryItem, Client, Finish, AlertState } from './types';
 import { initialStylePresets } from './services/presetService';
-import { createDemoFloorPlanBase64 } from './utils/helpers';
 
 interface AppProps {
   onLogout: () => void;
   userEmail: string;
   userPlan: string;
 }
-
-interface StyleSuggestionsModalProps {
-    isOpen: boolean;
-    isLoading: boolean;
-    suggestions: string[];
-    onClose: () => void;
-    onSelectStyle: (style: string) => void;
-}
-
-const StyleSuggestionsModal: React.FC<StyleSuggestionsModalProps> = ({ isOpen, isLoading, suggestions, onClose, onSelectStyle }) => {
-    if (!isOpen) return null;
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
-            <div className="bg-[#fffefb] dark:bg-[#4a4040] rounded-lg w-full max-w-md p-6 shadow-xl border border-[#e6ddcd] dark:border-[#4a4040]" onClick={e => e.stopPropagation()}>
-                <h3 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] mb-4">Sugestões de Estilo</h3>
-                {isLoading ? (
-                    <div className="text-center py-8">
-                        <Spinner />
-                        <p className="mt-2 text-sm text-[#8a7e7e] dark:text-[#a89d8d]">Analisando sua descrição...</p>
-                    </div>
-                ) : (
-                    <div className="space-y-2">
-                        {suggestions.map((style, index) => (
-                            <button
-                                key={index}
-                                onClick={() => onSelectStyle(style)}
-                                className="w-full text-left p-3 rounded-lg bg-[#f0e9dc] dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] hover:bg-[#e6ddcd] dark:hover:bg-[#5a4f4f] transition"
-                            >
-                                {style}
-                            </button>
-                        ))}
-                        {suggestions.length === 0 && <p className="text-center text-sm">Nenhuma sugestão encontrada.</p>}
-                    </div>
-                )}
-                <button onClick={onClose} className="mt-4 w-full py-2 text-sm text-[#8a7e7e] hover:text-[#3e3535] dark:text-[#a89d8d] dark:hover:text-white">Cancelar</button>
-            </div>
-        </div>
-    );
-};
 
 interface FinishSuggestionsModalProps {
     isOpen: boolean;
@@ -132,31 +94,53 @@ const framingOptions = [
     { label: 'Padrão (Seguro/Sem Cortes)', value: 'ENQUADRAMENTO DE SEGURANÇA (SAFE FRAME): Renderize o projeto 3D centralizado, aplicando um ZOOM OUT agressivo (0.6x). O objeto deve ocupar no máximo 75% da imagem, deixando 12.5% de margem vazia em CADA lado (topo, baixo, esq, dir). Garanta que NENHUMA parte do móvel toque as bordas. Centralize perfeitamente.' },
     { label: 'Grande Angular (Tudo Visível)', value: 'Gere uma imagem 3D do projeto, ajustando o enquadramento para que todo o espaço fique visível, inclusive as paredes, teto e piso.' },
     { label: 'Horizontal (Panorâmico)', value: 'Mostre o móvel ou ambiente completamente, em formato horizontal, detalhando todas as laterais e evitando cortes nos extremos.' },
-    { label: 'Social Media (Proporção)', value: 'Crie uma visualização 3D centralizada e com proporção adequada ao quadro, pronta para compartilhamento nas redes sociais.' },
     { label: 'Zoom Aberto (Detalhes)', value: 'Renderize o espaço em ângulo aberto, ajustando o zoom para exibir todo o projeto e os detalhes do acabamento.' },
-    { label: 'Quadrado (Instagram)', value: 'Produza uma imagem 3D quadrada do ambiente, ideal para redes sociais, sem corte das bordas nem partes ocultas.' },
-    { label: 'Aprovação (Luz/Sombra)', value: 'Gere o projeto com todos os aspectos do ambiente visíveis, inclusive filtra luz e sombra para facilitar aprovação do cliente.' },
-    { label: 'Inteligência Avançada (Auto-Adaptação)', value: 'Utilize a ferramenta de interpretação avançada para entender todos os detalhes, preferências e necessidades descritas pelo usuário para o projeto. Analise automaticamente projetos semelhantes já existentes no sistema e adapte o texto da solicitação, garantindo que o 3D gerado corresponda exatamente ao que foi pedido, incluindo características, medidas, acabamentos, funcionalidade e estilo desejado. Aperfeiçoe a descrição para evitar cortes, ausências, ou erros, e entregue uma visualização completa e fiel ao pedido.' }
+    { label: 'Quadrado (Instagram)', value: 'Produza uma imagem 3D quadrada do ambiente, ideal para redes sociais, sem corte das bordas nem partes ocultas.' }
 ];
 
 export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   
   // SUPER ADMIN LOGIC - RESTRICTED MODE
-  // Strictly verify the email. All other users get a simplified view.
   const isSuperAdmin = (userEmail || '').trim().toLowerCase() === 'evaldo0510@gmail.com';
   
-  const effectivePlan = isSuperAdmin ? 'business' : userPlan; 
-  // FORCE these roles to match super admin status to hide extra tabs for others
+  // FORCE these roles to match super admin status
   const isPartner = isSuperAdmin;
   const isCarpenter = true; 
   const isStoreOwner = isSuperAdmin;
+
+  // PWA State
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  // PWA Logic
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Detect iOS
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    
+    if (isIosDevice && !isStandalone) {
+        setIsIOS(true);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
   // Main Input States
   const [description, setDescription] = useState('');
   const [stylePreset, setStylePreset] = useState('Moderno');
   const [framingStrategy, setFramingStrategy] = useState(framingOptions[0].value);
-  const [availableStyles, setAvailableStyles] = useState(initialStylePresets);
   const [uploadedImages, setUploadedImages] = useState<{ data: string, mimeType: string }[] | null>(null);
   const [selectedFinish, setSelectedFinish] = useState<{ manufacturer: string; finish: Finish; handleDetails?: string } | null>(null);
   const [withLedLighting, setWithLedLighting] = useState(false);
@@ -203,10 +187,10 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       storeMode: false,
       decorationList: false,
       smartWorkshop: false,
-      apiKey: false
+      apiKey: false,
+      finishSelector: false
   });
   
-  const [styleSuggestions, setStyleSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as string[] });
   const [finishSuggestions, setFinishSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as Finish[] });
   const [alert, setAlert] = useState<AlertState>({ show: false, title: '', message: '' });
   
@@ -237,6 +221,10 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const closeAlert = () => setAlert({ ...alert, show: false });
   const toggleModal = (key: keyof typeof modals, value: boolean) => setModals(prev => ({ ...prev, [key]: value }));
 
+  const handleInstallApp = () => {
+      setShowInstallModal(true);
+  };
+
   // HANDLE TOOLS HUB SELECTION
   const handleToolSelect = (toolId: string) => {
       toggleModal('toolsHub', false);
@@ -264,11 +252,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const loadDemoProject = () => {
       setDescription("Móvel com 3 portas verticais em madeira clara, 2 gavetas centrais com puxadores metálicos, acabamento fosco, pés retos e estilo moderno minimalista. Inclua nichos abertos na lateral e prateleiras internas.");
       setStylePreset("Moderno");
-      setWithLedLighting(true);
       setFramingStrategy(framingOptions[0].value);
-      setSelectedFinish(null);
       setQualityMode('standard');
-      setDecorationLevel('standard');
       setUploadedImages(null); 
       
       showAlert("Exemplo carregado! Descrição de armário moderno preenchida.", "Demo de Armário", "success");
@@ -432,47 +417,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       }
   };
 
-  const handleQuickRoomSwap = async (newRoomType: string) => {
-      if (!isSuperAdmin) return showAlert("Recurso Premium.", "Restrito");
-      
-      if (!currentProject) return;
-      setIsGenerating(true);
-      try {
-          let fullPrompt = `TRANSFORMAÇÃO DE AMBIENTE: Mantenha a mesma geometria básica da sala (paredes, janelas), mas altere a função do ambiente para: ${newRoomType}.`;
-          fullPrompt += `\n\nDETALHES:`;
-          fullPrompt += `\n- Proponha móveis planejados ideais para uma ${newRoomType} neste espaço.`;
-          fullPrompt += `\n- Estilo: ${currentProject.style}`;
-
-          if (selectedFinish) {
-              fullPrompt += `\n- Acabamento Principal: ${selectedFinish.finish.name}`;
-          }
-
-          const imageBase64 = await generateImage(fullPrompt, uploadedImages, framingStrategy, qualityMode === 'pro', imageResolution, decorationLevel);
-          
-          const newViewUrl = `data:image/png;base64,${imageBase64}`;
-          const updatedViews = [...currentProject.views3d, newViewUrl];
-          const updatedProject = await updateProjectInHistory(currentProject.id, { views3d: updatedViews, name: `${newRoomType} - Variação` });
-          
-          setHistory(await getHistory());
-          setCurrentProject(updatedProject);
-          
-      } catch (e: any) {
-          const errorMsg = e.message || '';
-          if (errorMsg.includes('API Key') || errorMsg.includes('API key')) {
-               if ((window as any).aistudio?.openSelectKey) {
-                   await (window as any).aistudio.openSelectKey();
-                   showAlert("Chave API solicitada. Tente novamente.", "Configuração");
-               } else {
-                   toggleModal('apiKey', true);
-               }
-               return;
-          }
-          showAlert("Erro ao trocar ambiente: " + e.message, "Erro", "error");
-      } finally {
-          setIsGenerating(false);
-      }
-  };
-
   const handleViewProject = (project: ProjectHistoryItem) => {
     setCurrentProject(project);
     setDescription(project.description);
@@ -512,18 +456,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       } else {
           navigator.clipboard.writeText(link);
           showAlert("Link do projeto copiado para a área de transferência!", "Link Copiado", "success");
-      }
-  };
-
-  const handleGetStyleSuggestions = async () => {
-      if (!description.trim()) return showAlert("Descreva o projeto primeiro.", "Aviso", "warning");
-      setStyleSuggestions({ isOpen: true, isLoading: true, suggestions: [] });
-      try {
-          const suggestions = await suggestAlternativeStyles(description, stylePreset);
-          setStyleSuggestions({ isOpen: true, isLoading: false, suggestions });
-      } catch (e) {
-          setStyleSuggestions({ isOpen: false, isLoading: false, suggestions: [] });
-          showAlert("Erro ao obter sugestões.", "Erro", "error");
       }
   };
 
@@ -601,6 +533,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             onLogout={onLogout}
             theme={theme}
             setTheme={setTheme}
+            installPrompt={installPrompt}
+            onInstallClick={handleInstallApp}
           />
 
           {/* Mobile Tab Switcher */}
@@ -609,13 +543,13 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                 onClick={() => setMobileTab('create')} 
                 className={`flex-1 py-3 font-bold text-sm border-b-4 transition-colors duration-200 ${mobileTab === 'create' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e] bg-[#d4ac6e]/5' : 'border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-[#3e3535]'}`}
               >
-                1. Criar Projeto
+                1. Criar
               </button>
               <button 
                 onClick={() => setMobileTab('result')} 
                 className={`flex-1 py-3 font-bold text-sm border-b-4 transition-colors duration-200 ${mobileTab === 'result' ? 'border-[#d4ac6e] text-[#b99256] dark:text-[#d4ac6e] bg-[#d4ac6e]/5' : 'border-transparent text-gray-500 hover:bg-gray-50 dark:hover:bg-[#3e3535]'}`}
               >
-                2. Resultado 3D
+                2. Resultado
               </button>
           </div>
       </div>
@@ -623,83 +557,57 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       <main className="flex-1 max-w-7xl mx-auto p-3 sm:p-6 lg:px-8 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
             
-            {/* Left Column: Inputs */}
+            {/* Left Column: Inputs - SIMPLIFIED */}
             <div className={`${mobileTab === 'create' ? 'block' : 'hidden'} lg:block space-y-6 animate-fadeIn`}>
                 
-                {/* Descrição */}
-                <section className="bg-white dark:bg-[#3e3535] p-5 rounded-2xl shadow-sm border border-[#e6ddcd] dark:border-[#4a4040]">
+                <section className="bg-white dark:bg-[#3e3535] p-5 rounded-2xl shadow-sm border border-[#e6ddcd] dark:border-[#4a4040] relative">
+                    {/* BACK TO MENU BUTTON */}
+                    <button 
+                        onClick={() => toggleModal('toolsHub', true)}
+                        className="absolute top-5 right-5 text-xs font-bold text-[#8a7e7e] hover:text-[#d4ac6e] flex items-center gap-1 bg-[#f0e9dc] dark:bg-[#2d2424] px-3 py-1.5 rounded-full transition-colors"
+                    >
+                        <ArrowLeftIcon className="w-3 h-3" /> Voltar ao Menu
+                    </button>
+
                     <div className="flex justify-between items-center mb-3">
                         <h2 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
-                            <BookIcon className="w-5 h-5"/> O que vamos criar hoje?
+                            <BookIcon className="w-5 h-5"/> O que você quer criar?
                         </h2>
-                        <button 
-                            onClick={loadDemoProject}
-                            className="text-xs font-bold text-[#d4ac6e] hover:text-[#c89f5e] bg-[#f0e9dc] dark:bg-[#4a4040] px-3 py-1 rounded-full transition"
-                        >
-                            Exemplo Armário
-                        </button>
                     </div>
                     <div className="relative">
                         <textarea
                             ref={descriptionTextAreaRef}
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            className="w-full h-28 p-4 bg-[#f0e9dc] dark:bg-[#2d2424] border-0 rounded-xl resize-none focus:ring-2 focus:ring-[#d4ac6e] text-base"
-                            placeholder="Descreva o móvel... Ex: Guarda-roupa casal com portas de correr e espelho..."
+                            className="w-full h-32 p-4 bg-[#f0e9dc] dark:bg-[#2d2424] border-0 rounded-xl resize-none focus:ring-2 focus:ring-[#d4ac6e] text-base mb-3"
+                            placeholder="Descreva seu móvel ou ambiente... (Ex: Cozinha moderna em L com ilha central)"
                         />
-                        <div className="absolute bottom-2 right-2">
+                        <div className="absolute bottom-5 right-2">
                             <VoiceInputButton onTranscript={(text) => setDescription(prev => prev + ' ' + text)} showAlert={showAlert} />
                         </div>
                     </div>
-                    <div className="mt-2">
-                        <StyleAssistant onSelect={(text) => setDescription(text)} presetId="sala" /> 
-                    </div>
-                </section>
-
-                {/* Estilo & Imagem */}
-                <section className="bg-white dark:bg-[#3e3535] p-5 rounded-2xl shadow-sm border border-[#e6ddcd] dark:border-[#4a4040]">
-                    <div className="flex justify-between items-center mb-3">
-                        <h2 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
-                            <SparklesIcon className="w-5 h-5"/> Estilo do Projeto
-                        </h2>
+                    
+                    <div className="flex justify-between items-center mt-2">
                         <button 
-                            onClick={handleGetStyleSuggestions} 
-                            className="p-2 bg-[#f0e9dc] dark:bg-[#2d2424] rounded-lg hover:bg-[#e6ddcd] dark:hover:bg-[#4a4040] text-[#d4ac6e] transition"
-                            title="Sugira estilos de projeto"
+                            onClick={loadDemoProject}
+                            className="text-xs font-bold text-[#d4ac6e] hover:text-[#c89f5e] hover:underline transition"
                         >
-                            <WandIcon className="w-4 h-4" />
+                            Carregar Exemplo
                         </button>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="col-span-2 md:col-span-1">
-                            <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] block mb-1">Estilo Visual</label>
-                            <select 
-                                value={stylePreset} 
-                                onChange={(e) => setStylePreset(e.target.value)}
-                                className="w-full p-3 rounded-xl bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-medium"
-                            >
-                                {availableStyles.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                        </div>
-                        
-                        <div className="col-span-2 md:col-span-1">
-                            <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] flex items-center gap-1">
-                                <VideoCameraIcon className="w-3 h-3" /> Enquadramento
-                            </label>
-                            <select 
-                                value={framingStrategy} 
-                                onChange={(e) => setFramingStrategy(e.target.value)}
-                                className="w-full p-3 rounded-xl bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-medium text-sm"
-                            >
-                                {framingOptions.map(option => (
-                                    <option key={option.label} value={option.value}>{option.label}</option>
-                                ))}
-                            </select>
-                            <p className="text-[10px] text-green-600 dark:text-green-400 mt-1 px-1">✅ O modo padrão centraliza o objeto e aplica margens para evitar cortes.</p>
-                        </div>
+                    {/* Dynamic Chips */}
+                    <div className="mt-4">
+                        <StyleAssistant onSelect={(text) => setDescription(prev => (prev ? prev + " " : "") + text)} />
                     </div>
+                </section>
 
+                <section className="bg-white dark:bg-[#3e3535] p-5 rounded-2xl shadow-sm border border-[#e6ddcd] dark:border-[#4a4040]">
+                    <div className="flex justify-between items-center mb-3">
+                        <h2 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
+                            <SparklesIcon className="w-5 h-5"/> Referência (Opcional)
+                        </h2>
+                    </div>
                     <ImageUploader onImagesChange={setUploadedImages} showAlert={showAlert} initialImageUrls={currentProject?.uploadedReferenceImageUrls || (uploadedImages && uploadedImages.length > 0 ? [`data:${uploadedImages[0].mimeType};base64,${uploadedImages[0].data}`] : null)} />
                     {uploadedImages && uploadedImages.length > 0 && (
                         <button 
@@ -708,92 +616,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                             disabled={isAnalyzingImage}
                         >
                             {isAnalyzingImage ? <Spinner size="sm" /> : <SparklesIcon className="w-4 h-4" />}
-                            {isAnalyzingImage ? 'Analisando imagem...' : 'Sugerir Descrição com IA'}
+                            {isAnalyzingImage ? 'Analisando...' : 'Ler Imagem com IA'}
                         </button>
                     )}
                 </section>
                 
-                {/* Qualidade, Acabamentos */}
-                <section className="bg-white dark:bg-[#3e3535] p-5 rounded-2xl shadow-sm border border-[#e6ddcd] dark:border-[#4a4040]">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
-                            <HighQualityIcon className="w-5 h-5"/> Qualidade & Detalhes
-                        </h2>
-                    </div>
-
-                    <div className="flex gap-4 mb-6 flex-wrap">
-                        <div className="flex-1 min-w-[140px]">
-                            <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] block mb-1">Motor de Renderização</label>
-                            <div className="flex bg-[#f0e9dc] dark:bg-[#2d2424] rounded-lg p-1">
-                                <button 
-                                    onClick={() => setQualityMode('standard')}
-                                    className={`flex-1 py-2 text-xs font-bold rounded-md transition ${qualityMode === 'standard' ? 'bg-white dark:bg-[#4a4040] shadow text-[#3e3535] dark:text-white' : 'text-gray-500'}`}
-                                >
-                                    Rápido (Flash)
-                                </button>
-                                <button 
-                                    onClick={() => setQualityMode('pro')}
-                                    className={`flex-1 py-2 text-xs font-bold rounded-md transition flex items-center justify-center gap-1 ${qualityMode === 'pro' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow' : 'text-gray-500'}`}
-                                >
-                                    Pro (Realista)
-                                </button>
-                            </div>
-                        </div>
-                        <div className="flex-1 min-w-[140px]">
-                            <label className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] flex items-center gap-1 mb-1"><PlantIcon className="w-3 h-3"/> Decoração Inteligente</label>
-                            <select 
-                                value={decorationLevel}
-                                onChange={(e) => setDecorationLevel(e.target.value as any)}
-                                className="w-full p-2 rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-medium text-sm"
-                            >
-                                <option value="minimal">Sem Decoração (Clean)</option>
-                                <option value="standard">Padrão (Equilibrada)</option>
-                                <option value="rich">Completa (Designer)</option>
-                            </select>
-                        </div>
-                        {qualityMode === 'pro' && (
-                            <div className="flex-1 min-w-[100px] animate-fadeIn">
-                                <label className="text-xs text-xs text-[#8a7e7e] dark:text-[#a89d8d] block mb-1">Resolução</label>
-                                <select 
-                                    value={imageResolution}
-                                    onChange={(e) => setImageResolution(e.target.value as '1K' | '2K' | '4K')}
-                                    className="w-full p-2 rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border-transparent focus:ring-2 focus:ring-[#d4ac6e] font-bold text-sm"
-                                >
-                                    <option value="1K">1K (HD)</option>
-                                    <option value="2K">2K (Full HD)</option>
-                                    <option value="4K">4K (Ultra HD)</option>
-                                </select>
-                            </div>
-                        )}
-                    </div>
-
-                    <FinishesSelector 
-                        value={selectedFinish} 
-                        onFinishSelect={setSelectedFinish} 
-                        showAlert={showAlert}
-                        favoriteFinishes={favoriteFinishes}
-                        onToggleFavorite={async (f) => {
-                            if (favoriteFinishes.some(fav => fav.id === f.id)) {
-                                setFavoriteFinishes(await removeFavoriteFinish(f.id));
-                            } else {
-                                setFavoriteFinishes(await addFavoriteFinish(f));
-                            }
-                        }}
-                        onRequestSuggestions={handleGetFinishSuggestions}
-                    />
-                    
-                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#4a4040] flex items-center gap-3">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" checked={withLedLighting} onChange={(e) => setWithLedLighting(e.target.checked)} className="sr-only peer" />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#d4ac6e]"></div>
-                            <span className="ml-3 text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] flex items-center gap-2">
-                                <SparklesIcon className="w-4 h-4 text-yellow-500" /> Adicionar LEDs
-                            </span>
-                        </label>
-                    </div>
-                </section>
-
-                {/* CTA Buttons - MODIFIED TO USE NEW LOGIC */}
                 <div className="flex gap-3">
                     <button 
                         onClick={() => handleGenerateProject(false)}
@@ -802,24 +629,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         ${isGenerating || !description.trim() ? 'bg-[#e6ddcd] dark:bg-[#4a4040] text-[#8a7e7e] dark:text-[#a89d8d] cursor-not-allowed' : 'bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535]'}`}
                     >
                         {isGenerating ? <Spinner /> : <CubeIcon className="w-6 h-6"/>}
-                        {isGenerating ? 'Criando...' : 'Gerar Projeto'}
+                        {isGenerating ? 'Criando...' : 'Gerar Projeto 3D'}
                     </button>
-                    {isSuperAdmin && (
-                        <button 
-                            onClick={() => handleGenerateProject(true)}
-                            disabled={isGenerating || !description.trim()}
-                            className={`px-4 rounded-xl font-bold border-2 border-[#d4ac6e] text-[#d4ac6e] hover:bg-[#d4ac6e] hover:text-[#3e3535] transition-all flex flex-col items-center justify-center
-                            ${isGenerating || !description.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            title="Gerar versão de Alta Qualidade"
-                        >
-                            <HighQualityIcon className="w-5 h-5"/>
-                            <span className="text-[10px]">PRO</span>
-                        </button>
-                    )}
                 </div>
             </div>
 
-            {/* Right Column: Results */}
+            {/* Right Column: Results & Refinement */}
             <div className={`${mobileTab === 'result' ? 'block' : 'hidden'} lg:block h-full flex flex-col`}>
                 {currentProject ? (
                     <div className="bg-white dark:bg-[#3e3535] rounded-2xl shadow-xl border border-[#e6ddcd] dark:border-[#4a4040] h-full flex flex-col overflow-hidden animate-fadeIn">
@@ -835,8 +650,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                             </div>
                         </div>
                         
-                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-[#2d2424]">
-                            <div className="grid grid-cols-1 gap-4">
+                        <div className="flex-1 overflow-y-auto bg-[#2d2424] custom-scrollbar relative">
+                            <div className="grid grid-cols-1 gap-4 p-4">
                                 {currentProject.views3d.map((src, index) => (
                                     <div key={index} className="relative group">
                                         <InteractiveImageViewer 
@@ -852,6 +667,21 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                 ))}
                             </div>
                         </div>
+
+                        {/* REFINEMENT PANEL (POST GENERATION CONTROLS) */}
+                        <RefinementPanel 
+                            currentStyle={stylePreset}
+                            onStyleChange={setStylePreset}
+                            currentFinish={selectedFinish}
+                            onFinishClick={() => toggleModal('finishSelector', true)}
+                            qualityMode={qualityMode}
+                            onQualityChange={setQualityMode}
+                            framingStrategy={framingStrategy}
+                            onFramingChange={setFramingStrategy}
+                            onRegenerate={() => handleGenerateProject(false)}
+                            isGenerating={isGenerating}
+                            framingOptions={framingOptions}
+                        />
 
                         <div className="p-4 border-t border-[#e6ddcd] dark:border-[#4a4040] bg-[#fffefb] dark:bg-[#3e3535]">
                             <div className="grid grid-cols-2 gap-3">
@@ -871,7 +701,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                     <div className="h-full flex flex-col items-center justify-center text-[#8a7e7e] dark:text-[#a89d8d] bg-[#fffefb] dark:bg-[#3e3535] rounded-2xl border-2 border-dashed border-[#e6ddcd] dark:border-[#4a4040] p-8">
                         <CubeIcon className="w-24 h-24 mb-4 opacity-20" />
                         <h3 className="text-xl font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-2">Nenhum projeto gerado</h3>
-                        <p className="text-center max-w-xs mb-6">Preencha os dados ao lado e clique em "Gerar Projeto" para ver a mágica acontecer.</p>
+                        <p className="text-center max-w-xs mb-6">Preencha os dados ao lado e clique em "Gerar Projeto 3D" para ver a mágica acontecer.</p>
                         <button onClick={loadDemoProject} className="text-[#d4ac6e] font-bold hover:underline text-sm">Carregar Demo</button>
                     </div>
                 )}
@@ -886,7 +716,36 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             // Prevent closing if it is initial view
         }}
         onSelectTool={handleToolSelect}
+        installPrompt={installPrompt}
+        onInstallClick={handleInstallApp}
       />
+      <InstallPwaModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} installPrompt={installPrompt} isIOS={isIOS} />
+      
+      {/* MODAL FOR SELECTING FINISHES (MOVED FROM LEFT PANEL) */}
+      <div className={`fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4 animate-fadeIn ${!modals.finishSelector ? 'hidden' : ''}`} onClick={() => toggleModal('finishSelector', false)}>
+          <div className="bg-[#fffefb] dark:bg-[#4a4040] rounded-lg w-full max-w-3xl p-6 shadow-xl border border-[#e6ddcd] dark:border-[#4a4040] max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <h3 className="text-lg font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-4">Selecionar Acabamento</h3>
+              <FinishesSelector 
+                value={selectedFinish} 
+                onFinishSelect={(sel) => {
+                    setSelectedFinish(sel);
+                    toggleModal('finishSelector', false);
+                }} 
+                showAlert={showAlert}
+                favoriteFinishes={favoriteFinishes}
+                onToggleFavorite={async (f) => {
+                    if (favoriteFinishes.some(fav => fav.id === f.id)) {
+                        setFavoriteFinishes(await removeFavoriteFinish(f.id));
+                    } else {
+                        setFavoriteFinishes(await addFavoriteFinish(f));
+                    }
+                }}
+                onRequestSuggestions={handleGetFinishSuggestions}
+              />
+              <button onClick={() => toggleModal('finishSelector', false)} className="mt-4 w-full py-2 bg-[#e6ddcd] dark:bg-[#5a4f4f] text-[#3e3535] dark:text-white rounded">Cancelar</button>
+          </div>
+      </div>
+
       <ResearchAssistant isOpen={modals.research} onClose={() => toggleModal('research', false)} showAlert={showAlert} />
       <LiveAssistant isOpen={modals.live} onClose={() => toggleModal('live', false)} showAlert={showAlert} />
       <DistributorFinder isOpen={modals.distributors} onClose={() => toggleModal('distributors', false)} showAlert={showAlert} />
@@ -919,9 +778,24 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         }}
       />
       <AboutModal isOpen={modals.about} onClose={() => toggleModal('about', false)} />
-      <BomGeneratorModal isOpen={modals.bom} onClose={() => toggleModal('bom', false)} showAlert={showAlert} />
-      <CuttingPlanGeneratorModal isOpen={modals.cutting} onClose={() => toggleModal('cutting', false)} showAlert={showAlert} />
-      <CostEstimatorModal isOpen={modals.cost} onClose={() => toggleModal('cost', false)} showAlert={showAlert} />
+      <BomGeneratorModal 
+        isOpen={modals.bom} 
+        onClose={() => { toggleModal('bom', false); toggleModal('toolsHub', true); }} 
+        showAlert={showAlert} 
+        onBack={() => { toggleModal('bom', false); toggleModal('toolsHub', true); }} 
+      />
+      <CuttingPlanGeneratorModal 
+        isOpen={modals.cutting} 
+        onClose={() => { toggleModal('cutting', false); toggleModal('toolsHub', true); }} 
+        showAlert={showAlert} 
+        onBack={() => { toggleModal('cutting', false); toggleModal('toolsHub', true); }} 
+      />
+      <CostEstimatorModal 
+        isOpen={modals.cost} 
+        onClose={() => { toggleModal('cost', false); toggleModal('toolsHub', true); }} 
+        showAlert={showAlert} 
+        onBack={() => { toggleModal('cost', false); toggleModal('toolsHub', true); }} 
+      />
       <EncontraProModal isOpen={modals.encontraPro} onClose={() => toggleModal('encontraPro', false)} showAlert={showAlert} />
       <ARViewer isOpen={modals.ar} onClose={() => toggleModal('ar', false)} imageSrc={currentProject?.views3d[0] || ''} showAlert={showAlert} />
       <ApiKeyModal isOpen={modals.apiKey} onClose={() => toggleModal('apiKey', false)} showAlert={showAlert} />
@@ -982,17 +856,6 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             />
         </>
       )}
-
-      <StyleSuggestionsModal 
-        isOpen={styleSuggestions.isOpen} 
-        isLoading={styleSuggestions.isLoading} 
-        suggestions={styleSuggestions.suggestions} 
-        onClose={() => setStyleSuggestions({ ...styleSuggestions, isOpen: false })} 
-        onSelectStyle={(style) => {
-            setStylePreset(style);
-            setStyleSuggestions({ ...styleSuggestions, isOpen: false });
-        }} 
-      />
 
       <FinishSuggestionsModal 
         isOpen={finishSuggestions.isOpen} 

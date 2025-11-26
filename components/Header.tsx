@@ -39,17 +39,20 @@ interface HeaderProps {
     onOpenSmartWorkshop: () => void;
     onOpenAdmin?: () => void;
     onConfigureApi?: () => void;
+    // PWA Props
+    installPrompt?: any;
+    onInstallClick?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
     userEmail, isAdmin, isPartner, isCarpenter, isStoreOwner, currentProject,
     onOpenToolsHub, onOpenHistory, onOpenAbout, 
-    onOpenEncontraPro, onLogout, theme, setTheme, onOpenManagement, onOpenAdmin, onOpenPartnerPortal, onConfigureApi
+    onOpenEncontraPro, onLogout, theme, setTheme, onOpenManagement, onOpenAdmin, onOpenPartnerPortal, onConfigureApi,
+    installPrompt, onInstallClick
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isShareOpen, setIsShareOpen] = useState(false);
     const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
-    const [installPrompt, setInstallPrompt] = useState<any>(null);
     
     const menuRef = useRef<HTMLDivElement>(null);
     const shareRef = useRef<HTMLDivElement>(null);
@@ -76,29 +79,6 @@ export const Header: React.FC<HeaderProps> = ({
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
-
-    useEffect(() => {
-        const handleBeforeInstallPrompt = (e: any) => {
-            e.preventDefault();
-            setInstallPrompt(e);
-        };
-
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-        return () => {
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        };
-    }, []);
-
-    const handleInstallClick = async () => {
-        if (!installPrompt) return;
-        installPrompt.prompt();
-        const { outcome } = await installPrompt.userChoice;
-        if (outcome === 'accepted') {
-            setInstallPrompt(null);
-        }
-        setIsMenuOpen(false);
-    };
 
     const handleThemeToggle = () => {
         setTheme(theme === 'light' ? 'dark' : 'light');
@@ -171,11 +151,10 @@ export const Header: React.FC<HeaderProps> = ({
                                 <StoreIcon className="w-4 h-4"/> Início
                             </button>
                             
-                            {installPrompt && (
-                                <button onClick={handleInstallClick} className="p-2 rounded-full text-[#d4ac6e] hover:bg-[#3e3535] transition-all duration-200 animate-pulse ml-2" title="Instalar Aplicativo">
-                                    <DownloadIcon className="w-5 h-5" />
-                                </button>
-                            )}
+                            {/* Install App Button - Visible if installPrompt exists or explicitly handled for iOS */}
+                            <button onClick={onInstallClick} className="p-2 rounded-full text-[#d4ac6e] hover:bg-[#3e3535] transition-all duration-200 animate-pulse ml-2" title="Instalar Aplicativo">
+                                <DownloadIcon className="w-5 h-5" />
+                            </button>
                         </nav>
                         
                         {/* Share Button (Only when project active) */}
@@ -244,31 +223,4 @@ export const Header: React.FC<HeaderProps> = ({
 
                                     {/* Mobile Only Buttons */}
                                     <div className="md:hidden space-y-1 mb-2">
-                                        <button onClick={() => {onOpenToolsHub(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold text-[#2d2424] bg-[#d4ac6e] hover:bg-[#c89f5e] text-sm transition-colors"><MagicIcon className="w-4 h-4"/> Início (Hub)</button>
-                                        <button onClick={() => {onOpenHistory(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors"><HistoryIcon className="w-4 h-4 text-[#d4ac6e]"/> Meus Projetos</button>
-                                    </div>
-
-                                    <div className="my-2 h-px bg-[#4a4040]"></div>
-                                    
-                                    {/* Configurações e Sair */}
-                                    <button onClick={handleOpenApiKey} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors">
-                                        <CogIcon className={`w-4 h-4 ${isApiReady ? 'text-green-500' : 'text-[#8a7e7e]'}`}/> 
-                                        Configurar API 
-                                        {isApiReady && <span className="ml-auto text-[10px] text-green-500 bg-green-900/30 px-1.5 py-0.5 rounded font-bold">ON</span>}
-                                    </button>
-                                    <button onClick={handleThemeToggle} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors">
-                                        <span className="flex items-center gap-3"><span className="text-[#8a7e7e]">{theme === 'light' ? <MoonIcon className="w-4 h-4"/> : <SunIcon className="w-4 h-4"/>}</span> Tema {theme === 'light' ? 'Escuro' : 'Claro'}</span>
-                                    </button>
-                                    <button onClick={() => {onOpenAbout(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors"><InfoIcon className="w-4 h-4 text-[#8a7e7e]"/> Sobre</button>
-                                    
-                                    <div className="my-2 h-px bg-[#4a4040]"></div>
-                                    <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-900/20 text-sm font-bold transition-colors"><LogoutIcon className="w-4 h-4"/> Sair</button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </header>
-    );
-};
+                                        <button onClick={() => {onOpenToolsHub(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold text-[#2d2424] bg-[#d4ac6e] hover:bg-[#c89f5e] text-

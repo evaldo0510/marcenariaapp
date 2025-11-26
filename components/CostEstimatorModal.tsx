@@ -1,16 +1,17 @@
 
 import React, { useState } from 'react';
 import { estimateProjectCosts } from '../services/geminiService';
-import { Spinner, SparklesIcon, CurrencyDollarIcon, CheckIcon, CopyIcon } from './Shared';
+import { Spinner, SparklesIcon, CurrencyDollarIcon, CheckIcon, CopyIcon, ArrowLeftIcon } from './Shared';
 import type { ProjectHistoryItem } from '../types';
 
 interface CostEstimatorModalProps {
     isOpen: boolean;
     onClose: () => void;
     showAlert: (message: string, title?: string) => void;
+    onBack?: () => void;
 }
 
-export const CostEstimatorModal: React.FC<CostEstimatorModalProps> = ({ isOpen, onClose, showAlert }) => {
+export const CostEstimatorModal: React.FC<CostEstimatorModalProps> = ({ isOpen, onClose, showAlert, onBack }) => {
     const [bomInput, setBomInput] = useState('');
     const [projectName, setProjectName] = useState('');
     const [projectDescription, setProjectDescription] = useState('');
@@ -95,9 +96,16 @@ export const CostEstimatorModal: React.FC<CostEstimatorModalProps> = ({ isOpen, 
                 onClick={e => e.stopPropagation()}
             >
                 <header className="p-4 border-b border-[#e6ddcd] dark:border-[#4a4040] flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
-                        <CurrencyDollarIcon /> Estimar Custos
-                    </h2>
+                    <div className="flex items-center gap-3">
+                        {onBack && (
+                            <button onClick={onBack} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8]" title="Voltar">
+                                <ArrowLeftIcon className="w-6 h-6" />
+                            </button>
+                        )}
+                        <h2 className="text-xl font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
+                            <CurrencyDollarIcon /> Estimar Custos
+                        </h2>
+                    </div>
                     <button onClick={handleClose} className="text-[#a89d8d] hover:text-[#3e3535] dark:hover:text-white text-2xl">&times;</button>
                 </header>
 
