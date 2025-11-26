@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from "@google/genai";
 import { decode, decodeAudioData, createBlob } from '../utils/helpers';
 import { Spinner } from './Shared';
+import { getGeminiApiKey } from '../services/geminiService';
 
 interface LiveAssistantProps {
   isOpen: boolean;
@@ -65,6 +67,13 @@ export const LiveAssistant: React.FC<LiveAssistantProps> = ({ isOpen, onClose, s
     currentInputRef.current = '';
     currentOutputRef.current = '';
 
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+        showAlert("Chave de API não encontrada. Por favor, configure sua chave no menu principal.", "Configuração Necessária");
+        setConnectionState('error');
+        return;
+    }
+
     try {
         mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
@@ -77,7 +86,7 @@ export const LiveAssistant: React.FC<LiveAssistantProps> = ({ isOpen, onClose, s
     audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
     outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+    const ai = new GoogleGenAI({ apiKey });
 
     sessionPromiseRef.current = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -147,7 +156,13 @@ export const LiveAssistant: React.FC<LiveAssistantProps> = ({ isOpen, onClose, s
             },
             onerror: (e: ErrorEvent) => {
                 console.error("Live session error:", e);
-                showAlert("Ocorreu um erro na conexão com o assistente.", "Erro de Conexão");
+                // Try to catch the specific error message from event if available, otherwise generic
+                const errorMsg = (e as any).message || "Erro desconhecido";
+                if (errorMsg.includes('403') || errorMsg.includes('API key')) {
+                     showAlert("Chave de API inválida ou expirada. Verifique sua configuração.", "Erro de Autenticação");
+                } else {
+                     showAlert("Ocorreu um erro na conexão com o assistente.", "Erro de Conexão");
+                }
                 setConnectionState('error');
                 disconnect();
             },
@@ -187,6 +202,7 @@ export const LiveAssistant: React.FC<LiveAssistantProps> = ({ isOpen, onClose, s
             {transcript.length === 0 && connectionState !== 'connected' && (
                 <div className="text-center text-[#8a7e7e] dark:text-[#a89d8d] pt-10">
                     <p>Pressione "Conectar" para iniciar uma conversa por voz com a Iara.</p>
+                    <p className="text-xs mt-2 opacity-70">Certifique-se de que sua chave de API está configurada.</p>
                 </div>
             )}
             {transcript.map((line, index) => (

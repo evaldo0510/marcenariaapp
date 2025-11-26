@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { LogoIcon, UserIcon, HistoryIcon, LogoutIcon, InfoIcon, SunIcon, MoonIcon, MagicIcon, ShareIcon, WhatsappIcon, CheckIcon, LinkIcon, EmailIcon, ShieldIcon, CogIcon, ChartBarIcon, DownloadIcon, StoreIcon } from './Shared';
 import type { ProjectHistoryItem } from '../types';
+import { hasSystemApiKey } from '../services/geminiService';
 
 interface HeaderProps {
     userEmail: string;
@@ -37,12 +38,13 @@ interface HeaderProps {
     onOpenStoreMode: () => void;
     onOpenSmartWorkshop: () => void;
     onOpenAdmin?: () => void;
+    onConfigureApi?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
     userEmail, isAdmin, isPartner, isCarpenter, isStoreOwner, currentProject,
     onOpenToolsHub, onOpenHistory, onOpenAbout, 
-    onOpenEncontraPro, onLogout, theme, setTheme, onOpenManagement, onOpenAdmin, onOpenPartnerPortal
+    onOpenEncontraPro, onLogout, theme, setTheme, onOpenManagement, onOpenAdmin, onOpenPartnerPortal, onConfigureApi
 }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isShareOpen, setIsShareOpen] = useState(false);
@@ -54,6 +56,11 @@ export const Header: React.FC<HeaderProps> = ({
     
     // Strict check for Evaldo
     const isSuperAdmin = (userEmail || '').trim().toLowerCase() === 'evaldo0510@gmail.com';
+
+    // Check for API Key status to color the icon
+    const hasLocalKey = typeof localStorage !== 'undefined' && !!localStorage.getItem('gemini_api_key');
+    const hasEnvKey = hasSystemApiKey();
+    const isApiReady = hasLocalKey || hasEnvKey;
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -98,7 +105,12 @@ export const Header: React.FC<HeaderProps> = ({
     };
 
     const handleOpenApiKey = async () => {
-        if ((window as any).aistudio?.openSelectKey) {
+        // Call the prop function to open the manual config modal
+        if (onConfigureApi) {
+            onConfigureApi();
+            setIsMenuOpen(false);
+        } else if ((window as any).aistudio?.openSelectKey) {
+            // Fallback for AI Studio environment
             await (window as any).aistudio.openSelectKey();
             setIsMenuOpen(false);
         }
@@ -240,7 +252,9 @@ export const Header: React.FC<HeaderProps> = ({
                                     
                                     {/* Configurações e Sair */}
                                     <button onClick={handleOpenApiKey} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors">
-                                        <CogIcon className="w-4 h-4 text-[#8a7e7e]"/> Configurar API
+                                        <CogIcon className={`w-4 h-4 ${isApiReady ? 'text-green-500' : 'text-[#8a7e7e]'}`}/> 
+                                        Configurar API 
+                                        {isApiReady && <span className="ml-auto text-[10px] text-green-500 bg-green-900/30 px-1.5 py-0.5 rounded font-bold">ON</span>}
                                     </button>
                                     <button onClick={handleThemeToggle} className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[#e6ddcd] hover:bg-[#2d2424] text-sm transition-colors">
                                         <span className="flex items-center gap-3"><span className="text-[#8a7e7e]">{theme === 'light' ? <MoonIcon className="w-4 h-4"/> : <SunIcon className="w-4 h-4"/>}</span> Tema {theme === 'light' ? 'Escuro' : 'Claro'}</span>

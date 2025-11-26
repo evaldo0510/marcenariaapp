@@ -1,11 +1,49 @@
+
 import { GoogleGenAI, Type, Modality, GenerateContentResponse } from "@google/genai";
 import type { ProjectHistoryItem, ProjectLead, Finish } from '../types';
 
+// --- API KEY MANAGEMENT ---
+
+// Helper to get the API key from various possible sources
+export const getGeminiApiKey = (): string => {
+    // 1. Check Local Storage (User's custom key overrides everything)
+    if (typeof localStorage !== 'undefined') {
+        const localKey = localStorage.getItem('gemini_api_key');
+        if (localKey) return localKey;
+    }
+    
+    // 2. Check Environment Variables (Vercel/Vite System Key)
+    // Support both Vite (import.meta.env) and standard process.env
+    // Vercel often exposes vars as process.env in functions or VITE_ prefixed vars in frontend
+    
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_KEY) {
+        // @ts-ignore
+        return import.meta.env.VITE_API_KEY;
+    }
+
+    if (typeof process !== 'undefined') {
+        if (process.env.API_KEY) return process.env.API_KEY;
+        if (process.env.VITE_API_KEY) return process.env.VITE_API_KEY;
+    }
+
+    return '';
+};
+
+export const hasSystemApiKey = () => {
+    const key = getGeminiApiKey();
+    // We consider it a "System Key" if it exists but isn't in local storage
+    // However, for UI purposes, we just want to know if ANY key works without user input
+    const localKey = typeof localStorage !== 'undefined' ? localStorage.getItem('gemini_api_key') : null;
+    if (localKey) return true; // User has a key, so system is "ready"
+    return !!key; // If no local key, but we found one in env, it's a system key
+}
+
 // Helper to get a fresh AI client instance
 const getAiClient = () => {
-    const apiKey = process.env.API_KEY;
-    // If API Key is missing, we pass an empty string which causes the SDK to throw a specific error
-    // that we can catch in the UI components to trigger the key selection dialog.
+    const apiKey = getGeminiApiKey();
+    // If API Key is missing, we pass an empty string.
+    // The SDK will initialize, but calls will fail, triggering the UI to ask for a key.
     return new GoogleGenAI({ apiKey: apiKey || '' });
 };
 
@@ -719,7 +757,7 @@ export async function editFloorPlan(base64Data: string, mimeType: string, prompt
     // Prompt reforçado para manter estilo técnico AutoCAD com cotas
     const technicalPrompt = `
     ATUE COMO: Um software CAD (AutoCAD) em modo de exportação.
-    TAREFA: Editar esta planta baixa técnica mantendo o rigoroso padrão de desenho técnico.
+    TAREFA: Editar esta planta baixa mantendo o rigoroso padrão de desenho técnico.
     
     INSTRUÇÃO DE EDIÇÃO: ${prompt}
     

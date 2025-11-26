@@ -30,6 +30,7 @@ import { InteractiveImageViewer } from './components/InteractiveImageViewer';
 import { DecorationListModal } from './components/DecorationListModal';
 import { DistributorAdmin } from './components/DistributorAdmin';
 import { ToolsHubModal } from './components/ToolsHubModal';
+import { ApiKeyModal } from './components/ApiKeyModal';
 import { AlertNotification, Spinner, WandIcon, BookIcon, BlueprintIcon, CurrencyDollarIcon, SparklesIcon, RulerIcon, CubeIcon, VideoCameraIcon, HighQualityIcon, PlantIcon, ShoppingBagIcon, ShareIcon, ToolsIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { getHistory, addProjectToHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish, updateProjectInHistory } from './services/historyService';
@@ -201,7 +202,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       projectGenerator: false, 
       storeMode: false,
       decorationList: false,
-      smartWorkshop: false
+      smartWorkshop: false,
+      apiKey: false
   });
   
   const [styleSuggestions, setStyleSuggestions] = useState({ isOpen: false, isLoading: false, suggestions: [] as string[] });
@@ -356,6 +358,10 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                    await (window as any).aistudio.openSelectKey();
                    showAlert("Chave de API configurada. Por favor, tente gerar o projeto novamente.", "Configuração", "success");
                    return;
+               } else {
+                   toggleModal('apiKey', true);
+                   showAlert("Configure sua chave de API para continuar.", "Configuração");
+                   return;
                }
           }
 
@@ -408,8 +414,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           console.error(e);
           const errorMsg = e.message || '';
           if (errorMsg.includes('API Key') || errorMsg.includes('API key')) {
-               if ((window as any).aistudio?.openSelectKey) await (window as any).aistudio.openSelectKey();
-               showAlert("Chave API solicitada. Tente novamente.", "Configuração");
+               if ((window as any).aistudio?.openSelectKey) {
+                   await (window as any).aistudio.openSelectKey();
+                   showAlert("Chave API solicitada. Tente novamente.", "Configuração");
+               } else {
+                   toggleModal('apiKey', true);
+               }
                return;
           }
           if (errorMsg.includes('429') || errorMsg.includes('quota')) {
@@ -449,8 +459,12 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       } catch (e: any) {
           const errorMsg = e.message || '';
           if (errorMsg.includes('API Key') || errorMsg.includes('API key')) {
-               if ((window as any).aistudio?.openSelectKey) await (window as any).aistudio.openSelectKey();
-               showAlert("Chave API solicitada. Tente novamente.", "Configuração");
+               if ((window as any).aistudio?.openSelectKey) {
+                   await (window as any).aistudio.openSelectKey();
+                   showAlert("Chave API solicitada. Tente novamente.", "Configuração");
+               } else {
+                   toggleModal('apiKey', true);
+               }
                return;
           }
           showAlert("Erro ao trocar ambiente: " + e.message, "Erro", "error");
@@ -583,6 +597,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             onOpenStoreMode={() => toggleModal('storeMode', true)}
             onOpenSmartWorkshop={() => toggleModal('smartWorkshop', true)} 
             onOpenAdmin={() => toggleModal('admin', true)}
+            onConfigureApi={() => toggleModal('apiKey', true)}
             onLogout={onLogout}
             theme={theme}
             setTheme={setTheme}
@@ -909,6 +924,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       <CostEstimatorModal isOpen={modals.cost} onClose={() => toggleModal('cost', false)} showAlert={showAlert} />
       <EncontraProModal isOpen={modals.encontraPro} onClose={() => toggleModal('encontraPro', false)} showAlert={showAlert} />
       <ARViewer isOpen={modals.ar} onClose={() => toggleModal('ar', false)} imageSrc={currentProject?.views3d[0] || ''} showAlert={showAlert} />
+      <ApiKeyModal isOpen={modals.apiKey} onClose={() => toggleModal('apiKey', false)} showAlert={showAlert} />
       
       {currentProject && (
         <>
