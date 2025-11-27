@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { findLocalSuppliers } from '../services/geminiService';
 import type { Distributor } from '../types';
-import { Spinner, StoreIcon, MapPinIcon, LinkIcon, StarIcon, ArrowRightIcon } from './Shared';
-import { PartnerLocatorModal } from './PartnerLocatorModal';
+import { Spinner, StoreIcon, MapPinIcon, LinkIcon, StarIcon } from './Shared';
 
 interface DistributorFinderProps {
   isOpen: boolean;
@@ -18,6 +16,12 @@ const NATIONAL_PARTNERS = [
         uri: 'https://www.leomadeiras.com.br/nossas-lojas', 
         desc: 'Maior rede de insumos para marcenaria do Brasil.',
         badge: 'Diamante'
+    },
+    { 
+        title: 'GMAD', 
+        uri: 'https://gmad.com.br/nossas-lojas/', 
+        desc: 'Soluções completas em madeira e ferragens.',
+        badge: 'Ouro'
     },
     { 
         title: 'Gasômetro Madeiras', 
@@ -40,7 +44,6 @@ export const DistributorFinder: React.FC<DistributorFinderProps> = ({ isOpen, on
     const [isLoading, setIsLoading] = useState(false);
     const [location, setLocation] = useState<LocationState>(null);
     const [error, setError] = useState<string | null>(null);
-    const [showPartnerModal, setShowPartnerModal] = useState(false); // Estado para o novo modal
 
     useEffect(() => {
         if (isOpen) {
@@ -97,36 +100,11 @@ export const DistributorFinder: React.FC<DistributorFinderProps> = ({ isOpen, on
                     <button onClick={onClose} className="text-[#a89d8d] hover:text-[#3e3535] dark:hover:text-white text-2xl">&times;</button>
                 </header>
                 
-                <main className="p-6 flex-grow overflow-y-auto custom-scrollbar">
-                    
-                    {/* --- DESTAQUE PARCEIRO (VAGÃO GMAD) --- */}
-                    <div 
-                        className="mb-8 bg-gradient-to-r from-[#005c98] to-[#004a7c] rounded-xl p-6 text-white shadow-lg relative overflow-hidden cursor-pointer group"
-                        onClick={() => setShowPartnerModal(true)}
-                    >
-                        <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-500"></div>
-                        
-                        <div className="relative z-10 flex justify-between items-center">
-                            <div>
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="bg-white text-[#005c98] font-black px-3 py-1 rounded text-sm tracking-tighter">GMAD</div>
-                                    <span className="bg-yellow-400 text-[#005c98] text-[10px] font-bold px-2 py-0.5 rounded uppercase">Parceiro Oficial</span>
-                                </div>
-                                <h3 className="text-2xl font-bold mb-1">Encontre a GMAD mais próxima</h3>
-                                <p className="text-blue-100 text-sm max-w-md">
-                                    Localize a unidade ideal para seu endereço e compre com condições exclusivas para usuários MarcenApp.
-                                </p>
-                            </div>
-                            <div className="bg-white/20 p-3 rounded-full group-hover:bg-white group-hover:text-[#005c98] transition-colors">
-                                <ArrowRightIcon className="w-6 h-6" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Seção 1: Outros Parceiros Nacionais */}
+                <main className="p-6 flex-grow overflow-y-auto">
+                    {/* Seção 1: Parceiros Nacionais (Sempre visível) */}
                     <div className="mb-8">
-                        <h3 className="text-lg font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-4 flex items-center gap-2">
-                            <StarIcon className="w-5 h-5" /> Outras Redes
+                        <h3 className="text-lg font-bold text-[#b99256] dark:text-[#d4ac6e] mb-4 flex items-center gap-2">
+                            <StarIcon className="w-5 h-5" /> Redes Parceiras Nacionais
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {NATIONAL_PARTNERS.map((partner, index) => (
@@ -155,7 +133,7 @@ export const DistributorFinder: React.FC<DistributorFinderProps> = ({ isOpen, on
                     {/* Seção 2: Busca Local Dinâmica */}
                     <div>
                         <h3 className="text-lg font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-4 flex items-center gap-2">
-                            <MapPinIcon className="w-5 h-5 text-[#d4ac6e]" /> Na Sua Região (Google Maps)
+                            <MapPinIcon className="w-5 h-5 text-[#d4ac6e]" /> Na Sua Região
                         </h3>
                         
                         {isLoading ? (
@@ -205,9 +183,6 @@ export const DistributorFinder: React.FC<DistributorFinderProps> = ({ isOpen, on
                     <p className="text-xs text-[#a89d8d] dark:text-[#8a7e7e]">Resultados locais fornecidos pelo Google Maps. As redes parceiras são sugestões verificadas.</p>
                 </footer>
             </div>
-            
-            {/* Partner Locator Modal */}
-            <PartnerLocatorModal isOpen={showPartnerModal} onClose={() => setShowPartnerModal(false)} />
         </div>
     );
 };
