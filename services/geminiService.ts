@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Modality, GenerateContentResponse } from "@google/genai";
 import type { ProjectHistoryItem, ProjectLead, Finish } from '../types';
 
@@ -202,11 +201,18 @@ export function cleanAndParseJson<T>(text: string): T {
 
 export async function detectEnvironments(imageBase64: { data: string, mimeType: string } | null): Promise<string[]> {
     const prompt = `
-      Você é um Assistente de Arquiteto.
-      Analise a imagem fornecida (Planta Baixa ou Foto).
-      IDENTIFIQUE todos os ambientes/cômodos distintos presentes na imagem.
-      Responda APENAS um JSON:
-      { "ambientes": ["Nome Ambiente 1", "Nome Ambiente 2"] }
+      ATUE COMO: Especialista em Leitura de Projetos Arquitetônicos e Plantas Baixas.
+      
+      TAREFA: Analise visualmente a imagem fornecida.
+      1. Se for uma PLANTA BAIXA: Identifique todos os cômodos/ambientes escritos ou representados (ex: "Sala", "Cozinha", "Suíte 1", "Varanda").
+      2. Se for uma FOTO: Identifique qual é o ambiente visível na imagem.
+      
+      FORMATO DE RESPOSTA (JSON OBRIGATÓRIO):
+      { 
+        "ambientes": ["Nome do Ambiente 1", "Nome do Ambiente 2"] 
+      }
+      
+      IMPORTANTE: Retorne APENAS o JSON, sem markdown, explicações ou texto adicional.
     `;
 
     const parts: any[] = [{ text: prompt }];
@@ -477,17 +483,19 @@ export async function enhancePrompt(originalText: string): Promise<string> {
     Atue como um Mestre Marceneiro e Designer de Interiores Sênior.
     
     TAREFA:
-    Reescreva a seguinte solicitação informal de um cliente/marceneiro em um PROMPT TÉCNICO DETALHADO para geração de imagem 3D.
+    Reescreva a seguinte solicitação informal de um cliente/marceneiro em um PROMPT TÉCNICO DETALHADO para geração de imagem 3D e plano de corte.
     
     ENTRADA ORIGINAL:
     "${originalText}"
     
-    REGRAS:
-    1. Corrija português e erros de digitação.
-    2. Substitua termos vagos por especificações técnicas (ex: "madeira" -> "MDF Carvalho Hanover"; "armário" -> "Armário planejado com tamponamento").
-    3. Adicione detalhes implícitos essenciais: espessura de chapas (18mm/15mm), tipos de puxadores, iluminação LED, rodapés.
-    4. Mantenha a intenção original do usuário, mas profissionalize a linguagem.
-    5. O texto final deve estar pronto para ser inserido em um gerador de imagem IA.
+    REGRAS DE ENGENHARIA DE PROMPT (MANDATÓRIO):
+    1. **Vocabulário Técnico:** Substitua termos leigos por técnicos (ex: "madeira" -> "MDF Louro Freijó", "armário" -> "Módulo com tamponamento").
+    2. **Especificações de Material (Espessuras):** Defina espessuras padrão de mercado (ex: "Caixaria em MDF 15mm Branco TX", "Frentes em MDF 18mm", "Tamponamento/Engrosso de 25mm ou 30mm").
+    3. **Iluminação LED:** Especifique o tipo e temperatura (ex: "Perfil de LED 4000K (Neutro) embutido em sanca", "Fita LED COB nos nichos", "Spots dicróicos").
+    4. **Ferragens:** Mencione acabamentos e mecanismos (ex: "Puxadores perfil gola alumínio anodizado", "Dobradiças com amortecimento (slow-motion)", "Corrediças telescópicas ou invisíveis").
+    5. **Acabamento:** Cite texturas específicas (ex: "Laca fosca", "Vidro Reflecta Bronze", "Pedra Sintética Calacatta").
+    
+    O texto final deve parecer escrito por um arquiteto experiente detalhando o projeto para a fábrica, pronto para ser renderizado.
     
     Retorne APENAS o texto reescrito, sem introduções ou aspas.
     `;

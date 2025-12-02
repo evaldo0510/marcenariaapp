@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { 
     UploadIcon, CameraIcon, BoxIcon, MaximizeIcon, RefreshIcon, WandIcon, 
@@ -198,6 +197,7 @@ export const ArcVisionModule: React.FC<ArcVisionModuleProps> = ({ isOpen, onClos
   const [customMaterial, setCustomMaterial] = useState(""); 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [showJson, setShowJson] = useState(false);
   
   // Estados para Fluxo
   const [step, setStep] = useState('input'); 
@@ -396,6 +396,7 @@ export const ArcVisionModule: React.FC<ArcVisionModuleProps> = ({ isOpen, onClos
     setImageBase64(null);
     setDescription("");
     setCustomMaterial("");
+    setShowJson(false);
   };
 
   return (
@@ -543,7 +544,22 @@ export const ArcVisionModule: React.FC<ArcVisionModuleProps> = ({ isOpen, onClos
               </div>
               
               <div className="mb-6">
-                <p className="text-sm font-bold text-[#8a7e7e] dark:text-[#a89d8d] uppercase mb-3">1. Ambientes Encontrados</p>
+                <div className="flex justify-between items-end mb-3">
+                   <p className="text-sm font-bold text-[#8a7e7e] dark:text-[#a89d8d] uppercase">1. Ambientes Encontrados</p>
+                   <button 
+                     onClick={() => setShowJson(!showJson)} 
+                     className="text-[10px] font-mono text-[#d4ac6e] hover:underline bg-[#d4ac6e]/10 px-2 py-1 rounded"
+                   >
+                     {showJson ? '{ Ocultar JSON }' : '{ Ver JSON }'}
+                   </button>
+                </div>
+                
+                {showJson && (
+                   <div className="bg-[#2d2424] text-green-400 p-4 rounded-xl mb-4 font-mono text-xs overflow-x-auto shadow-inner border border-[#4a4040]">
+                      {JSON.stringify({ ambientes: detectedEnvs }, null, 2)}
+                   </div>
+                )}
+
                 <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar">
                   {detectedEnvs.map((env, idx) => {
                     const isSelected = selectedEnvs.includes(env);
