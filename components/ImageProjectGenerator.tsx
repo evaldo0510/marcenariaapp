@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { CameraIcon, Spinner, MagicIcon, CheckIcon } from './Shared';
+import { CameraIcon, Spinner, MagicIcon, CheckIcon, GridIcon } from './Shared'; // Importado GridIcon
 import { ImageUploader } from './ImageUploader';
 import { RoomTypeDetector } from './RoomTypeDetector';
 import { DimensionExtractor } from './DimensionExtractor';
@@ -10,6 +10,7 @@ import { AutoLayoutGenerator } from './AutoLayoutGenerator';
 import { Project3DGenerator } from './Project3DGenerator';
 import { ProjectGallery } from './ProjectGallery';
 import { TutorialModal } from './TutorialModal';
+import { Smart2DEditor } from './Smart2DEditor'; // Importado
 import { analyzeRoomImage } from '../services/geminiService';
 import { addProjectToHistory } from '../services/historyService';
 
@@ -35,10 +36,11 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
     const [selectedFurniture, setSelectedFurniture] = useState<string[]>([]);
     const [selectedLayout, setSelectedLayout] = useState('');
     const [style, setStyle] = useState('Moderno');
-    const [isMirrored, setIsMirrored] = useState(false); // New State for Mirrored Plan
+    const [isMirrored, setIsMirrored] = useState(false); 
     
     const [resultImage, setResultImage] = useState<string | null>(null);
     const [showTutorial, setShowTutorial] = useState(false);
+    const [show2DEditor, setShow2DEditor] = useState(false); // Novo estado
 
     const handleImageUpload = async (files: { data: string, mimeType: string }[] | null) => {
         if (!files || files.length === 0) return;
@@ -62,7 +64,6 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
 
     const handleProjectComplete = async (generatedImgUrl: string) => {
         setResultImage(generatedImgUrl);
-        // Save to history
         const projectData = {
             name: `Projeto IA - ${roomType} ${isMirrored ? '(Invertido)' : ''}`,
             description: `Ambiente: ${roomType}. Objetivo: ${userIntent}. Layout: ${selectedLayout}. Móveis: ${selectedFurniture.join(', ')}.${isMirrored ? ' [PLANTA INVERTIDA/ESPELHADA]' : ''}`,
@@ -73,8 +74,12 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
             uploadedReferenceImageUrls: [image!]
         };
         await addProjectToHistory(projectData);
-        setStep(3); // Show Gallery
+        setStep(3); 
     };
+
+    const open2DEditor = () => {
+        setShow2DEditor(true);
+    }
 
     if (!isOpen) return null;
 
@@ -123,6 +128,14 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
                                 <RoomTypeDetector detectedType={roomType} confidence={confidence} onConfirm={setRoomType} />
                                 <DimensionExtractor dimensions={dimensions} onUpdate={setDimensions} />
                                 <FloorPlanAnalyzer isFloorPlan={roomType === 'Planta Baixa'} detectedFeatures={detectedObjects} imageSrc={image} />
+                                
+                                {/* New: Button to open 2D Editor with trace */}
+                                <button 
+                                    onClick={open2DEditor}
+                                    className="w-full py-3 bg-[#3e3535] dark:bg-[#f5f1e8] text-white dark:text-[#3e3535] font-bold rounded-xl shadow-md hover:opacity-90 transition flex items-center justify-center gap-2"
+                                >
+                                    <GridIcon className="w-5 h-5"/> Editar Planta em 2D (Manual)
+                                </button>
                             </div>
 
                             {/* Column 2: Decisions & Intent */}
@@ -206,6 +219,14 @@ export const ImageProjectGenerator: React.FC<ImageProjectGeneratorProps> = ({ is
             </div>
             
             <TutorialModal isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
+            
+            {/* Modal do Editor 2D (Filho) */}
+            <Smart2DEditor 
+                isOpen={show2DEditor} 
+                onClose={() => setShow2DEditor(false)} 
+                showAlert={showAlert}
+                initialBackgroundImage={image} // Passando a imagem para o editor
+            />
         </div>
     );
 };

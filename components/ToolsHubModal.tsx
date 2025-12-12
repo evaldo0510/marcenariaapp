@@ -13,7 +13,8 @@ import {
     ChartBarIcon,
     ShieldIcon,
     LockIcon,
-    PaletteIcon // Added import
+    PaletteIcon,
+    GridIcon // Added import
 } from './Shared'; 
 
 interface ToolsHubModalProps {
@@ -37,7 +38,15 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({ isOpen, onClose, o
             hover: 'hover:border-purple-500'
         },
         {
-            id: 'studio', // NEW TOOL
+            id: 'smart2d', // NEW TOOL
+            title: 'Studio 2D de Precisão',
+            description: 'Editor vetorial com plano de corte automático.',
+            icon: <GridIcon className="w-8 h-8 text-blue-600 dark:text-blue-400" />,
+            color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
+            hover: 'hover:border-blue-500'
+        },
+        {
+            id: 'studio',
             title: 'Studio de Combinações',
             description: 'Teste cores e texturas de MDF em tempo real.',
             icon: <PaletteIcon className="w-8 h-8 text-pink-600 dark:text-pink-400" />,
@@ -46,11 +55,11 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({ isOpen, onClose, o
         },
         {
             id: 'cutting',
-            title: 'Plano de Corte',
-            description: 'Otimize o uso de chapas e evite desperdícios.',
-            icon: <ToolsIcon className="w-8 h-8 text-blue-600 dark:text-blue-400" />,
-            color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
-            hover: 'hover:border-blue-500'
+            title: 'Otimizador de Corte',
+            description: 'Calcule o aproveitamento de chapas por texto.',
+            icon: <ToolsIcon className="w-8 h-8 text-orange-600 dark:text-orange-400" />,
+            color: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800',
+            hover: 'hover:border-orange-500'
         },
         {
             id: 'bom',
@@ -67,14 +76,6 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({ isOpen, onClose, o
             icon: <CurrencyDollarIcon className="w-8 h-8 text-amber-600 dark:text-amber-400" />,
             color: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800',
             hover: 'hover:border-amber-500'
-        },
-        {
-            id: 'history',
-            title: 'Meus Projetos',
-            description: 'Acesse seu histórico de criações salvas.',
-            icon: <HistoryIcon className="w-8 h-8 text-gray-600 dark:text-gray-400" />,
-            color: 'bg-gray-50 dark:bg-[#2d2424] border-gray-200 dark:border-gray-700',
-            hover: 'hover:border-gray-400'
         }
     ];
 
@@ -178,7 +179,7 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({ isOpen, onClose, o
                 
                 <footer className="mt-16 text-center">
                     <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d]">
-                        MarcenApp Inteligência Artificial v2.4 (Material Studio Added)
+                        MarcenApp Inteligência Artificial v2.5 (Smart 2D Added)
                     </p>
                 </footer>
             </div>
