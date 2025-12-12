@@ -22,23 +22,27 @@ import {
   ArrowRightIcon,
   RefreshIcon,
   RulerIcon,
-  ScanIcon // Importado ícone de scan
+  ScanIcon,
+  LayoutIcon, // Icone para Elevação
+  CreditCardIcon // Icone para Gaveta (similar visualmente)
 } from './Shared';
 import { generateImage } from '../services/geminiService';
 
 // --- Tipos ---
 
-type MaterialType = 'MDF Branco' | 'MDF Amadeirado' | 'Compensado';
+type MaterialType = 'MDF Branco' | 'MDF Amadeirado' | 'Compensado' | 'Vidro' | 'Espelho';
+type EditorMode = 'plan' | 'elevation'; // Planta (Topo) ou Elevação (Frente)
+type ItemType = 'armario_baixo' | 'armario_alto' | 'roupeiro' | 'mesa' | 'porta_giro' | 'gaveta' | 'prateleira' | 'painel';
 
 interface FurnitureItem {
   id: string;
-  type: 'armario_baixo' | 'armario_alto' | 'roupeiro' | 'mesa';
+  type: ItemType;
   name: string;
   x: number;
-  y: number;
+  y: number; // Em Plan: Y do canvas. Em Elevation: Y é a altura do chão.
   width: number;
-  depth: number;
-  height: number;
+  depth: number; // Relevante em Plan
+  height: number; // Relevante em Elevation
   rotation: number;
   material: MaterialType;
   color: string;
@@ -48,11 +52,13 @@ interface Smart2DEditorProps {
     isOpen: boolean;
     onClose: () => void;
     showAlert: (msg: string, title?: string) => void;
-    initialBackgroundImage?: string | null; // Novo: Foto de fundo para traçado
+    initialBackgroundImage?: string | null;
+    initialMode?: EditorMode; // Novo: Modo inicial sugerido
 }
 
-export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, showAlert, initialBackgroundImage }) => {
+export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, showAlert, initialBackgroundImage, initialMode = 'plan' }) => {
   // Estado
+  const [editorMode, setEditorMode] = useState<EditorMode>(initialMode);
   const [items, setItems] = useState<FurnitureItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -64,45 +70,53 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
   const [backgroundOpacity, setBackgroundOpacity] = useState(0.5);
   const [showBackground, setShowBackground] = useState(!!initialBackgroundImage);
   
-  // Estado de Calibragem (Pixel to CM)
-  const [scaleFactor, setScaleFactor] = useState(1); // 1px = 1cm (default)
-  const [isCalibrating, setIsCalibrating] = useState(false);
-  
   // Estado de Render IA
   const [isRendering, setIsRendering] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [renderStyle, setRenderStyle] = useState('Moderno');
+  const [renderStyle, setRenderStyle] = useState('Fotorrealista');
   
   // Referência do Canvas
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // Preços Base (Mock)
   const PRICES: Record<string, number> = {
     'MDF Branco': 120.00, 
     'MDF Amadeirado': 180.00,
-    'Compensado': 150.00
+    'Compensado': 150.00,
+    'Vidro': 250.00,
+    'Espelho': 220.00
   };
 
   useEffect(() => {
       if(initialBackgroundImage) setShowBackground(true);
-  }, [initialBackgroundImage]);
+      if(initialMode) setEditorMode(initialMode);
+  }, [initialBackgroundImage, initialMode]);
 
   if (!isOpen) return null;
 
   // --- Funções de Manipulação ---
 
-  const addItem = (type: FurnitureItem['type']) => {
+  const addItem = (type: ItemType) => {
+    const isElevation = editorMode === 'elevation';
+    
+    let defaultW = 60;
+    let defaultH = 70;
+    let defaultD = 55;
+    let name = 'Módulo';
+
+    if (type === 'gaveta') { defaultW = 50; defaultH = 20; name = 'Gaveta'; }
+    if (type === 'porta_giro') { defaultW = 40; defaultH = 200; name = 'Porta Giro'; }
+    if (type === 'prateleira') { defaultW = 80; defaultH = 2.5; name = 'Prateleira'; }
+    if (type === 'painel') { defaultW = 200; defaultH = 250; defaultD = 1.8; name = 'Painel Fundo'; }
+
     const newItem: FurnitureItem = {
       id: crypto.randomUUID(),
       type,
-      name: type === 'armario_baixo' ? 'Balcão Inferior' : 
-            type === 'armario_alto' ? 'Armário Aéreo' : 
-            type === 'roupeiro' ? 'Módulo Roupeiro' : 'Mesa de Trabalho',
-      x: 100 + (items.length * 20),
-      y: 100 + (items.length * 20),
-      width: type === 'mesa' ? 120 : 80,
-      depth: type === 'armario_alto' ? 35 : 55,
-      height: type === 'armario_baixo' ? 70 : type === 'roupeiro' ? 220 : 75,
+      name,
+      x: 100 + (items.length * 10),
+      y: 100 + (items.length * 10), // Posição inicial no canvas
+      width: defaultW,
+      depth: defaultD,
+      height: defaultH,
       rotation: 0,
       material: 'MDF Branco',
       color: '#e2e8f0'
@@ -120,10 +134,10 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
     setSelectedId(null);
   };
 
-  // --- Funções de Renderização IA (Integração Real) ---
+  // --- Funções de Renderização IA ---
   const handleGenerateRender = async () => {
     if (items.length === 0) {
-        showAlert("Adicione móveis ao projeto antes de renderizar.", "Projeto Vazio");
+        showAlert("Adicione móveis ou componentes ao projeto antes de renderizar.", "Projeto Vazio");
         return;
     }
 
@@ -131,28 +145,30 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
     setGeneratedImage(null);
 
     try {
-        // Construir um prompt detalhado com base na geometria exata
-        let prompt = `Renderize uma imagem fotorrealista de um ambiente de marcenaria estilo ${renderStyle}. \n`;
-        prompt += `O projeto contém os seguintes móveis dispostos no espaço:\n`;
+        let prompt = `Renderize uma imagem fotorrealista de alta qualidade (8k, v-ray style). \n`;
+        
+        if (editorMode === 'elevation') {
+            prompt += `VISTA FRONTAL (ELEVAÇÃO): O móvel é composto por:\n`;
+        } else {
+            prompt += `VISTA SUPERIOR (PLANTA) convertida para perspectiva isométrica:\n`;
+        }
         
         items.forEach((item, index) => {
-            prompt += `${index + 1}. ${item.name} (${item.material}) medindo ${item.width}cm de largura x ${item.height}cm de altura. \n`;
+            prompt += `${index + 1}. ${item.name} (${item.material}) - Largura: ${item.width}cm, ${editorMode === 'elevation' ? `Altura: ${item.height}cm` : `Profundidade: ${item.depth}cm`}, Posição X: ${item.x}, Y: ${item.y}.\n`;
         });
 
         if (initialBackgroundImage) {
-            prompt += `\nCONTEXTO REAL: Use a imagem de fundo fornecida como referência absoluta para o ambiente (piso, paredes, iluminação). O móvel deve ser inserido neste contexto existente.`;
+            prompt += `\nCONTEXTO REAL (IMPORTANTÍSSIMO): Use a imagem de fundo como GUIA ESTRITO de geometria e perspectiva. O móvel desenhado deve substituir ou complementar o que está no rascunho/foto, mantendo o mesmo ângulo.`;
         }
 
-        prompt += `\nDETALHES VISUAIS: Iluminação de estúdio suave, chão de madeira, paredes claras. Perspectiva isométrica ou frontal mostrando todos os itens. Alta resolução, qualidade fotográfica.`;
+        prompt += `\nESTILO E ACABAMENTO: Estilo ${renderStyle}. Iluminação de estúdio suave. Texturas realistas de madeira e laca.`;
 
-        // Aqui chamamos o serviço real do Gemini
-        // Passamos a imagem de fundo se existir para "Grounding" visual
         const referenceImages = initialBackgroundImage ? [{ 
             data: initialBackgroundImage.split(',')[1], 
             mimeType: initialBackgroundImage.match(/data:(.*);/)?.[1] || 'image/png' 
         }] : null;
 
-        const imageBase64 = await generateImage(prompt, referenceImages, undefined, true, '2K', 'rich'); // Pro model
+        const imageBase64 = await generateImage(prompt, referenceImages, undefined, true, '2K', 'rich');
         setGeneratedImage(`data:image/png;base64,${imageBase64}`);
         
     } catch (error) {
@@ -185,7 +201,8 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
       const mouseX = (e.clientX - rect.left) / zoom;
       const mouseY = (e.clientY - rect.top) / zoom;
       
-      const snap = (val: number) => Math.round(val / 10) * 10; // Snap to grid 10px
+      // Snap to grid 5px for finer control in elevation
+      const snap = (val: number) => Math.round(val / 5) * 5; 
       
       updateItem(selectedId, {
         x: snap(mouseX - dragOffset.x),
@@ -198,60 +215,67 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
     setIsDragging(false);
   };
 
-  // --- Cálculo de Peças (Lógica Determinística) ---
-
-  const calculateParts = useMemo(() => {
-    const parts: any[] = [];
-    let totalArea = 0;
-    let totalPrice = 0;
-
-    items.forEach(item => {
-      // Regra de marcenaria simples: Caixa + Fundo + Portas
-      const thickness = 1.5; // cm (15mm)
+  // --- Renderização dos Itens no Canvas ---
+  const renderItemVisual = (item: FurnitureItem) => {
+      const isSelected = selectedId === item.id;
       
-      // Laterais (2x)
-      const sideH = item.height;
-      const sideD = item.depth;
-      parts.push({ name: `${item.name} - Lateral`, qtd: 2, w: sideD, h: sideH, material: item.material });
-      
-      // Base e Topo (2x) - Descontando laterais
-      const baseW = item.width - (thickness * 2);
-      const baseD = item.depth;
-      parts.push({ name: `${item.name} - Base/Topo`, qtd: 2, w: baseD, h: baseW, material: item.material });
-      
-      // Fundo (6mm)
-      parts.push({ name: `${item.name} - Fundo`, qtd: 1, w: item.depth - 1, h: item.width - 1, material: 'MDF 6mm Branco' });
+      // Estilos base
+      const style: React.CSSProperties = {
+          position: 'absolute',
+          left: item.x * zoom,
+          top: item.y * zoom,
+          width: item.width * zoom,
+          // Em Plan, altura visual = depth. Em Elevation, altura visual = height.
+          height: (editorMode === 'plan' ? item.depth : item.height) * zoom,
+          backgroundColor: isSelected ? 'rgba(219, 234, 254, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+          borderColor: isSelected ? '#2563eb' : '#94a3b8',
+          borderWidth: '2px',
+          borderStyle: 'solid',
+          transform: `rotate(${item.rotation}deg)`,
+          zIndex: isSelected ? 10 : 1,
+          cursor: isDragging && isSelected ? 'grabbing' : 'grab',
+          boxShadow: '2px 2px 5px rgba(0,0,0,0.1)'
+      };
 
-      // Portas (Se não for mesa)
-      if (item.type !== 'mesa') {
-          const numDoors = item.width > 60 ? 2 : 1;
-          const doorW = (item.width / numDoors) - 0.3; // Folga
-          const doorH = item.height - 0.4;
-          parts.push({ name: `${item.name} - Porta`, qtd: numDoors, w: doorW, h: doorH, material: item.material });
+      // Visuais específicos por tipo (Principalmente para Elevação)
+      if (editorMode === 'elevation') {
+          if (item.type === 'porta_giro') {
+              return (
+                  <div key={item.id} onMouseDown={(e) => handleMouseDown(e, item.id)} style={style} className="flex flex-col items-center justify-center">
+                      <div className="absolute left-1 top-1/2 w-1 h-8 bg-gray-400 rounded-full"></div> {/* Puxador */}
+                      <div className="w-full h-full border-r border-b border-gray-300 opacity-50 pointer-events-none"></div>
+                      <span className="text-[8px] font-bold text-gray-500 pointer-events-none bg-white/50 px-1 rounded">{item.width}x{item.height}</span>
+                  </div>
+              );
+          }
+          if (item.type === 'gaveta') {
+              return (
+                  <div key={item.id} onMouseDown={(e) => handleMouseDown(e, item.id)} style={style} className="flex flex-col items-center justify-center">
+                      <div className="w-1/2 h-1 bg-gray-400 rounded-full mb-1"></div> {/* Puxador */}
+                      <span className="text-[8px] text-gray-400 pointer-events-none">Gaveta</span>
+                  </div>
+              );
+          }
+          if (item.type === 'prateleira') {
+              return (
+                  <div key={item.id} onMouseDown={(e) => handleMouseDown(e, item.id)} style={{...style, backgroundColor: '#cbd5e1', borderColor: '#64748b'}} className="flex items-center justify-center">
+                  </div>
+              );
+          }
       }
 
-      // Cálculo aproximado de área (m2) e preço
-      const itemArea = ((sideH * sideD * 2) + (baseW * baseD * 2) + (item.width * item.height)) / 10000;
-      totalArea += itemArea;
-      totalPrice += itemArea * (PRICES[item.material] || 150);
-    });
-
-    return { parts, totalArea, totalPrice };
-  }, [items]);
-
-  const handleExportCSV = () => {
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Peca,Qtd,Largura(cm),Comprimento(cm),Material\n";
-    calculateParts.parts.forEach((part) => {
-      csvContent += `${part.name},${part.qtd},${part.w.toFixed(1)},${part.h.toFixed(1)},${part.material}\n`;
-    });
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "plano_corte_marcenapp.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // Default Box (Módulos ou Planta)
+      return (
+          <div key={item.id} onMouseDown={(e) => handleMouseDown(e, item.id)} style={style} className="group flex flex-col items-center justify-center">
+              <div className="text-[10px] text-gray-600 font-bold pointer-events-none text-center leading-tight px-1">
+                  {item.name}
+                  <div className="text-[8px] opacity-70">
+                      {item.width}x{editorMode === 'plan' ? item.depth : item.height}
+                  </div>
+              </div>
+              {editorMode === 'plan' && <div className="absolute bottom-0 w-full h-1 bg-gray-400 group-hover:bg-blue-400"></div>}
+          </div>
+      );
   };
 
   return (
@@ -265,18 +289,36 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
           </div>
           <div>
              <h1 className="text-lg font-bold text-[#3e3535] dark:text-[#f5f1e8]">Studio 2D de Precisão</h1>
-             <p className="text-xs text-gray-500 dark:text-gray-400">Editor Vetorial & Plano de Corte</p>
+             <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                 Modo: <span className="font-bold uppercase text-[#d4ac6e]">{editorMode === 'plan' ? 'Planta Baixa' : 'Elevação (Frente)'}</span>
+             </p>
           </div>
         </div>
         
         <div className="flex items-center gap-3">
+            <div className="bg-gray-100 dark:bg-[#2d2424] p-1 rounded-lg flex gap-1">
+                <button 
+                    onClick={() => setEditorMode('plan')} 
+                    className={`px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-1 ${editorMode === 'plan' ? 'bg-white dark:bg-[#4a4040] shadow text-[#3e3535] dark:text-white' : 'text-gray-500'}`}
+                >
+                    <GridIcon className="w-3 h-3" /> Planta
+                </button>
+                <button 
+                    onClick={() => setEditorMode('elevation')} 
+                    className={`px-3 py-1.5 rounded text-xs font-bold transition-colors flex items-center gap-1 ${editorMode === 'elevation' ? 'bg-white dark:bg-[#4a4040] shadow text-[#3e3535] dark:text-white' : 'text-gray-500'}`}
+                >
+                    <LayoutIcon className="w-3 h-3" /> Frente/Vista
+                </button>
+            </div>
+
+            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
+
             <div className="flex bg-gray-100 dark:bg-[#2d2424] p-1 rounded-lg">
                 <button onClick={() => setViewMode('editor')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'editor' ? 'bg-white dark:bg-[#4a4040] shadow text-[#3e3535] dark:text-white' : 'text-gray-500'}`}>Editor</button>
-                <button onClick={() => setViewMode('cutlist')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'cutlist' ? 'bg-white dark:bg-[#4a4040] shadow text-[#3e3535] dark:text-white' : 'text-gray-500'}`}>Plano de Corte</button>
                 <button onClick={() => setViewMode('render')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'render' ? 'bg-white dark:bg-[#4a4040] shadow text-[#3e3535] dark:text-white' : 'text-gray-500'}`}>Render 3D</button>
             </div>
-            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2"></div>
-            <button onClick={onClose} className="text-gray-500 hover:text-red-500 transition">
+            
+            <button onClick={onClose} className="text-gray-500 hover:text-red-500 transition ml-2">
                 <XIcon className="w-6 h-6" />
             </button>
         </div>
@@ -284,7 +326,7 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
 
       <div className="flex flex-1 overflow-hidden">
         
-        {/* Sidebar Esquerda (Catálogo) */}
+        {/* Sidebar Esquerda (Catálogo Adaptável) */}
         <aside className="w-72 bg-[#fffefb] dark:bg-[#3e3535] border-r border-[#e6ddcd] dark:border-[#4a4040] flex flex-col z-10">
           {viewMode === 'render' ? (
              <div className="flex flex-col h-full p-6">
@@ -293,16 +335,15 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
                 
                 <div className="space-y-4 mb-6">
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 mb-1">Estilo</label>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">Estilo de Render</label>
                         <select 
                             value={renderStyle} 
                             onChange={(e) => setRenderStyle(e.target.value)}
                             className="w-full p-3 rounded-lg border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f] text-sm"
                         >
-                            <option value="Moderno">Moderno</option>
-                            <option value="Industrial">Industrial</option>
-                            <option value="Classico">Clássico</option>
-                            <option value="Rustico">Rústico</option>
+                            <option value="Fotorrealista">Fotorrealista (Padrão)</option>
+                            <option value="Sketch Arquitetônico">Sketch Arquitetônico</option>
+                            <option value="Marcenaria Técnica">Desenho Técnico</option>
                         </select>
                     </div>
                 </div>
@@ -319,34 +360,57 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
           ) : (
              <div className="flex flex-col h-full">
                 <div className="p-4 border-b border-[#e6ddcd] dark:border-[#4a4040]">
-                    <h3 className="font-bold text-[#3e3535] dark:text-[#f5f1e8]">Módulos Disponíveis</h3>
-                    <p className="text-xs text-gray-500">Clique para adicionar</p>
+                    <h3 className="font-bold text-[#3e3535] dark:text-[#f5f1e8]">
+                        {editorMode === 'plan' ? 'Módulos (Planta)' : 'Componentes (Frente)'}
+                    </h3>
+                    <p className="text-xs text-gray-500">Arraste ou clique para adicionar</p>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                    {[
-                        { id: 'armario_baixo', label: 'Balcão Inferior', icon: BoxIcon },
-                        { id: 'armario_alto', label: 'Armário Aéreo', icon: LayersIcon },
-                        { id: 'roupeiro', label: 'Roupeiro', icon: MaximizeIcon },
-                        { id: 'mesa', label: 'Mesa / Bancada', icon: GridIcon }
-                    ].map((mod: any) => (
-                        <button 
-                            key={mod.id}
-                            onClick={() => addItem(mod.id)}
-                            className="w-full flex items-center p-3 rounded-xl border border-gray-200 dark:border-[#5a4f4f] hover:border-[#d4ac6e] bg-white dark:bg-[#2d2424] transition group text-left"
-                        >
-                            <div className="bg-gray-100 dark:bg-[#3e3535] p-2 rounded-lg text-gray-500 group-hover:text-[#d4ac6e] mr-3">
-                                <mod.icon className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <p className="font-bold text-sm text-[#3e3535] dark:text-[#f5f1e8]">{mod.label}</p>
-                                <p className="text-[10px] text-gray-400">Medida Padrão</p>
-                            </div>
-                        </button>
-                    ))}
-                </div>
-                <div className="p-4 border-t border-[#e6ddcd] dark:border-[#4a4040] bg-gray-50 dark:bg-[#2d2424]">
-                    <p className="text-xs text-gray-500 uppercase mb-1">Custo Estimado (Mat.)</p>
-                    <p className="text-xl font-bold text-green-600 dark:text-green-400">R$ {calculateParts.totalPrice.toFixed(2)}</p>
+                    {editorMode === 'plan' ? (
+                        // Itens de Planta
+                        [
+                            { id: 'armario_baixo', label: 'Balcão Inferior', icon: BoxIcon },
+                            { id: 'armario_alto', label: 'Armário Aéreo', icon: LayersIcon },
+                            { id: 'roupeiro', label: 'Roupeiro', icon: MaximizeIcon },
+                            { id: 'mesa', label: 'Mesa / Bancada', icon: GridIcon }
+                        ].map((mod: any) => (
+                            <button 
+                                key={mod.id}
+                                onClick={() => addItem(mod.id)}
+                                className="w-full flex items-center p-3 rounded-xl border border-gray-200 dark:border-[#5a4f4f] hover:border-[#d4ac6e] bg-white dark:bg-[#2d2424] transition group text-left"
+                            >
+                                <div className="bg-gray-100 dark:bg-[#3e3535] p-2 rounded-lg text-gray-500 group-hover:text-[#d4ac6e] mr-3">
+                                    <mod.icon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-sm text-[#3e3535] dark:text-[#f5f1e8]">{mod.label}</p>
+                                    <p className="text-[10px] text-gray-400">Vista Superior</p>
+                                </div>
+                            </button>
+                        ))
+                    ) : (
+                        // Itens de Elevação
+                        [
+                            { id: 'painel', label: 'Painel / Fundo', icon: MaximizeIcon },
+                            { id: 'porta_giro', label: 'Porta de Giro', icon: LayoutIcon },
+                            { id: 'gaveta', label: 'Gaveta', icon: CreditCardIcon },
+                            { id: 'prateleira', label: 'Prateleira', icon: LayersIcon }
+                        ].map((mod: any) => (
+                            <button 
+                                key={mod.id}
+                                onClick={() => addItem(mod.id)}
+                                className="w-full flex items-center p-3 rounded-xl border border-gray-200 dark:border-[#5a4f4f] hover:border-[#d4ac6e] bg-white dark:bg-[#2d2424] transition group text-left"
+                            >
+                                <div className="bg-gray-100 dark:bg-[#3e3535] p-2 rounded-lg text-gray-500 group-hover:text-[#d4ac6e] mr-3">
+                                    <mod.icon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-sm text-[#3e3535] dark:text-[#f5f1e8]">{mod.label}</p>
+                                    <p className="text-[10px] text-gray-400">Vista Frontal</p>
+                                </div>
+                            </button>
+                        ))
+                    )}
                 </div>
              </div>
           )}
@@ -360,26 +424,29 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
                 <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-10 bg-white dark:bg-[#3e3535] p-1.5 rounded-full shadow-lg border border-[#e6ddcd] dark:border-[#4a4040]">
                     <button onClick={() => setZoom(z => Math.max(0.5, z - 0.1))} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8]">-</button>
                     <span className="w-12 flex items-center justify-center text-xs font-bold text-[#3e3535] dark:text-[#f5f1e8]">{Math.round(zoom * 100)}%</span>
-                    <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8]">+</button>
+                    <button onClick={() => setZoom(z => Math.min(3, z + 0.1))} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8]">+</button>
                 </div>
 
                 {/* Background Image Control */}
                 {initialBackgroundImage && (
                     <div className="absolute top-4 right-4 z-10 bg-white dark:bg-[#3e3535] p-2 rounded-lg shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] w-48">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-bold text-gray-500 flex items-center gap-1"><ScanIcon className="w-3 h-3"/> Foto Fundo</span>
+                            <span className="text-xs font-bold text-gray-500 flex items-center gap-1"><ScanIcon className="w-3 h-3"/> Rascunho AR</span>
                             <input type="checkbox" checked={showBackground} onChange={e => setShowBackground(e.target.checked)} className="rounded text-[#d4ac6e] focus:ring-[#d4ac6e]" />
                         </div>
                         {showBackground && (
-                            <input 
-                                type="range" 
-                                min="0" 
-                                max="1" 
-                                step="0.1" 
-                                value={backgroundOpacity} 
-                                onChange={e => setBackgroundOpacity(parseFloat(e.target.value))} 
-                                className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#d4ac6e]" 
-                            />
+                            <div className="space-y-2">
+                                <label className="text-[10px] text-gray-400">Opacidade</label>
+                                <input 
+                                    type="range" 
+                                    min="0" 
+                                    max="1" 
+                                    step="0.1" 
+                                    value={backgroundOpacity} 
+                                    onChange={e => setBackgroundOpacity(parseFloat(e.target.value))} 
+                                    className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#d4ac6e]" 
+                                />
+                            </div>
                         )}
                     </div>
                 )}
@@ -388,8 +455,11 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
                     ref={canvasRef}
                     className="flex-1 relative overflow-hidden"
                     style={{ 
-                        backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', 
-                        backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
+                        // Grid style changes based on mode
+                        backgroundImage: editorMode === 'plan' 
+                            ? 'radial-gradient(#94a3b8 1px, transparent 1px)' 
+                            : 'linear-gradient(rgba(148, 163, 184, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.3) 1px, transparent 1px)',
+                        backgroundSize: `${(editorMode === 'plan' ? 20 : 50) * zoom}px ${(editorMode === 'plan' ? 20 : 50) * zoom}px`,
                         cursor: isDragging ? 'grabbing' : 'grab'
                     }}
                     onMouseDown={() => setSelectedId(null)}
@@ -404,40 +474,13 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
                         />
                     )}
 
-                    {items.map(item => (
-                        <div
-                            key={item.id}
-                            onMouseDown={(e) => handleMouseDown(e, item.id)}
-                            style={{
-                                position: 'absolute',
-                                left: item.x * zoom,
-                                top: item.y * zoom,
-                                width: item.width * zoom,
-                                height: item.depth * zoom,
-                                backgroundColor: selectedId === item.id ? 'rgba(219, 234, 254, 0.8)' : 'rgba(255, 255, 255, 0.8)',
-                                borderColor: selectedId === item.id ? '#2563eb' : '#94a3b8',
-                                borderWidth: '2px',
-                                borderStyle: 'solid',
-                                transform: `rotate(${item.rotation}deg)`,
-                                zIndex: selectedId === item.id ? 10 : 1,
-                                cursor: isDragging && selectedId === item.id ? 'grabbing' : 'grab',
-                            }}
-                            className="group flex flex-col items-center justify-center shadow-sm select-none"
-                        >
-                            <div className="text-[10px] text-gray-600 font-bold pointer-events-none text-center leading-tight px-1">
-                                {item.name}
-                                <div className="text-[8px] opacity-70">{item.width}x{item.depth}</div>
-                            </div>
-                            {/* Indicador de frente */}
-                            <div className="absolute bottom-0 w-full h-1 bg-gray-400 group-hover:bg-blue-400"></div>
-                        </div>
-                    ))}
+                    {items.map(item => renderItemVisual(item))}
                     
                     {items.length === 0 && !initialBackgroundImage && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-30 text-[#3e3535] dark:text-[#f5f1e8]">
                             <ArrowRightIcon className="w-16 h-16 mb-4" />
-                            <p className="text-xl font-bold">Arraste para mover o canvas</p>
-                            <p className="text-sm">Selecione móveis no menu à esquerda</p>
+                            <p className="text-xl font-bold">Modo {editorMode === 'plan' ? 'Planta Baixa' : 'Elevação'}</p>
+                            <p className="text-sm">Arraste componentes do menu à esquerda</p>
                         </div>
                     )}
                 </div>
@@ -468,46 +511,6 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
              </div>
           )}
 
-          {viewMode === 'cutlist' && (
-             <div className="flex-1 p-8 overflow-y-auto">
-                <div className="max-w-4xl mx-auto bg-[#fffefb] dark:bg-[#3e3535] rounded-xl shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] overflow-hidden">
-                    <div className="p-6 border-b border-[#e6ddcd] dark:border-[#4a4040] flex justify-between items-center bg-[#f0e9dc] dark:bg-[#2d2424]">
-                        <h2 className="text-xl font-bold text-[#3e3535] dark:text-[#f5f1e8] flex items-center gap-2">
-                            <ToolsIcon /> Plano de Corte Automático
-                        </h2>
-                        <button onClick={handleExportCSV} className="text-sm font-bold text-green-600 hover:underline flex items-center gap-1">
-                            <DocumentTextIcon className="w-4 h-4" /> Exportar CSV
-                        </button>
-                    </div>
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-100 dark:bg-[#4a4040] text-gray-500 uppercase text-xs">
-                            <tr>
-                                <th className="p-4">Peça</th>
-                                <th className="p-4 text-center">Qtd</th>
-                                <th className="p-4 text-center">Dimensões (cm)</th>
-                                <th className="p-4">Material</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-[#4a4040]">
-                            {calculateParts.parts.map((part, idx) => (
-                                <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-[#4a4040]/50">
-                                    <td className="p-4 font-bold text-[#3e3535] dark:text-[#f5f1e8]">{part.name}</td>
-                                    <td className="p-4 text-center">{part.qtd}</td>
-                                    <td className="p-4 text-center font-mono text-[#d4ac6e]">{part.h.toFixed(1)} x {part.w.toFixed(1)}</td>
-                                    <td className="p-4"><span className="bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded text-xs">{part.material}</span></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {calculateParts.parts.length === 0 && (
-                        <div className="p-12 text-center text-gray-500">
-                            Nenhum móvel no projeto. Volte ao editor para adicionar.
-                        </div>
-                    )}
-                </div>
-             </div>
-          )}
-
         </main>
 
         {/* Sidebar Direita (Propriedades - Apenas Editor) */}
@@ -532,16 +535,15 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
                                             <input type="number" value={item.width} onChange={(e) => updateItem(item.id, { width: Number(e.target.value) })} className="w-full p-2 rounded border dark:bg-[#2d2424] dark:border-[#5a4f4f]" />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Prof.</label>
-                                            <input type="number" value={item.depth} onChange={(e) => updateItem(item.id, { depth: Number(e.target.value) })} className="w-full p-2 rounded border dark:bg-[#2d2424] dark:border-[#5a4f4f]" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Altura</label>
-                                            <input type="number" value={item.height} onChange={(e) => updateItem(item.id, { height: Number(e.target.value) })} className="w-full p-2 rounded border dark:bg-[#2d2424] dark:border-[#5a4f4f]" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Rotação</label>
-                                            <input type="number" value={item.rotation} onChange={(e) => updateItem(item.id, { rotation: Number(e.target.value) })} className="w-full p-2 rounded border dark:bg-[#2d2424] dark:border-[#5a4f4f]" />
+                                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                                                {editorMode === 'plan' ? 'Profundidade' : 'Altura'}
+                                            </label>
+                                            <input 
+                                                type="number" 
+                                                value={editorMode === 'plan' ? item.depth : item.height} 
+                                                onChange={(e) => updateItem(item.id, editorMode === 'plan' ? { depth: Number(e.target.value) } : { height: Number(e.target.value) })} 
+                                                className="w-full p-2 rounded border dark:bg-[#2d2424] dark:border-[#5a4f4f]" 
+                                            />
                                         </div>
                                     </div>
                                     
@@ -551,6 +553,8 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
                                             <option value="MDF Branco">MDF Branco</option>
                                             <option value="MDF Amadeirado">MDF Amadeirado</option>
                                             <option value="Compensado">Compensado</option>
+                                            <option value="Vidro">Vidro</option>
+                                            <option value="Espelho">Espelho</option>
                                         </select>
                                     </div>
 
@@ -566,7 +570,7 @@ export const Smart2DEditor: React.FC<Smart2DEditorProps> = ({ isOpen, onClose, s
                                 <div className="text-center">
                                     <RulerIcon className="w-12 h-12 mx-auto mb-2 text-[#d4ac6e]" />
                                     <p className="text-sm font-bold">Modo Traçado Ativo</p>
-                                    <p className="text-xs mt-1">Arraste os módulos sobre a foto para posicionar.</p>
+                                    <p className="text-xs mt-1">Use a foto para desenhar por cima.</p>
                                 </div>
                             ) : (
                                 <>

@@ -281,14 +281,21 @@ export async function generateImage(
     const modelName = useProModel ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
 
     let technicalPrompt = `
-    ATUE COMO: Um Arquiteto e Renderizador 3D Sênior (Expert em Visualização de Produtos).
-    SUA MISSÃO: Criar uma imagem 3D 100% FOTORREALISTA (estilo V-Ray/Unreal Engine 5) que satisfaça EXATAMENTE a solicitação: "${prompt}"
+    ATUE COMO: Um Arquiteto e Renderizador 3D Sênior.
+    SUA MISSÃO: Criar uma imagem 3D 100% FOTORREALISTA (estilo V-Ray/Unreal Engine 5).
     
-    DIRETRIZES TÉCNICAS ESTRITAS (GOOGLE LENS VISION):
-    1. **Fidelidade Geométrica:** Se houver uma imagem de referência, respeite a geometria das paredes, posição de janelas e portas RIGOROSAMENTE. O móvel deve encaixar perfeitamente no espaço.
-    2. **Realismo Absoluto:** Iluminação global (GI), sombras de contato suaves, reflexos corretos nos materiais (vidro, laca, madeira).
-    3. **Detalhamento:** Puxadores, espessuras de borda (frentes de 18mm/25mm), rodapés e sancas devem ser visíveis e técnicos.
-    4. **Enquadramento:** Use um ângulo de câmera profissional (altura dos olhos ou levemente superior).
+    DETALHES DO PEDIDO: "${prompt}"
+    
+    SE HOUVER IMAGEM DE REFERÊNCIA (Sketch ou Foto):
+    1. **GEOMETRIA ESTRITA (ControlNet):** Use a imagem como um "mapa de profundidade/linhas". O render deve ter EXATAMENTE a mesma composição, ângulo e proporção dos móveis da imagem.
+    2. **Rascunho para Realidade:** Se for um desenho à mão, converta as linhas desenhadas em estruturas 3D reais (MDF, Madeira, Vidro). Não alucine móveis onde não existem linhas.
+    3. **Preenchimento Inteligente:** Se o desenho for apenas contorno, aplique texturas realistas dentro das linhas.
+    
+    DETALHES TÉCNICOS:
+    - Iluminação global (GI) suave.
+    - Sombras de contato realistas.
+    - Reflexos corretos (vidros reflexivos, madeira acetinada).
+    - Detalhes de marcenaria: Puxadores, rodapés, tamponamentos de 18/25mm.
     `;
 
     if (framingStrategy) technicalPrompt += `\nENQUADRAMENTO ESPECÍFICO: ${framingStrategy}`;
@@ -367,14 +374,13 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
     const data = base64Image.split(',')[1];
 
     const prompt = `
-    ATUE COMO: Google Lens / Scanner de Ambientes 3D.
-    TAREFA: Realizar uma leitura métrica e espacial completa do ambiente na foto.
+    ATUE COMO: Google Lens / Scanner de Ambientes e Móveis 3D.
+    TAREFA: Realizar uma leitura métrica e espacial completa da imagem (seja um quarto vazio ou um desenho de móvel).
 
-    1. **Identificação:** Qual é o cômodo?
+    1. **Identificação:** Qual é o cômodo ou o móvel desenhado? (Ex: Cozinha, Guarda-Roupa, Rascunho de Armário).
     2. **Métricas Precisas (Triangulação):** 
-       - Use objetos de referência (portas=2.10m, interruptores=1.10m, balcões=90cm) para calcular as dimensões do ambiente.
-       - Estime Largura, Profundidade e Pé-direito.
-    3. **Detecção Estrutural:** Liste janelas, vigas, colunas, pontos elétricos e hidráulicos visíveis.
+       - Estime Largura, Profundidade e Altura baseando-se em referências visuais.
+    3. **Detecção Estrutural:** Liste o que você vê (portas, gavetas, janelas, tomadas).
     
     Retorne JSON: { 
         roomType: string, 
