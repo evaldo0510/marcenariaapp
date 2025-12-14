@@ -6,7 +6,7 @@ import {
     BookIcon, 
     CurrencyDollarIcon, 
     HistoryIcon, 
-    ArrowRightIcon,
+    ArrowRightIcon, 
     DownloadIcon,
     StoreIcon,
     UsersIcon,
@@ -14,7 +14,7 @@ import {
     ShieldIcon,
     LockIcon,
     PaletteIcon,
-    GridIcon // Added import
+    GridIcon
 } from './Shared'; 
 
 interface ToolsHubModalProps {
@@ -36,22 +36,6 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({ isOpen, onClose, o
             icon: <MagicIcon className="w-8 h-8 text-purple-600 dark:text-purple-400" />,
             color: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
             hover: 'hover:border-purple-500'
-        },
-        {
-            id: 'smart2d', // NEW TOOL
-            title: 'Studio 2D de Precisão',
-            description: 'Editor vetorial com plano de corte automático.',
-            icon: <GridIcon className="w-8 h-8 text-blue-600 dark:text-blue-400" />,
-            color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
-            hover: 'hover:border-blue-500'
-        },
-        {
-            id: 'studio',
-            title: 'Studio de Combinações',
-            description: 'Teste cores e texturas de MDF em tempo real.',
-            icon: <PaletteIcon className="w-8 h-8 text-pink-600 dark:text-pink-400" />,
-            color: 'bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800',
-            hover: 'hover:border-pink-500'
         },
         {
             id: 'cutting',
@@ -179,7 +163,7 @@ export const ToolsHubModal: React.FC<ToolsHubModalProps> = ({ isOpen, onClose, o
                 
                 <footer className="mt-16 text-center">
                     <p className="text-xs text-[#8a7e7e] dark:text-[#a89d8d]">
-                        MarcenApp Inteligência Artificial v2.5 (Smart 2D Added)
+                        MarcenApp Inteligência Artificial v2.5
                     </p>
                 </footer>
             </div>

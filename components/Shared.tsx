@@ -222,8 +222,8 @@ export const MoonIcon: React.FC<{className?: string}> = ({className}) => (
     <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
 );
 
-export const SaveIcon: React.FC = () => (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3l-4 4-4-4z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v-8" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 4h-6" /></svg>
+export const SaveIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-5 h-5 ${className}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3l-4 4-4-4z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v-8" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 4h-6" /></svg>
 );
 
 export const DocumentTextIcon: React.FC<{className?: string}> = ({className}) => (

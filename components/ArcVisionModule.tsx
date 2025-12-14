@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { 
     UploadIcon, CameraIcon, BoxIcon, MaximizeIcon, RefreshIcon, WandIcon, 
@@ -339,8 +340,13 @@ export const ArcVisionModule: React.FC<ArcVisionModuleProps> = ({ isOpen, onClos
 
       const levelInfo = PROJECT_LEVELS[projectLevel];
       
+      // Enforce integrated project context if multiple environments are selected
+      const fullDescription = selectedEnvs.length > 1 
+        ? `PROJETO INTEGRADO (Conceito Aberto): ${description}. Unificar visualmente: ${selectedEnvs.join(', ')}.` 
+        : description;
+
       const parsedResult = await generateArcVisionProject(
-          description, 
+          fullDescription, 
           selectedEnvs, 
           levelInfo, 
           collectionInfo, 
@@ -546,40 +552,36 @@ export const ArcVisionModule: React.FC<ArcVisionModuleProps> = ({ isOpen, onClos
               <div className="mb-6">
                 <div className="flex justify-between items-end mb-3">
                    <p className="text-sm font-bold text-[#8a7e7e] dark:text-[#a89d8d] uppercase">1. Ambientes Encontrados</p>
-                   <button 
-                     onClick={() => setShowJson(!showJson)} 
-                     className="text-[10px] font-mono text-[#d4ac6e] hover:underline bg-[#d4ac6e]/10 px-2 py-1 rounded"
-                   >
-                     {showJson ? '{ Ocultar JSON }' : '{ Ver JSON }'}
-                   </button>
+                   {selectedEnvs.length > 1 && (
+                       <span className="text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded">
+                           Projeto Integrado Ativo
+                       </span>
+                   )}
                 </div>
                 
-                {showJson && (
-                   <div className="bg-[#2d2424] text-green-400 p-4 rounded-xl mb-4 font-mono text-xs overflow-x-auto shadow-inner border border-[#4a4040]">
-                      {JSON.stringify({ ambientes: detectedEnvs }, null, 2)}
-                   </div>
-                )}
-
                 <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar">
                   {detectedEnvs.map((env, idx) => {
                     const isSelected = selectedEnvs.includes(env);
                     return (
                       <div 
                         key={idx}
-                        className={`p-3 rounded-xl border-2 flex items-center justify-between transition-all
+                        className={`p-3 rounded-xl border-2 flex items-center justify-between transition-all cursor-pointer
                           ${isSelected 
                             ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
                             : 'border-[#e6ddcd] dark:border-[#4a4040] bg-[#f0e9dc] dark:bg-[#2d2424]'}`}
+                        onClick={() => toggleEnv(env)}
                       >
-                        <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => toggleEnv(env)}>
-                          <div className={`w-5 h-5 rounded flex items-center justify-center border-2 shrink-0
-                            ${isSelected ? 'bg-green-500 border-green-500' : 'border-[#dcd6c8] dark:border-[#5a4f4f] bg-[#fffefb] dark:bg-[#3e3535]'}`}>
-                            {isSelected && <CheckSquareIcon className="w-3 h-3 text-white" />}
-                          </div>
+                        <div className="flex items-center gap-3 flex-1">
+                          <input 
+                            type="checkbox" 
+                            checked={isSelected} 
+                            readOnly 
+                            className="w-5 h-5 rounded border-2 border-[#dcd6c8] dark:border-[#5a4f4f] text-green-500 focus:ring-green-500"
+                          />
                           <span className={`font-bold ${isSelected ? 'text-green-700 dark:text-green-400' : 'text-[#6a5f5f] dark:text-[#c7bca9]'}`}>{env}</span>
                         </div>
                         <button
-                          onClick={() => openInspirationSearch(env)}
+                          onClick={(e) => { e.stopPropagation(); openInspirationSearch(env); }}
                           className="text-xs flex items-center gap-1 text-[#d4ac6e] bg-[#fffefb] dark:bg-[#3e3535] px-3 py-1.5 rounded-lg hover:bg-[#f0e9dc] dark:hover:bg-[#4a4040] border border-[#e6ddcd] dark:border-[#4a4040] transition-colors"
                           title="Ver ideias no Google"
                         >
@@ -589,6 +591,7 @@ export const ArcVisionModule: React.FC<ArcVisionModuleProps> = ({ isOpen, onClos
                     );
                   })}
                 </div>
+                <p className="text-xs text-gray-500 mt-2">Selecione múltiplos ambientes para criar um projeto integrado (ex: Sala + Jantar).</p>
               </div>
 
               <div className="mb-6 border-t border-[#e6ddcd] dark:border-[#4a4040] pt-6">

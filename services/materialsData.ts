@@ -32,5 +32,6 @@ export const MDF_DATABASE: MaterialTexture[] = [
     // Pedras / Mármores (para bancadas)
     { id: 'pedra-carrara', name: 'Mármore Carrara', brand: 'Pedra', type: 'stone', hex: '#f0f4f8', tone: 'light' },
     { id: 'pedra-preto-via-lactea', name: 'Granito Via Láctea', brand: 'Pedra', type: 'stone', hex: '#1a1a1a', tone: 'dark' },
+    { id: 'pedra-sao-gabriel', name: 'Granito São Gabriel', brand: 'Pedra', type: 'stone', hex: '#232323', tone: 'dark' },
     { id: 'pedra-concreto', name: 'Concreto Metropolitan', brand: 'Duratex', type: 'stone', hex: '#7a7a7a', tone: 'medium' },
 ];

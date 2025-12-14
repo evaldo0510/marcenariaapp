@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { PaletteIcon, WandIcon, RefreshIcon, CheckIcon, SaveIcon, ShareIcon, Spinner } from './Shared';
+import { PaletteIcon, WandIcon, RefreshIcon, CheckIcon, SaveIcon, ShareIcon, Spinner, SearchIcon, StarIcon } from './Shared';
 import { MDF_DATABASE, type MaterialTexture } from '../services/materialsData';
 import { generateText } from '../services/geminiService';
+import { addFavoriteFinish } from '../services/historyService';
 
 interface MaterialCombinationStudioProps {
     isOpen: boolean;
@@ -23,6 +24,7 @@ export const MaterialCombinationStudio: React.FC<MaterialCombinationStudioProps>
     const [activeZone, setActiveZone] = useState<Zone>('lower');
     const [aiOpinion, setAiOpinion] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const handleMaterialSelect = (material: MaterialTexture) => {
         setSelection(prev => ({ ...prev, [activeZone]: material }));
@@ -54,7 +56,32 @@ export const MaterialCombinationStudio: React.FC<MaterialCombinationStudioProps>
         }
     };
 
+    const handleSaveFavorites = async () => {
+        try {
+            // Save main materials as favorites (Upper and Lower usually define the look)
+            const finishUpper: any = { ...selection.upper, description: `Combinação salva: Superior` };
+            const finishLower: any = { ...selection.lower, description: `Combinação salva: Inferior` };
+            
+            await addFavoriteFinish(finishUpper);
+            if (selection.lower.id !== selection.upper.id) {
+                await addFavoriteFinish(finishLower);
+            }
+            
+            showAlert("Materiais salvos nos seus Favoritos!", "Sucesso");
+        } catch (e) {
+            console.error(e);
+            showAlert("Erro ao salvar favoritos.", "Erro");
+        }
+    };
+
     if (!isOpen) return null;
+
+    // Filter materials based on search term
+    const filteredMaterials = MDF_DATABASE.filter(mat => 
+        mat.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        mat.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        mat.type.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     // SVG Pattern Generation helper
     const getPatternId = (mat: MaterialTexture) => `pat-${mat.id}`;
@@ -196,45 +223,65 @@ export const MaterialCombinationStudio: React.FC<MaterialCombinationStudioProps>
                     ))}
                 </div>
 
+                {/* Search Bar */}
+                <div className="p-3 border-b border-[#e6ddcd] dark:border-[#4a4040]">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Buscar acabamento (Ex: Freijó)"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border border-[#dcd6c8] dark:border-[#5a4f4f] text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-1 focus:ring-[#d4ac6e]"
+                        />
+                        <SearchIcon className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+                    </div>
+                </div>
+
                 {/* Material List */}
                 <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                     <h3 className="text-sm font-bold text-[#3e3535] dark:text-[#f5f1e8] mb-4 flex items-center gap-2">
                         <PaletteIcon className="w-4 h-4" /> Escolha o Material
                     </h3>
                     
-                    <div className="grid grid-cols-2 gap-3">
-                        {MDF_DATABASE.map(mat => (
-                            <button
-                                key={mat.id}
-                                onClick={() => handleMaterialSelect(mat)}
-                                className={`relative p-1 rounded-lg border-2 transition-all group
-                                    ${selection[activeZone].id === mat.id 
-                                        ? 'border-[#d4ac6e] bg-[#f0e9dc] dark:bg-[#2d2424]' 
-                                        : 'border-transparent hover:border-gray-200 dark:hover:border-[#5a4f4f]'}`}
-                            >
-                                <div 
-                                    className="h-20 w-full rounded-md mb-2 shadow-sm" 
-                                    style={{ backgroundColor: mat.hex }}
-                                ></div>
-                                <div className="px-1 text-left">
-                                    <p className="text-xs font-bold text-[#3e3535] dark:text-[#f5f1e8] truncate">{mat.name}</p>
-                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{mat.brand}</p>
-                                </div>
-                                {selection[activeZone].id === mat.id && (
-                                    <div className="absolute top-2 right-2 bg-[#d4ac6e] rounded-full p-0.5">
-                                        <CheckIcon className="w-3 h-3 text-[#3e3535]" />
+                    {filteredMaterials.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500 text-sm">
+                            Nenhum material encontrado.
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-3">
+                            {filteredMaterials.map(mat => (
+                                <button
+                                    key={mat.id}
+                                    onClick={() => handleMaterialSelect(mat)}
+                                    className={`relative p-1 rounded-lg border-2 transition-all group
+                                        ${selection[activeZone].id === mat.id 
+                                            ? 'border-[#d4ac6e] bg-[#f0e9dc] dark:bg-[#2d2424]' 
+                                            : 'border-transparent hover:border-gray-200 dark:hover:border-[#5a4f4f]'}`}
+                                >
+                                    <div 
+                                        className="h-20 w-full rounded-md mb-2 shadow-sm" 
+                                        style={{ backgroundColor: mat.hex }}
+                                    ></div>
+                                    <div className="px-1 text-left">
+                                        <p className="text-xs font-bold text-[#3e3535] dark:text-[#f5f1e8] truncate" title={mat.name}>{mat.name}</p>
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{mat.brand}</p>
                                     </div>
-                                )}
-                            </button>
-                        ))}
-                    </div>
+                                    {selection[activeZone].id === mat.id && (
+                                        <div className="absolute top-2 right-2 bg-[#d4ac6e] rounded-full p-0.5">
+                                            <CheckIcon className="w-3 h-3 text-[#3e3535]" />
+                                        </div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Action Footer */}
                 <div className="p-4 border-t border-[#e6ddcd] dark:border-[#4a4040] bg-[#f5f1e8] dark:bg-[#2d2424] space-y-3">
                     <div className="flex items-center justify-between text-xs text-gray-500">
                         <span>Combinação atual:</span>
-                        <span className="font-mono font-bold">{selection.upper.name} + {selection.lower.name}</span>
+                        <span className="font-mono font-bold truncate max-w-[150px]">{selection.upper.name} + {selection.lower.name}</span>
                     </div>
                     
                     <button 
@@ -247,8 +294,8 @@ export const MaterialCombinationStudio: React.FC<MaterialCombinationStudioProps>
                     </button>
 
                     <div className="grid grid-cols-2 gap-3">
-                        <button className="py-2.5 bg-white dark:bg-[#4a4040] border border-[#e6ddcd] dark:border-[#5a4f4f] rounded-lg text-xs font-bold text-gray-600 dark:text-gray-200 flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-[#5a4f4f]">
-                            <SaveIcon className="w-4 h-4" /> Salvar
+                        <button onClick={handleSaveFavorites} className="py-2.5 bg-white dark:bg-[#4a4040] border border-[#e6ddcd] dark:border-[#5a4f4f] rounded-lg text-xs font-bold text-gray-600 dark:text-gray-200 flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-[#5a4f4f]">
+                            <StarIcon className="w-4 h-4 text-yellow-500" /> Salvar Favoritos
                         </button>
                         <button className="py-2.5 bg-white dark:bg-[#4a4040] border border-[#e6ddcd] dark:border-[#5a4f4f] rounded-lg text-xs font-bold text-gray-600 dark:text-gray-200 flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-[#5a4f4f]">
                             <ShareIcon className="w-4 h-4" /> Compartilhar

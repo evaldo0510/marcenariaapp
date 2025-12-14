@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { Finish } from '../types';
 import { searchFinishes } from '../services/geminiService';
 import { Spinner, SearchIcon, MicIcon, StarIcon, WandIcon } from './Shared';
+import { MDF_DATABASE } from '../services/materialsData';
 
 interface FinishesSelectorProps {
   onFinishSelect: (selection: { manufacturer: string; finish: Finish; handleDetails?: string } | null) => void;
@@ -20,6 +21,7 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
         isSearching: false,
         results: [] as Finish[],
         attempted: false,
+        source: '' as 'local' | 'ai' | ''
     });
     const [isRecording, setIsRecording] = useState(false);
     const recognitionRef = useRef<any>(null);
@@ -93,14 +95,42 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
     };
     
     const handleSearch = async () => {
-        if (!iaraSearchState.query.trim()) {
+        const query = iaraSearchState.query.trim().toLowerCase();
+        if (!query) {
             showAlert('Por favor, digite uma descrição para a busca.');
             return;
         }
-        setIaraSearchState(prev => ({ ...prev, attempted: true, isSearching: true, results: [] }));
+        
+        setIaraSearchState(prev => ({ ...prev, attempted: true, isSearching: true, results: [], source: '' }));
+
+        // 1. Try Local Search First
+        const localMatches = MDF_DATABASE.filter(mat => 
+            mat.name.toLowerCase().includes(query) || 
+            mat.brand.toLowerCase().includes(query)
+        ).map(mat => ({
+            id: mat.id,
+            name: mat.name,
+            description: `${mat.brand} - ${mat.type === 'wood' ? 'Amadeirado' : mat.type === 'stone' ? 'Pedra' : 'Unicolor'}`,
+            type: mat.type as any,
+            manufacturer: mat.brand,
+            hexCode: mat.hex,
+            imageUrl: null // Local DB uses hex mostly for this demo
+        }));
+
+        if (localMatches.length > 0) {
+            setIaraSearchState(prev => ({ 
+                ...prev, 
+                isSearching: false, 
+                results: localMatches, 
+                source: 'local' 
+            }));
+            return;
+        }
+
+        // 2. Fallback to AI Search if no local matches
         try {
             const results = await searchFinishes(iaraSearchState.query);
-            setIaraSearchState(prev => ({ ...prev, results }));
+            setIaraSearchState(prev => ({ ...prev, results, source: 'ai' }));
         } catch (error) {
             showAlert(error instanceof Error ? error.message : "Erro na busca", "Erro");
         } finally {
@@ -201,17 +231,17 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
             
             <div className="bg-[#f0e9dc] dark:bg-[#2d2424]/50 p-4 rounded-lg">
                 <p className="text-[#6a5f5f] dark:text-[#c7bca9] mb-3 text-center">
-                    Não sabe o nome do acabamento? Descreva-o para a Iara ou use o microfone para falar. <br/>
-                    <span className="text-sm text-[#8a7e7e] dark:text-[#a89d8d]">Ex: "MDF amadeirado claro com veios suaves" ou "laminado cinza fosco".</span>
+                    Busque pelo nome exato (ex: "Freijó", "Granito São Gabriel") ou descreva o acabamento. <br/>
+                    <span className="text-sm text-[#8a7e7e] dark:text-[#a89d8d]">Nós buscamos no nosso catálogo ou usamos a Iara para encontrar.</span>
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative flex-grow">
                         <input 
-                            type="text"
+                            type="text" 
                             value={iaraSearchState.query}
                             onChange={(e) => setIaraSearchState(prev => ({ ...prev, query: e.target.value }))}
                             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                            placeholder="Descreva o acabamento ou use o microfone"
+                            placeholder="Nome do acabamento ou descrição..."
                             className="w-full bg-[#fffefb] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 pr-12 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
                         />
                         <button onClick={handleRecord} className={`absolute top-1/2 right-3 -translate-y-1/2 p-2 rounded-full transition-colors ${isRecording ? 'bg-red-500 animate-pulse-scale' : 'bg-[#e6ddcd] dark:bg-[#4a4040] hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f]'}`}>
@@ -228,18 +258,25 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
                     {iaraSearchState.isSearching ? (
                         <div className="text-center p-8 animate-fadeIn">
                             <Spinner />
-                            <p className="mt-2 text-[#8a7e7e] dark:text-[#a89d8d]">Consultando assistente Iara... Isso pode levar alguns segundos.</p>
+                            <p className="mt-2 text-[#8a7e7e] dark:text-[#a89d8d]">Consultando catálogos e assistente Iara...</p>
                         </div>
                     ) : iaraSearchState.attempted ? (
                         iaraSearchState.results.length > 0 ? (
                             <div className="animate-fadeIn">
-                                <h3 className="text-lg font-semibold text-[#6a5f5f] dark:text-[#c7bca9] mb-4">Resultados da Busca:</h3>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-semibold text-[#6a5f5f] dark:text-[#c7bca9]">Resultados da Busca:</h3>
+                                    {iaraSearchState.source && (
+                                        <span className={`text-xs px-2 py-1 rounded-full font-bold ${iaraSearchState.source === 'local' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'}`}>
+                                            {iaraSearchState.source === 'local' ? 'Catálogo Local' : 'Sugestões Iara'}
+                                        </span>
+                                    )}
+                                </div>
                                 {renderFinishesGrid(iaraSearchState.results)}
                             </div>
                         ) : (
                             <div className="text-center p-8 text-[#8a7e7e] dark:text-[#a89d8d] animate-fadeIn bg-[#e6ddcd] dark:bg-[#2d2424] rounded-lg">
                                 <p className="font-semibold text-[#6a5f5f] dark:text-[#c7bca9]">Nenhum acabamento encontrado para "{iaraSearchState.query}"</p>
-                                <p className="text-sm mt-2">Tente usar termos diferentes, como "madeira de demolição" ou "MDF cinza fosco".</p>
+                                <p className="text-sm mt-2">Tente usar termos diferentes ou verifique a ortografia.</p>
                             </div>
                         )
                     ) : null}
@@ -268,7 +305,7 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
                         ))}
                     </div>
                     <input 
-                        type="text"
+                        type="text" 
                         value={handleDetails}
                         onChange={(e) => handleDetailChange(e.target.value)}
                         placeholder="Ou descreva um puxador customizado"
@@ -292,7 +329,7 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
                         ))}
                     </div>
                     <input 
-                        type="text"
+                        type="text" 
                         value={handleDetails}
                         onChange={(e) => handleDetailChange(e.target.value)}
                         placeholder="Especifique texturas ou direção dos veios..."

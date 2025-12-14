@@ -52,110 +52,80 @@ const getAiClient = () => {
     return new GoogleGenAI({ apiKey: apiKey || '' });
 };
 
-// --- FALLBACK PROXY LOGIC ---
-
-async function callCustomProxy(model: string, contents: any, config: any): Promise<GenerateContentResponse> {
-    const payload = {
-        model,
-        contents,
-        ...config, 
-        apiKey: getGeminiApiKey() 
-    };
-
-    let url = USE_PROXY_AS_PRIMARY ? CUSTOM_PROXY_URL : 'https://api.geminigen.ai/uapi/v1/generate';
-    
-    console.log(`[Connection] Usando rota: ${USE_PROXY_AS_PRIMARY ? 'Proxy Primário' : 'Proxy Fallback'}`);
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getGeminiApiKey()}` 
-        },
-        body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-        const errText = await response.text();
-        console.error("[Proxy] Error:", errText);
-        throw new Error(`Proxy Request Failed: ${response.status} - ${errText}`);
-    }
-
-    const data = await response.json();
-    return data as GenerateContentResponse;
-}
-
-// Unified generation function with fallback logic
+// Unified generation function with resilient error handling
 async function generateContentSafe(
     params: { model: string, contents: any, config?: any }
 ): Promise<GenerateContentResponse> {
-    
-    if (USE_PROXY_AS_PRIMARY) {
-        try {
-            return await callCustomProxy(params.model, params.contents, params.config);
-        } catch (e: any) {
-            console.error("Falha no Proxy Primário:", e);
-            throw e; 
-        }
-    }
-
     const ai = getAiClient();
     
     try {
-        console.log(`[v2.4] Generating content with model: ${params.model}`);
+        console.log(`[v2.5] Generating content with model: ${params.model}`);
         return await retryOperation(() => ai.models.generateContent(params));
     } catch (error: any) {
-        const errorMsg = error.message || '';
-        console.warn(`[v2.4] Direct API call failed:`, errorMsg);
-
-        if (errorMsg.includes('fetch') || errorMsg.includes('500') || errorMsg.includes('503') || errorMsg.includes('location')) {
-            console.warn(`[v2.4] Attempting proxy fallback...`);
-            try {
-                return await callCustomProxy(params.model, params.contents, params.config);
-            } catch (proxyError) {
-                console.error("[v2.4] Proxy fallback also failed:", proxyError);
-            }
-        }
+        console.error(`[v2.5] API call failed for ${params.model}:`, error.message);
         throw error; 
     }
 }
 
-// Helper for retrying operations with exponential backoff
-async function retryOperation<T>(operation: () => Promise<T>, retries = 1, delay = 1000): Promise<T> {
+// Helper for retrying operations with smart exponential backoff and rate limit handling
+export async function retryOperation<T>(operation: () => Promise<T>, retries = 3, initialDelay = 2000): Promise<T> {
     try {
         return await operation();
     } catch (error: any) {
-        const status = error.status || error.code;
-        const message = error.message || '';
+        // Parse error object/string
+        let errObj = error;
+        let message = '';
         
-        const isRateLimit = status === 429 || status === 'RESOURCE_EXHAUSTED' || message.includes('429') || message.includes('quota');
+        if (typeof error.message === 'string') {
+            message = error.message.toLowerCase();
+            if (message.startsWith('{') || message.includes('{"')) {
+                 try {
+                     const match = error.message.match(/({.*})/);
+                     if (match) {
+                        const parsed = JSON.parse(match[1]);
+                        if (parsed.error) {
+                            errObj = parsed.error;
+                            message = (errObj.message || '').toLowerCase();
+                        }
+                     }
+                 } catch (e) {}
+            }
+        }
+
+        const status = errObj.status || errObj.code;
+        
+        const isRateLimit = status === 429 || 
+                            status === 'RESOURCE_EXHAUSTED' || 
+                            message.includes('429') || 
+                            message.includes('quota') || 
+                            message.includes('resource_exhausted');
+                            
         const isNetworkError = message.includes('xhr') || message.includes('fetch') || status === 503;
 
         if (retries > 0 && (isNetworkError || isRateLimit)) {
-            let waitTime = delay;
+            let waitTime = initialDelay;
             
-            if (isRateLimit) {
-                const retryMatch = message.match(/retry in ([0-9.]+)(s|ms)/);
-                if (retryMatch) {
-                    const val = parseFloat(retryMatch[1]);
-                    const unit = retryMatch[2];
-                    const parsedWait = unit === 's' ? val * 1000 : val;
-                    
-                    if (parsedWait < 15000) {
-                        waitTime = parsedWait + 1000;
-                        console.warn(`Rate limit hit. Retrying automatically in ${waitTime}ms...`);
-                    } else {
-                        throw error;
-                    }
-                } else {
-                    waitTime = delay * 2;
-                }
-            } else {
-                waitTime = delay * 2;
+            // Extract precise retry delay from error message: "Please retry in 52.28s"
+            const match = message.match(/retry in ([0-9.]+)(s|ms)/);
+            if (match) {
+                 const val = parseFloat(match[1]);
+                 const unit = match[2];
+                 waitTime = (unit === 's' ? val * 1000 : val) + 1000; // Add 1s buffer
+            } else if (isRateLimit) {
+                // If rate limit but no specific time, backoff more aggressively
+                waitTime = initialDelay * 2;
             }
 
+            // Cap wait time to prevent UI hanging too long (max 60s)
+            if (waitTime > 60000) {
+                console.warn(`[Gemini Service] Wait time ${waitTime}ms too long. Aborting retry.`);
+                throw error;
+            }
+
+            console.warn(`[Gemini Service] Operation failed (${status}). Retrying in ${Math.round(waitTime)}ms... (${retries} attempts left)`);
+            
             await new Promise(resolve => setTimeout(resolve, waitTime));
-            return retryOperation(operation, retries - 1, isRateLimit ? waitTime : delay * 2);
+            return retryOperation(operation, retries - 1, waitTime * 1.5); // Exponential backoff for subsequent retries
         }
         throw error;
     }
@@ -189,10 +159,10 @@ export function cleanAndParseJson<T>(text: string): T {
 
 export async function detectEnvironments(imageBase64: { data: string, mimeType: string } | null): Promise<string[]> {
     const prompt = `
-      ATUE COMO: Especialista Técnico em Levantamento Arquitetônico (Google Lens Vision).
-      TAREFA: Analise visualmente a imagem fornecida com extrema precisão.
+      ATUE COMO: Especialista Técnico em Levantamento Arquitetônico.
+      TAREFA: Analise visualmente a imagem fornecida com precisão.
       Identifique todos os ambientes visíveis e liste-os.
-      FORMATO DE RESPOSTA (JSON OBRIGATÓRIO): { "ambientes": ["Nome do Ambiente 1", "Nome do Ambiente 2"] }
+      FORMATO DE RESPOSTA (JSON): { "ambientes": ["Nome do Ambiente 1", "Nome do Ambiente 2"] }
     `;
 
     const parts: any[] = [{ text: prompt }];
@@ -223,7 +193,7 @@ export async function generateArcVisionProject(
     const envsList = selectedEnvs.join(", ");
     
     const promptText = `
-      ATUE COMO: Mestre Marceneiro e Engenheiro de Projetos (Nível Google Lens).
+      ATUE COMO: Mestre Marceneiro e Engenheiro de Projetos.
       
       TAREFA:
       Analise a imagem e o pedido: "${description}".
@@ -278,6 +248,8 @@ export async function generateImage(
     isMirrored: boolean = false
 ): Promise<string> {
     
+    // Default to 'gemini-2.5-flash-image' (Nano Banana) for speed and cost
+    // 'gemini-3-pro-image-preview' (Nano Banana 2) for higher quality if requested
     const modelName = useProModel ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
 
     let technicalPrompt = `
@@ -286,19 +258,22 @@ export async function generateImage(
     
     DETALHES DO PEDIDO: "${prompt}"
     
-    SE HOUVER IMAGEM DE REFERÊNCIA (Sketch ou Foto):
-    1. **GEOMETRIA ESTRITA (ControlNet):** Use a imagem como um "mapa de profundidade/linhas". O render deve ter EXATAMENTE a mesma composição, ângulo e proporção dos móveis da imagem.
-    2. **Rascunho para Realidade:** Se for um desenho à mão, converta as linhas desenhadas em estruturas 3D reais (MDF, Madeira, Vidro). Não alucine móveis onde não existem linhas.
-    3. **Preenchimento Inteligente:** Se o desenho for apenas contorno, aplique texturas realistas dentro das linhas.
-    
-    DETALHES TÉCNICOS:
-    - Iluminação global (GI) suave.
-    - Sombras de contato realistas.
-    - Reflexos corretos (vidros reflexivos, madeira acetinada).
-    - Detalhes de marcenaria: Puxadores, rodapés, tamponamentos de 18/25mm.
+    DIRETRIZES VISUAIS:
+    - Iluminação global (GI) suave e realista.
+    - Sombras de contato precisas.
+    - Reflexos corretos em materiais (vidros, metais, madeira).
+    - Detalhes de marcenaria: Puxadores, rodapés, tamponamentos.
     `;
 
-    if (framingStrategy) technicalPrompt += `\nENQUADRAMENTO ESPECÍFICO: ${framingStrategy}`;
+    if (referenceImages && referenceImages.length > 0) {
+        technicalPrompt += `
+    SE HOUVER IMAGEM DE REFERÊNCIA:
+    1. **GEOMETRIA ESTRITA:** Use a imagem como "mapa de profundidade". Mantenha a composição, ângulo e proporção.
+    2. **Rascunho para Realidade:** Converta linhas desenhadas em estruturas 3D reais.
+    `;
+    }
+
+    if (framingStrategy) technicalPrompt += `\nENQUADRAMENTO: ${framingStrategy}`;
     if (isMirrored) technicalPrompt += `\nATENÇÃO: PLANTA ESPELHADA (INVERTER HORIZONTALMENTE).`;
 
     const parts: any[] = [{ text: technicalPrompt }];
@@ -311,7 +286,9 @@ export async function generateImage(
 
     try {
         const config: any = { responseModalities: [Modality.IMAGE] };
-        if (useProModel) config.imageConfig = { imageSize: imageResolution };
+        if (useProModel) {
+            config.imageConfig = { imageSize: imageResolution };
+        }
 
         const response = await generateContentSafe({
             model: modelName,
@@ -322,14 +299,29 @@ export async function generateImage(
         const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
         if (imagePart && imagePart.inlineData) return imagePart.inlineData.data;
         throw new Error("A IA não retornou uma imagem válida.");
-    } catch (error) {
+        
+    } catch (error: any) {
+        // Fallback Logic for Quota Exceeded (429/Resource Exhausted)
+        const errorMsg = (error.message || '').toLowerCase();
+        const isQuotaError = error.status === 429 || 
+                             error.status === 'RESOURCE_EXHAUSTED' || 
+                             errorMsg.includes('429') || 
+                             errorMsg.includes('quota') || 
+                             errorMsg.includes('resource_exhausted');
+
+        // If Pro model failed due to quota, try Flash model
+        if (useProModel && isQuotaError) {
+            console.warn("Pro model quota exceeded. Falling back to Standard (Flash) model.");
+            return generateImage(prompt, referenceImages, framingStrategy, false, '1K', decorationLevel, isMirrored);
+        }
+
         console.error("Generate Image Error:", error);
         throw error;
     }
 }
 
 export async function describeImageFor3D(base64Data: string, mimeType: string): Promise<string> {
-    const prompt = `ATUE COMO: Google Lens / Especialista Técnico. 
+    const prompt = `ATUE COMO: Especialista Técnico. 
     Analise esta imagem e forneça uma descrição técnica detalhada para reprodução em projeto 3D. 
     Destaque: Dimensões estimadas, materiais exatos, tipo de ferragem visível, estilo de design e funcionalidade.`;
 
@@ -344,21 +336,11 @@ export async function describeImageFor3D(base64Data: string, mimeType: string): 
 }
 
 export async function enhancePrompt(originalText: string): Promise<string> {
-    // Prompt de Engenharia Refinado para Marcenaria Técnica
     const prompt = `
-    Atue como um Mestre Marceneiro e Especialista em Projetos 3D.
-    
-    TAREFA: Interprete o pedido do usuário e reescreva-o como uma especificação técnica completa para renderização realista.
-    
-    ENTRADA ORIGINAL: "${originalText}"
-    
-    DIRETRIZES DE REESCRITA (OBRIGATÓRIO INCLUIR):
-    1. **Espessuras de MDF:** Especifique (ex: "Caixaria 15mm Branco TX", "Frentes 18mm", "Tamponamento 25mm").
-    2. **Iluminação LED:** Detalhe o tipo (ex: "Perfil LED 4000K embutido", "Fita LED COB 3000K", "Spots dicróicos").
-    3. **Acabamentos Detalhados:** (ex: "Laca fosca", "Vidro Reflecta Bronze", "Puxador Cava usinado", "Perfil Gola Alumínio").
-    4. **Ferragens:** (ex: "Dobradiças soft-close", "Corrediças ocultas").
-    
-    SAÍDA: Apenas o texto técnico reescrito.
+    Atue como um Mestre Marceneiro.
+    TAREFA: Reescreva o pedido abaixo como uma especificação técnica para renderização 3D.
+    ENTRADA: "${originalText}"
+    INCLUA: Espessuras de MDF, iluminação LED, acabamentos detalhados e ferragens.
     `;
 
     const response = await generateContentSafe({
@@ -374,17 +356,12 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
     const data = base64Image.split(',')[1];
 
     const prompt = `
-    ATUE COMO: Google Lens / Scanner de Ambientes e Móveis 3D.
-    TAREFA: Realizar uma leitura métrica e espacial completa da imagem (seja um quarto vazio ou um desenho de móvel).
-
-    1. **Identificação:** Qual é o cômodo ou o móvel desenhado? (Ex: Cozinha, Guarda-Roupa, Rascunho de Armário).
-    2. **Métricas Precisas (Triangulação):** 
-       - Estime Largura, Profundidade e Altura baseando-se em referências visuais.
-    3. **Detecção Estrutural:** Liste o que você vê (portas, gavetas, janelas, tomadas).
+    ATUE COMO: Google Lens / Scanner de Ambientes.
+    TAREFA: Leitura métrica e espacial da imagem.
     
     Retorne JSON: { 
         roomType: string, 
-        confidence: string ("Alta" se a imagem for clara), 
+        confidence: string ("Alta"/"Baixa"), 
         dimensions: { width: number, depth: number, height: number }, 
         detectedObjects: string[] 
     }`;
@@ -422,10 +399,9 @@ export async function analyzeRoomImage(base64Image: string): Promise<{ roomType:
 export async function generateLayoutSuggestions(roomType: string, dimensions: any, userIntent?: string): Promise<{ title: string, description: string, pros: string }[]> {
     let prompt = `Com base no tipo de cômodo (${roomType}) e dimensões detectadas (${dimensions.width}m x ${dimensions.depth}m).`;
     
-    if (userIntent) prompt += `\nCONTEXTO DO USUÁRIO: "${userIntent}".`;
+    if (userIntent) prompt += `\nCONTEXTO DO USUÁRIO (PRIORITÁRIO): "${userIntent}". Adapte o layout para atender este pedido.`;
 
-    prompt += `\nSugira 3 layouts de móveis planejados eficientes, descrevendo cada um (disposição, ergonomia, circulação).
-    Retorne JSON Array: [{ title, description, pros }]`;
+    prompt += `\nSugira 3 layouts de móveis planejados eficientes. Retorne JSON Array: [{ title, description, pros }]`;
 
     const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
@@ -451,7 +427,7 @@ export async function generateLayoutSuggestions(roomType: string, dimensions: an
 }
 
 export async function generateDecorationList(projectDescription: string, style: string): Promise<{ item: string, category: string, estimatedPrice: string, suggestion: string }[]> {
-    const prompt = `Atue como um Designer de Interiores. Baseado em: "${projectDescription}" (Estilo: ${style}). Sugira 5 itens de decoração. JSON Array: { item, category, estimatedPrice, suggestion }`;
+    const prompt = `Atue como Designer de Interiores. Baseado em: "${projectDescription}" (Estilo: ${style}). Sugira 5 itens de decoração. JSON Array: { item, category, estimatedPrice, suggestion }`;
     const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: prompt,
@@ -479,41 +455,11 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
 }
 
 export async function suggestAlternativeFinishes(projectDescription: string, style: string): Promise<Finish[]> {
-    const prompt = `Atue como um Especialista em Materiais de Marcenaria e Tendências.
-    Projeto: "${projectDescription}"
-    Estilo: "${style}" (Moderno/Contemporâneo)
-    
-    Sugira 3 opções de acabamentos de MDF REAIS e de ALTO PADRÃO que combinem com este projeto.
-    
-    MANDATÓRIO:
-    1. Use nomes comerciais exatos dos fabricantes (ex: "MDF Louro Freijó (Arauco)", "MDF Carvalho Hanover (Duratex)", "MDF Cinza Sagrado (Duratex)").
-    2. Na descrição, justifique a escolha esteticamente e sugira uma cor secundária para compor.
-    3. Tente oferecer variações (um madeirado claro, um escuro e um unicolor ou pedra).
-    
-    Retorne JSON Array com objetos Finish.`;
-
+    const prompt = `Sugira 3 acabamentos de MDF reais para: "${projectDescription}" (Estilo ${style}). JSON Array Finish.`;
     const response = await generateContentSafe({
         model: 'gemini-2.5-flash',
         contents: prompt,
-        config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        id: { type: Type.STRING },
-                        name: { type: Type.STRING },
-                        description: { type: Type.STRING },
-                        type: { type: Type.STRING, enum: ['wood', 'solid', 'metal', 'stone', 'concrete', 'ceramic', 'fabric', 'glass', 'laminate', 'veneer'] },
-                        manufacturer: { type: Type.STRING },
-                        imageUrl: { type: Type.STRING, nullable: true },
-                        hexCode: { type: Type.STRING }
-                    },
-                    required: ['id', 'name', 'description', 'type', 'manufacturer', 'hexCode']
-                }
-            }
-        }
+        config: { responseMimeType: 'application/json', responseSchema: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, name: { type: Type.STRING }, description: { type: Type.STRING }, type: { type: Type.STRING }, manufacturer: { type: Type.STRING }, hexCode: { type: Type.STRING } } } } }
     });
     if (response.text) return cleanAndParseJson(response.text);
     return [];
@@ -578,17 +524,10 @@ export async function findLocalSuppliers(location: { latitude: number, longitude
 
 export async function editFloorPlan(base64Data: string, mimeType: string, prompt: string): Promise<string> {
     const technicalPrompt = `
-    ATUE COMO: Um software CAD (AutoCAD/Revit) exportando para PDF/PNG.
-    TAREFA: Converter/Editar para PLANTA BAIXA TÉCNICA 2D (Vista Superior/Top View).
+    ATUE COMO: Software CAD.
+    TAREFA: Converter/Editar para PLANTA BAIXA TÉCNICA 2D.
     INSTRUÇÃO: ${prompt}
-
-    ESTILO VISUAL OBRIGATÓRIO (DWG/CAD):
-    1. **TIPO DE IMAGEM:** Desenho técnico linear (Line Art). NÃO gere uma imagem renderizada ou fotográfica.
-    2. **Fundo:** BRANCO PURO (#FFFFFF) uniforme.
-    3. **Linhas:** PRETO SÓLIDO (#000000). Traço fino e nítido. Alto contraste.
-    4. **Perspectiva:** ORTOGRÁFICA PERFEITA (2D Flat). Top-Down 90 graus.
-    5. **Elementos:** Portas com arco de abertura, paredes com linhas duplas (15cm).
-    6. **Cotas (Dimensões):** OBRIGATÓRIO: Insira linhas de cota (dimension lines) com setas e números indicando as medidas.
+    ESTILO: Fundo branco, linhas pretas, ortográfica perfeita.
     `;
     return editImage(base64Data, mimeType, technicalPrompt);
 }
@@ -662,19 +601,9 @@ export async function generateFloorPlanFrom3D(project: ProjectHistoryItem): Prom
     if (!project.views3d || project.views3d.length === 0) throw new Error("Sem imagem 3D.");
     const src = project.views3d[0];
     const technicalPrompt = `
-    ATUE COMO: Um software CAD (AutoCAD/Revit) exportando para PDF/PNG.
-    TAREFA: Converter esta visualização 3D em uma PLANTA BAIXA TÉCNICA 2D (Vista Superior/Top View).
-    
-    ESTILO VISUAL OBRIGATÓRIO (DWG/CAD):
-    1. **TIPO DE IMAGEM:** Desenho técnico linear (Line Art). NÃO gere uma imagem renderizada ou fotográfica.
-    2. **Fundo:** BRANCO PURO (#FFFFFF) uniforme.
-    3. **Linhas:** PRETO SÓLIDO (#000000). Traço fino e nítido. Alto contraste.
-    4. **Perspectiva:** ORTOGRÁFICA PERFEITA (2D Flat). Top-Down 90 graus.
-    5. **Elementos Arquitetônicos:**
-       - Portas: Desenhe o arco de abertura da porta (90 graus).
-       - Janelas: Linhas duplas ou triplas finas na parede.
-       - Paredes: Linhas duplas paralelas (espessura 15cm).
-    6. **Cotas (Dimensões):** ADICIONE linhas de chamada e cotas numéricas externas indicando largura e profundidade aproximadas.
+    ATUE COMO: Software CAD.
+    TAREFA: Converter para PLANTA BAIXA 2D.
+    ESTILO: Fundo branco, linhas pretas, ortográfica.
     `;
     return editImage(src.split(',')[1], src.match(/data:(.*);/)?.[1] || 'image/png', technicalPrompt);
 }

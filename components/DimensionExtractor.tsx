@@ -9,15 +9,37 @@ interface DimensionExtractorProps {
 
 export const DimensionExtractor: React.FC<DimensionExtractorProps> = ({ dimensions, onUpdate }) => {
     const [localDims, setLocalDims] = useState(dimensions);
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
     useEffect(() => {
         setLocalDims(dimensions);
     }, [dimensions]);
 
+    const validateDimension = (name: string, value: number) => {
+        let error = '';
+        if (value <= 0) {
+            error = 'Deve ser positivo';
+        } else if ((name === 'width' || name === 'depth') && value > 15) {
+            error = 'Máximo 15m';
+        } else if (name === 'height' && value > 5) {
+            error = 'Máximo 5m (Pé direito)';
+        }
+        return error;
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newDims = { ...localDims, [e.target.name]: parseFloat(e.target.value) };
+        const value = parseFloat(e.target.value);
+        const name = e.target.name;
+        
+        const newDims = { ...localDims, [name]: value };
         setLocalDims(newDims);
-        onUpdate(newDims);
+
+        const error = validateDimension(name, value);
+        setErrors(prev => ({ ...prev, [name]: error }));
+
+        if (!error) {
+            onUpdate(newDims);
+        }
     };
 
     return (
@@ -35,8 +57,9 @@ export const DimensionExtractor: React.FC<DimensionExtractorProps> = ({ dimensio
                         step="0.1" 
                         value={localDims.width} 
                         onChange={handleChange}
-                        className="w-full p-2 rounded border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f]"
+                        className={`w-full p-2 rounded border bg-gray-50 dark:bg-[#2d2424] ${errors.width ? 'border-red-500' : 'border-gray-300 dark:border-[#5a4f4f]'}`}
                     />
+                    {errors.width && <p className="text-[10px] text-red-500 mt-1">{errors.width}</p>}
                 </div>
                 <div>
                     <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Profundidade</label>
@@ -46,8 +69,9 @@ export const DimensionExtractor: React.FC<DimensionExtractorProps> = ({ dimensio
                         step="0.1" 
                         value={localDims.depth} 
                         onChange={handleChange}
-                        className="w-full p-2 rounded border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f]"
+                        className={`w-full p-2 rounded border bg-gray-50 dark:bg-[#2d2424] ${errors.depth ? 'border-red-500' : 'border-gray-300 dark:border-[#5a4f4f]'}`}
                     />
+                    {errors.depth && <p className="text-[10px] text-red-500 mt-1">{errors.depth}</p>}
                 </div>
                 <div>
                     <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Altura (Pé direito)</label>
@@ -57,8 +81,9 @@ export const DimensionExtractor: React.FC<DimensionExtractorProps> = ({ dimensio
                         step="0.1" 
                         value={localDims.height} 
                         onChange={handleChange}
-                        className="w-full p-2 rounded border bg-gray-50 dark:bg-[#2d2424] border-gray-300 dark:border-[#5a4f4f]"
+                        className={`w-full p-2 rounded border bg-gray-50 dark:bg-[#2d2424] ${errors.height ? 'border-red-500' : 'border-gray-300 dark:border-[#5a4f4f]'}`}
                     />
+                    {errors.height && <p className="text-[10px] text-red-500 mt-1">{errors.height}</p>}
                 </div>
             </div>
             <p className="text-xs text-amber-600 mt-2">⚠ Medidas estimadas via IA. Verifique no local.</p>
