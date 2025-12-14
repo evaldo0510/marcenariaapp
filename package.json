@@ -13,7 +13,8 @@
     "@google/genai": "^1.27.0",
     "react-dom": "^19.2.0",
     "@supabase/supabase-js": "^2.85.0",
-    "lucide-react": "latest"
+    "lucide-react": "latest",
+    "firebase": "^12.6.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
