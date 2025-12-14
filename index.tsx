@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import { App } from './App';
+import App from './App';
 import { LandingPage } from './components/LandingPage';
 
 const rootElement = document.getElementById('root');
