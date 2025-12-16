@@ -301,17 +301,24 @@ export async function generateImage(
         throw new Error("A IA não retornou uma imagem válida.");
         
     } catch (error: any) {
-        // Fallback Logic for Quota Exceeded (429/Resource Exhausted)
+        // Fallback Logic for Quota Exceeded (429/Resource Exhausted) or Permission Denied (403)
         const errorMsg = (error.message || '').toLowerCase();
-        const isQuotaError = error.status === 429 || 
-                             error.status === 'RESOURCE_EXHAUSTED' || 
+        const status = error.status || error.code;
+        
+        const isQuotaError = status === 429 || 
+                             status === 'RESOURCE_EXHAUSTED' || 
                              errorMsg.includes('429') || 
                              errorMsg.includes('quota') || 
                              errorMsg.includes('resource_exhausted');
+                             
+        const isPermissionError = status === 403 || 
+                                  status === 'PERMISSION_DENIED' || 
+                                  errorMsg.includes('permission_denied') ||
+                                  errorMsg.includes('403');
 
-        // If Pro model failed due to quota, try Flash model
-        if (useProModel && isQuotaError) {
-            console.warn("Pro model quota exceeded. Falling back to Standard (Flash) model.");
+        // If Pro model failed, try Flash model
+        if (useProModel && (isQuotaError || isPermissionError)) {
+            console.warn(`Pro model failed (${status}). Falling back to Standard (Flash) model.`);
             return generateImage(prompt, referenceImages, framingStrategy, false, '1K', decorationLevel, isMirrored);
         }
 
