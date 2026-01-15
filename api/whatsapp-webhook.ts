@@ -1,14 +1,33 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { supabase } from '../services/supabaseClient';
 
-// Token de verificação para o webhook
-const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'seu_token_secreto_aqui';
+// Função para buscar configurações do Supabase
+async function getWhatsAppConfig() {
+  const { data, error } = await supabase
+    .from('whatsapp_config')
+    .select('*')
+    .eq('ativo', true)
+    .single();
 
-// Inicializa o Google AI (Gemini)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+  if (error) {
+    console.error('Erro ao buscar configurações:', error);
+    return null;
+  }
+
+  return data;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('Webhook recebido:', req.method, req.query, req.body);
+
+  // Buscar configurações do banco
+  const config = await getWhatsAppConfig();
+  
+  if (!config) {
+    console.error('Configurações do WhatsApp não encontradas');
+    return res.status(500).json({ error: 'Configurações não encontradas' });
+  }
 
   // Verificação do webhook (GET request do Meta)
   if (req.method === 'GET') {
@@ -16,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
-    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+    if (mode === 'subscribe' && token === config.verify_token) {
       console.log('Webhook verificado com sucesso!');
       return res.status(200).send(challenge);
     } else {
@@ -46,8 +65,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           console.log('Mensagem recebida de:', from);
           console.log('Texto:', messageText);
 
+          // Salvar mensagem no banco de dados
+          await supabase.from('whatsapp_messages').insert({
+            message_id: messageId,
+            from_number: from,
+            message_text: messageText,
+            received_at: new Date().toISOString(),
+            status: 'received'
+          });
+
           // Processa a mensagem com a Iara (Google AI Studio)
           if (messageText) {
+            const genAI = new GoogleGenerativeAI(config.gemini_api_key);
             const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
             
             // Contexto da Iara para MarcenApp
@@ -63,9 +92,18 @@ Responda à seguinte mensagem de um cliente de forma amigável e profissional:
 
             console.log('Resposta da Iara:', iaraResponse);
 
-            // Aqui você enviaria a resposta de volta para o WhatsApp
-            // usando a API do WhatsApp Business
-            await sendWhatsAppMessage(from, iaraResponse);
+            // Enviar resposta de volta para o WhatsApp
+            await sendWhatsAppMessage(from, iaraResponse, config);
+
+            // Salvar resposta no banco
+            await supabase.from('whatsapp_messages').insert({
+              message_id: `sent_${Date.now()}`,
+              from_number: 'marcenapp',
+              to_number: from,
+              message_text: iaraResponse,
+              sent_at: new Date().toISOString(),
+              status: 'sent'
+            });
           }
         }
       }
@@ -81,22 +119,19 @@ Responda à seguinte mensagem de um cliente de forma amigável e profissional:
 }
 
 // Função para enviar mensagem via WhatsApp Business API
-async function sendWhatsAppMessage(to: string, message: string) {
-  const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
-  const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-
-  if (!WHATSAPP_TOKEN || !WHATSAPP_PHONE_ID) {
+async function sendWhatsAppMessage(to: string, message: string, config: any) {
+  if (!config.whatsapp_token || !config.phone_number_id) {
     console.error('Token ou Phone ID do WhatsApp não configurados');
     return;
   }
 
   try {
     const response = await fetch(
-      `https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`,
+      `https://graph.facebook.com/v21.0/${config.phone_number_id}/messages`,
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
+          'Authorization': `Bearer ${config.whatsapp_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
